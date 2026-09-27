@@ -9,7 +9,7 @@
 - **Kaaosjärjestelmä (v10.01):** keskitetty `chaosProfiles`/`setChaos()` `street.js`:ssä kirjoittaa kertoimet
   suoraan olemassa oleviin `let`-muuttujiin (ei uutta mekaniikkaa). Hub `#chaos-menu` (`index.html`) valitaan
   aina ennen `Street.init()`; NORMAL = nykyiset arvot, FULL CHAOS = `generateFullChaosSeed()`.
-- **Kaaosparametrien suunnitelma (27.9.2026, ei koodattu):** `docs/chaos.md` v2 – kategoriat **K0–K7**
+- **Kaaosparametrien suunnitelma (27.9.2026, vaiheet 1–3 koodattu v10.02–v10.04):** `docs/chaos.md` v2 – kategoriat **K0–K7**
   vaikutuksen mukaan (K1 visuaalinen = vapaa · K3 uhka & K4 keho = rajoitettu klampit · **K5 talous 🔒
   lukittu** · K6 ääni · K7 tapahtumakortit = v1 vain visuaalisia). Kaikki arvat kulkevat portin
   `clampChaosCfg()` + `validateChaosCfg()` läpi; pelaajan kyvykkyysindeksi **C** skaalaa uhkat

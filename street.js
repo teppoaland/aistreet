@@ -137,7 +137,7 @@ const Street = (() => {
     // vaiheeseensa (ei tasatahtiin); sammuksissa olevan kaapin valo on tumma
     // eikä kaappi iske. Testityökalu (ei tallenna): ?cabs=1 = molemmat päällä,
     // ?cabs=0 = molemmat sammuksissa (jäädyttää tilakellon).
-    const ELECTRIC_CABINET_ON = 0.5;      // todennäköisyys, että kaappi on päällä
+    let   ELECTRIC_CABINET_ON = 0.5;      // todennäköisyys, että kaappi on päällä (kaaos K3)
     const CAB_BLINK_MIN = 420, CAB_BLINK_MAX = 700;   // oma vilkunta ms / kaappi
     const CAB_REROLL_MIN = 900, CAB_REROLL_MAX = 2100;  // uusi arpa 15–35 s välein / kaappi
     const CAB_FORCE = (typeof location !== 'undefined' && typeof URLSearchParams !== 'undefined')
@@ -282,11 +282,12 @@ const Street = (() => {
     let coinRespawnTimer = 0;
     let hamburgerCount = 5;
     let hamburgerTimer = 2400;  // 40s @ ~60fps – lukittu tahti (sääntö 04)
+    let burgerInterval = 2400;  // 🍔-kulutustahti kaaosakselina (K4, v10.04); NORMAL 2400
     /* Herätysrauha (v4.41): nukkumisen jälkeen nälkäajastimelle jää vähintään
        tämä aika, ettei 1 🍔:lla nukkunut voi kuolla heti sängystä noustuaan.
        Ajastin ei nollaudu täyteen → ei ilmaista 40 s:ää eikä sängyssä
        käymisen hyväksikäyttöä. */
-    const HUNGER_WAKE_GRACE = 600;  // 10 s @ ~60fps
+    let   HUNGER_WAKE_GRACE = 600;  // 10 s @ ~60fps (kaaos K4, v10.04)
     /* HUD:n 🍔-varoitus (v4.39): vilkkuva punainen, kun tämä määrä tai
        vähemmän on jäljellä. 3 on oikea raja – siinä kannattaa jo syödä,
        ettei henki lähde seuraavasta osumasta. */
@@ -311,11 +312,14 @@ const Street = (() => {
     const BURGER_FORCE = (BURGER_PARAM !== null && /^\d+$/.test(BURGER_PARAM))
         ? Number(BURGER_PARAM) : null;
     /* Vauhtikerroin: ≤3 🍔 → 2/3 · 4–7 🍔 → 1,00 (normaali) · ≥8 🍔 → 2,00 */
-    function hungerSpeedMult() {
-        const n = (BURGER_FORCE !== null) ? BURGER_FORCE : hamburgerCount;
+    function hungerMultFor(n) {
         if (n <= HUNGER_SPEED_SLOW_MAX) return HUNGER_SPEED_SLOW_MULT;
         if (n >= HUNGER_SPEED_FAST_MIN) return HUNGER_SPEED_FAST_MULT;
         return 1;
+    }
+    function hungerSpeedMult() {
+        const n = (BURGER_FORCE !== null) ? BURGER_FORCE : hamburgerCount;
+        return hungerMultFor(n);
     }
     let firstHouseWindowsLit = false;
     let firstHouseKickCount = 0;
@@ -351,13 +355,13 @@ const Street = (() => {
        Osuma = tainnutus + 1 hampurilainen (kuten kukkaruukku).
        AVENGER_KIND: 'twin' = pelaajan kaksonen (nyt). 'dog' = koira myöhemmin. */
     const AVENGER_KIND      = 'twin';
-    const AVENGER_CHANCE    = 0.12;    // 1/8 – harvinaisempi kuin kolikko (1/5)
-    const AVENGER_COOLDOWN  = 1800;    // 30s tauko @ ~60fps (kuten potkukolikolla)
-    const AVENGER_SPEED     = 1.0;     // ½ nopeudesta (oli 2.0) – teeskennelty karkuunpääsy
-    const AVENGER_TELEGRAPH = 21;      // ~350ms oviaukon varoitus ennen ulostuloa
+    let   AVENGER_CHANCE    = 0.12;    // 1/8 – harvinaisempi kuin kolikko (1/5); kaaos K3
+    let   AVENGER_COOLDOWN  = 1800;    // 30s tauko @ ~60fps (kuten potkukolikolla); kaaos K3
+    let   AVENGER_SPEED     = 1.0;     // ½ nopeudesta (oli 2.0) – teeskennelty karkuunpääsy; kaaos K3
+    let   AVENGER_TELEGRAPH = 21;      // ~350ms oviaukon varoitus ennen ulostuloa; kaaos K3
     const AVENGER_HIT_R     = 18;      // osumasäde (px)
-    const AVENGER_STUN      = 600;     // 10s tainnutus (sama kuin ruukulla/autolla)
-    const AVENGER_FREEZE    = 180;     // 3s jäädytys (hit-stop) kontaktista ennen kosahtamista
+    let   AVENGER_STUN      = 600;     // 10s tainnutus (sama kuin ruukulla/autolla); kaaos K4
+    let   AVENGER_FREEZE    = 180;     // 3s jäädytys (hit-stop) kontaktista ennen kosahtamista; kaaos K3
     let avenger = null;              // { x, y, w, h, bldgIdx, facing, phase, timer, walkTimer, scale }
     let avengerCooldown = 0;         // tauko ennen kuin uusi oviukko voi tulla
 
@@ -383,8 +387,8 @@ const Street = (() => {
     let   ROBBER_TTL           = 900;   // ~15 s elinikä – katoaa jos ei nappaa kiinni; kaaos (v5.03)
     const ROBBER_BAR_EXCLUDE_R = 100;   // ei koskaan aivan BAR-oven kohdalle – pelaaja käy
                                         // BAR:ssa usein; muissa ovissa huono tuuri sallitaan
-    const ROBBER_STUN          = 900;   // ~15 s tainnutus kiinniotosta – pidempi kuin muiden
-                                        // osumien 600, jotta pelaaja ehtii nähdä, mitä kävi
+    let   ROBBER_STUN          = 900;   // ~15 s tainnutus kiinniotosta – pidempi kuin muiden
+                                        // osumien 600, jotta pelaaja ehtii nähdä, mitä kävi; kaaos K4
     let robber = null;        // { x, y, w, h, facing, dir, speed, pause, walkTimer, ttl }
     let robberCooldown = 0;   // tauko ennen kuin uusi rosvo voi ilmestyä
     let playerDead = false;          // kuolemasekvenssi käynnissä
@@ -836,7 +840,9 @@ const Street = (() => {
     function randomRobberSpeed() {
         const lo = ROBBER_SPEED * ROBBER_SPEED_MIN_MULT;
         const hi = ROBBER_SPEED * ROBBER_SPEED_MAX_MULT;
-        return lo + Math.random() * (hi - lo);
+        // Kaaos K3 (v10.04): rosvon nopeusarpa ei saa ylittää 1.4 × C (kyvykkyys)
+        const max = threatSpeedMax(chaosAbility());
+        return Math.min(lo + Math.random() * (hi - lo), max);
     }
 
     function spawnRobber() {
@@ -1460,10 +1466,10 @@ const Street = (() => {
     /* CHAOS_DEFAULTS2 = täysi superset (v10.02): kaikki kaaosakselit NORMAL-arvoilla.
        NORMAL = nykyiset literaalit → peli pysyy bitti-identtisenä (pääsääntö 1). */
     const CHAOS_DEFAULTS2 = Object.assign({}, CHAOS_DEFAULTS, {
-        playerSpeedMult: 1,               // kävelynopeuskerroin (❓1, vielä kiinteä 1)
+        playerSpeedMult: 1,               // kävelynopeuskerroin (kaaos K4, v10.04; klampi 0.6–1.6)
         avengerChance: 0.12, avengerSpeed: 1.0, avengerTelegraph: 21,
         avengerStun: 600, avengerFreeze: 180, avengerCooldown: 1800,
-        robberStun: 900,
+        robberStun: 900, cabinetOnChance: 0.5,
         startBurgers: 5, startCoins: 2, hungerWakeGrace: 600, burgerInterval: 2400,
         fogAlpha: 0,
         cloudCount: 18, cloudOpacityMult: 1, cloudBandTop: 40, cloudBandH: 40,
@@ -1627,6 +1633,20 @@ const Street = (() => {
             robberSpeed: rnd(0.7, 2.0),
             robberCooldown: rndInt(300, 3000),
             robberTtl: rndInt(300, 2000),
+            // K3 (uhka) + K4 (keho/reppu) – v10.04. Kaikki kulkee portin läpi.
+            playerSpeedMult: rnd(0.6, 1.6),
+            avengerChance: rnd(0, 0.6),
+            avengerSpeed: rnd(0.5, 1.4),
+            avengerTelegraph: rndInt(12, 45),
+            avengerFreeze: rndInt(0, 300),
+            avengerCooldown: rndInt(600, 6000),
+            avengerStun: rndInt(150, 600),
+            robberStun: rndInt(150, 900),
+            cabinetOnChance: rnd(0, 0.9),
+            startCoins: rndInt(1, 100),
+            startBurgers: rndInt(2, 10),
+            hungerWakeGrace: rndInt(600, 1800),
+            burgerInterval: rndInt(1200, 12000),
             // K1 (v10.03) – visuaalinen
             cloudCount: rndInt(4, 34),
             cloudOpacityMult: rnd(0.6, 2.5),
@@ -1665,6 +1685,14 @@ const Street = (() => {
                     coinRespawnFrames: rndInt(4800, 9600),
                     robberChance: rnd(0.25, 0.55), robberSpeed: rnd(0.9, 1.25),
                     robberCooldown: rndInt(1000, 2000), robberTtl: rndInt(700, 1200),
+                    // K3 + K4 (v10.04)
+                    playerSpeedMult: rnd(0.9, 1.1),
+                    avengerChance: rnd(0.08, 0.16), avengerSpeed: rnd(0.9, 1.1),
+                    avengerTelegraph: rndInt(19, 23), avengerFreeze: rndInt(150, 210),
+                    avengerCooldown: rndInt(1400, 2200), avengerStun: rndInt(540, 660),
+                    robberStun: rndInt(810, 900), cabinetOnChance: rnd(0.4, 0.6),
+                    startBurgers: rndInt(4, 6), burgerInterval: rndInt(1800, 3600),
+                    hungerWakeGrace: rndInt(600, 900),
                     cloudCount: rndInt(18, 26), cloudOpacityMult: 1.2, cloudSizeMult: 1.2,
                     cloudBandTop: 40, cloudBandH: 40, cloudCirrusShare: 0.35, cloudDayAlpha: 5,
                     starCount: rndInt(60, 100), starSizeMult: 1,
@@ -1685,6 +1713,13 @@ const Street = (() => {
                     birdMin: 14, birdMax: 22,
                     coinRespawnFrames: 3600,
                     robberChance: 0.12, robberSpeed: 0.8, robberCooldown: 2500, robberTtl: 600,
+                    // K3 + K4 (v10.04)
+                    playerSpeedMult: 1.0,
+                    avengerChance: rnd(0.02, 0.06), avengerSpeed: rnd(0.6, 0.8),
+                    avengerTelegraph: rndInt(26, 40), avengerFreeze: rndInt(240, 300),
+                    avengerCooldown: rndInt(3000, 5000), cabinetOnChance: rnd(0.10, 0.25),
+                    startBurgers: rndInt(6, 10), burgerInterval: rndInt(3000, 4800),
+                    hungerWakeGrace: rndInt(900, 1800),
                     cloudCount: rndInt(8, 12), cloudOpacityMult: 0.8, cloudSizeMult: 0.8,
                     cloudBandTop: 20, cloudBandH: 40, cloudCirrusShare: 0.5, cloudDayAlpha: 3,
                     daySkyTop: '#4a90c8', daySkyMid: '#8ec4e8', daySkyHorizon: '#ffe9b8',
@@ -1707,6 +1742,13 @@ const Street = (() => {
                     birdMin: 0, birdMax: 4,
                     coinRespawnFrames: 14400,
                     robberChance: 0.75, robberSpeed: 1.5, robberCooldown: 700, robberTtl: 1400,
+                    // K3 + K4 (v10.04)
+                    playerSpeedMult: rnd(0.8, 1.0),
+                    avengerChance: rnd(0.30, 0.50), avengerSpeed: rnd(1.2, 1.4),
+                    avengerTelegraph: rndInt(12, 21), avengerFreeze: rndInt(60, 180),
+                    avengerCooldown: rndInt(600, 1200), cabinetOnChance: rnd(0.70, 0.90),
+                    startBurgers: rndInt(2, 3), burgerInterval: rndInt(1200, 2400),
+                    hungerWakeGrace: 600,
                     cloudCount: rndInt(28, 34), cloudOpacityMult: 2.0, cloudSizeMult: 1.4,
                     cloudBandTop: 10, cloudBandH: 70, cloudCirrusShare: 0.15, cloudDayAlpha: 9,
                     daySkyTop: '#3a4044', daySkyMid: '#565e62', daySkyHorizon: '#6e6a5e',
@@ -1730,7 +1772,7 @@ const Street = (() => {
 
     function applyChaosProfile(level) {
         chaosLevel = level || 'normal';
-        chaosCfg = Object.assign({}, CHAOS_DEFAULTS2, chaosProfile(chaosLevel));
+        chaosCfg = drawChaosCfg(chaosLevel);   // portti: klampit + validointi (pääsääntö 2)
         // Kirjoitetaan kertoimet olemassa oleviin muuttujiin
         DAY_CYCLE_FRAMES     = chaosCfg.dayCycleFrames;
         MOON_NIGHT_FRAMES    = chaosCfg.dayCycleFrames;
@@ -1747,9 +1789,7 @@ const Street = (() => {
         trafficSpeedMult     = chaosCfg.trafficSpeedMult;
         trafficSpawnMult     = chaosCfg.trafficSpawnMult;
         skyDir               = chaosCfg.skyDir;
-        // K1 – visuaaliset akselit (v10.03). HUOM: portti (clampChaosCfg/validateChaosCfg)
-        // otetaan tuotantokäyttöön vasta vaiheessa 3 (K3+K4, C-indeksi); K1-arvot ovat
-        // tässä jo valmiiksi turvallisissa haarukoissa (visuaalinen, ei voi rikkoa peliä).
+        // K1 – visuaaliset akselit (v10.03)
         cloudCount          = chaosCfg.cloudCount;
         cloudOpacityMult    = chaosCfg.cloudOpacityMult;
         cloudSizeMult       = chaosCfg.cloudSizeMult;
@@ -1779,6 +1819,17 @@ const Street = (() => {
         WIN_DAY_FILL        = chaosCfg.winDayFill;
         LAMP_RADIUS         = chaosCfg.lampRadius;
         BAT_COUNT_MAX       = chaosCfg.batCountMax;
+        // K3 (uhka) + K4 (keho/reppu) – v10.04: C-indeksi tuotantokäyttöön
+        AVENGER_CHANCE      = chaosCfg.avengerChance;
+        AVENGER_SPEED       = chaosCfg.avengerSpeed;
+        AVENGER_TELEGRAPH   = chaosCfg.avengerTelegraph;
+        AVENGER_FREEZE      = chaosCfg.avengerFreeze;
+        AVENGER_COOLDOWN    = chaosCfg.avengerCooldown;
+        AVENGER_STUN        = chaosCfg.avengerStun;
+        ROBBER_STUN         = chaosCfg.robberStun;
+        ELECTRIC_CABINET_ON = chaosCfg.cabinetOnChance;
+        HUNGER_WAKE_GRACE   = chaosCfg.hungerWakeGrace;
+        burgerInterval      = chaosCfg.burgerInterval;
         // Spawn-arpa turvalliselle jalkakäytävälle (ei ajokaistoille y 328/340)
         player.x = rnd(4, WORLD_W - player.w - 4);
         player.y = (Math.random() < 0.8)
@@ -1788,8 +1839,8 @@ const Street = (() => {
         if (CHAOS_DEBUG) {
             console.table(chaosCfg);
             console.log('[chaos] level =', chaosLevel,
-                '· C =', chaosAbility(),
-                '· burgerIntervalMin =', burgerIntervalMin(chaosCfg, chaosAbility()),
+                '· C =', chaosAbilityFor(chaosCfg),
+                '· burgerIntervalMin =', burgerIntervalMin(chaosCfg, chaosAbilityFor(chaosCfg)),
                 '· validate =', validateChaosCfg(chaosCfg));
         }
     }
@@ -1810,6 +1861,12 @@ const Street = (() => {
 
     // 1) Kyvykkyysindeksi C (luku 5.1)
     function chaosSpeedMult() { return chaosCfg.playerSpeedMult || 1; }
+    // Portti käyttää ARVOTTAVAN configin arvoja (playerSpeedMult + startBurgers):
+    // muuten C laskettaisiin vanhalla chaosCfg:llä ja väärällä 🍔-määrällä.
+    function chaosAbilityFor(cfg) {
+        return (cfg.playerSpeedMult || 1) * hungerMultFor(cfg.startBurgers);
+    }
+    // Ajonaikainen C (liike, rosvon spawn) käyttää elävää 🍔-määrää.
     function chaosAbility()   { return chaosSpeedMult() * hungerSpeedMult(); }
     function stunMaxOf(cfg)   { return Math.max(cfg.avengerStun, cfg.robberStun); }
 
@@ -1831,8 +1888,9 @@ const Street = (() => {
 
     // 4) Portti: klampit
     function clampChaosCfg(cfg) {
-        const C = chaosAbility();
+        const C = chaosAbilityFor(cfg);
         const c = Object.assign({}, cfg);
+        c.playerSpeedMult  = clamp(c.playerSpeedMult, 0.6, 1.6);   // kävelynopeus (K4)
         c.cloudCount       = clamp(c.cloudCount, 4, 34);
         c.cloudOpacityMult = clamp(c.cloudOpacityMult, 0.4, 2.5);
         c.windSpeedMult    = clamp(c.windSpeedMult, 0.4, 3.5);
@@ -1840,11 +1898,17 @@ const Street = (() => {
         c.avengerChance    = clamp(c.avengerChance, 0, 0.6);
         c.avengerSpeed     = clamp(c.avengerSpeed, 0.5, threatSpeedMax(C));
         c.avengerTelegraph = clamp(c.avengerTelegraph, threatTelegraphMin(C), 45);
+        c.avengerFreeze    = clamp(c.avengerFreeze, 0, 300);       // BAD ≤ 180 (kiristetään tasoissa)
+        c.avengerCooldown  = clamp(c.avengerCooldown, 600, 6000);
         c.avengerStun      = clamp(c.avengerStun, 150, 600);      // ei koskaan pidempi kuin nyt
         c.robberStun       = clamp(c.robberStun, 150, 900);
         c.robberSpeed      = clamp(c.robberSpeed, 0.7, threatSpeedMax(C));
-        c.trafficSpeedMult = clamp(c.trafficSpeedMult, 0.6, 1.6);
+        // Liikenteen ylityssääntö (K3): hitainkin pelaaja ehtii kadun yli.
+        // ylitys 67 px @ 1.225·C · nopein auto 3.0 (ambulanssi) · 40 % turvamarginaali.
+        const crossMax = 0.6 * (WORLD_W + 80) / (3.0 * (67 / (1.225 * C)));
+        c.trafficSpeedMult = clamp(c.trafficSpeedMult, 0.6, Math.min(1.6, crossMax));
         c.trafficSpawnMult = clamp(c.trafficSpawnMult, 0.5, 2.5);
+        c.cabinetOnChance  = clamp(c.cabinetOnChance, 0, 0.9);     // sähkökaappi päällä
         c.startBurgers     = clamp(c.startBurgers, 2, 10);        // ehdoton
         c.startCoins       = clamp(c.startCoins, 1, 100);
         c.hungerWakeGrace  = clamp(c.hungerWakeGrace, 600, 1800);
@@ -1855,7 +1919,7 @@ const Street = (() => {
 
     // 5) Portti: hyväksyntä – hylkää epäreilu arpa (pääsääntö 2)
     function validateChaosCfg(cfg) {
-        const C = chaosAbility(), errs = [];
+        const C = chaosAbilityFor(cfg), errs = [];
         if (cfg.burgerInterval < burgerIntervalMin(cfg, C))     errs.push('burgerInterval < kaava');
         if (cfg.avengerSpeed > threatSpeedMax(C))               errs.push('avenger liian nopea');
         if (cfg.robberSpeed  > threatSpeedMax(C))               errs.push('robber liian nopea');
@@ -1866,6 +1930,20 @@ const Street = (() => {
         if (cfg.fogAlpha > 0.5)                                 errs.push('sumu liian sakea');
         return errs;
     }
+
+    // 6) FULL-arpa: enintään 40 yritystä, muuten turvallinen klampattu arpa (v10.04)
+    function drawChaosCfg(level) {
+        if (level !== 'full') {
+            return clampChaosCfg(Object.assign({}, CHAOS_DEFAULTS2, chaosProfile(level)));
+        }
+        for (let i = 0; i < 40; i++) {
+            const cfg = clampChaosCfg(Object.assign({}, CHAOS_DEFAULTS2, generateFullChaosSeed()));
+            if (validateChaosCfg(cfg).length === 0) return cfg;
+        }
+        console.warn('[chaos] arpa hylättiin 40× – käytetään klampattua arpaa');
+        return clampChaosCfg(Object.assign({}, CHAOS_DEFAULTS2, generateFullChaosSeed()));
+    }
+
 
     function init(canvasEl) {
         canvas = canvasEl;
@@ -1881,6 +1959,14 @@ const Street = (() => {
         delete progressState.moonClock;
         delete progressState.sunClock;
         const freshGame = (JSON.stringify(progressState) === JSON.stringify(GameState.defaultState));
+        // Kaaos K4 (v10.04): uuden pelin syntymäpaketti kaaosakselina
+        // (aloituskolikot 1–100 · aloitus🍔 2–10). Tallennettu saldo voittaa aina
+        // (sääntö 01) → koskee vain aivan uutta peliä.
+        if (freshGame) {
+            state.inventory.coinCount = chaosCfg.startCoins;
+            state.inventory.hamburgerCount = chaosCfg.startBurgers;
+            GameState.save(state);
+        }
         for (let i = 0; i < lamps.length; i++) {
             lamps[i].lit = state.litLamps[i];
             lamps[i].kickCount = lamps[i].kickCount || 0;
@@ -1903,7 +1989,7 @@ const Street = (() => {
         coinRespawnTimer = coin.collected ? 1 : 0;
         coin.despawnTimer = coin.collected ? 0 : 600;
         hamburgerCount = state.inventory.hamburgerCount || 5;
-        hamburgerTimer = 2400;
+        hamburgerTimer = burgerInterval;
         if (coin.collected) { coin.x = -100; coin.y = -100; }
         else { coin.x = randomCoinX(); coin.y = randomCoinY(); }
         digKeyCollected = state.digKeyCollected || false;
@@ -2377,7 +2463,7 @@ const Street = (() => {
         // Nälkäkuolema laukeaa myös huoneessa/pelissä (v4.50): huone tai
         // alapeli suljetaan ensin, jotta pelaaja romahtaa näkyvästi kadulle
         // eikä peli näytä nollautuvan kesken pelaamisen.
-        // Tahti (2400 framet = 40 s) ja katto 10 ovat lukittuja (sääntö 04).
+        // Tahti (burgerInterval, kaaos K4) ja katto 10.
         if (!hungerOnHold()) {
             if (hamburgerCount > 0) {
                 hamburgerTimer -= dt;
@@ -2386,7 +2472,7 @@ const Street = (() => {
                     state.inventory.hamburgerCount = hamburgerCount;
                     GameState.save(state);
                     updateHUD();
-                    hamburgerTimer = hamburgerCount > 0 ? 2400 : 0;
+                    hamburgerTimer = hamburgerCount > 0 ? burgerInterval : 0;
                 }
             }
             if (hamburgerCount <= 0) {              // 0 🍔 → kuolema
@@ -2622,10 +2708,11 @@ const Street = (() => {
         }
 
         // ── Liike ──────────────────────────────────
-        /* Vauhti riippuu 🍔-määrästä (hungerSpeedMult): nälkäisenä hitaampi,
-           täydellä vatsalla nopeampi. PLAYER_SPEED (1.225) on normitaso. */
-        const speedMult = hungerSpeedMult();
-        StreetAudio.setHungerTempo(speedMult);   // synkkaa syntikkatempo 🍔-vauhtiin (v4.93)
+        /* Vauhti riippuu 🍔-määrästä (hungerSpeedMult) ja kaaos-kävelynopeudesta
+           (playerSpeedMult, K4): chaosAbility() = molemmat kerrointa. PLAYER_SPEED
+           (1.225) on normitaso. NORMALissa playerSpeedMult = 1 → muutos on no-op. */
+        const speedMult = chaosAbility();
+        StreetAudio.setHungerTempo(hungerSpeedMult());   // syntikkatempo pysyy 🍔-sidonnaisena (v4.94)
         const moveSpeed = PLAYER_SPEED * speedMult;
         let moveX = 0;
         if (keys['ArrowLeft'] || keys['a'] || keys['A'])  moveX = -1;
