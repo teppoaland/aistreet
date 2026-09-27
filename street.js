@@ -131,7 +131,7 @@ const Street = (() => {
     let beamFireTimer = 0;             // säteen piirto frameä laukaisun jälkeen
     let beamStartX = 0, beamStartY = 0;  // säteen lähtöpiste (jäädytetään laukaisussa)
     let beamEndX = 0, beamEndY = 0;      // säteen kohdepiste (jäädytetään laukaisussa)
-    const BEAM_HIT_TOLERANCE = 10;     // säteen osuman sallittu etäisyys (px)
+    const BEAM_HIT_TOLERANCE = 0;      // osuma vain jos säde osuu meteoriitin kehään (tarkka, v10.26)
     const BEAM_FIRE_FRAMES = 60;       // säteen näkyvyysaika (frameä) – ~1 s valoraita
 
     /* ── Sähkökaapit (talojen kyljissä, kerrostalon vas. seinä) ── */
@@ -1704,34 +1704,14 @@ const Street = (() => {
         };
     }
 
-    /* Liang–Barsky: leikkaako jana (x1,y1)→(x2,y2) suorakaiteen
-       [rx1,rx2]×[ry1,ry2]. v10.23 */
-    function segmentIntersectsRect(x1, y1, x2, y2, rx1, ry1, rx2, ry2) {
-        let t0 = 0, t1 = 1;
-        const dx = x2 - x1, dy = y2 - y1;
-        const p = [-dx, dx, -dy, dy];
-        const q = [x1 - rx1, rx2 - x1, y1 - ry1, ry2 - y1];
-        for (let i = 0; i < 4; i++) {
-            if (p[i] === 0) {
-                if (q[i] < 0) return false;
-            } else {
-                const r = q[i] / p[i];
-                if (p[i] < 0) {
-                    if (r > t1) return false;
-                    if (r > t0) t0 = r;
-                } else {
-                    if (r < t0) return false;
-                    if (r < t1) t1 = r;
-                }
-            }
-        }
-        return true;
-    }
-
-    /* Onko säteen linja (suuaukko → tähtäyspiste) jonkin katurivin talon takana. */
-    function beamHitsBuilding(x1, y1, x2, y2) {
+    /* Onko meteoriitti jonkin katurivin talon takana (meteoriitti piirretään
+       talojen takana → talon läpi ei voi osua). Tarkistaa meteoriitin SIJAINNIN,
+       ei säteen linjaa – linja kulkee aina talovyöhykkeen läpi, joten linja-tarkistus
+       estäisi kaikki osumat. v10.25 */
+    function meteoriteBehindBuilding() {
+        const mx = shootingStar.x, my = shootingStar.y;
         for (const b of buildings) {
-            if (segmentIntersectsRect(x1, y1, x2, y2, b.x, GROUND_Y - b.h, b.x + b.w, GROUND_Y)) {
+            if (mx >= b.x && mx <= b.x + b.w && my >= GROUND_Y - b.h && my <= GROUND_Y) {
                 return true;
             }
         }
@@ -1754,8 +1734,8 @@ const Street = (() => {
         beamStartX = m.x; beamStartY = m.y;
         beamEndX = aimX; beamEndY = aimY;
         playLaser();
-        // v10.23: talojen läpi ei voi ampua – jos linja kulkee talon kautta, ei osumaa
-        if (beamHitsBuilding(m.x, m.y, aimX, aimY)) return;
+        // v10.25: talon takana olevaan meteoriittiin ei voi osua (tarkistaa sijainnin, ei linjaa)
+        if (meteoriteBehindBuilding()) return;
         const d = distanceToSegment(shootingStar.x, shootingStar.y, m.x, m.y, aimX, aimY);
         if (d < shootingStar.r + BEAM_HIT_TOLERANCE) {
             // Osuma → meteoriitti räjähtää ennen maahan osumista (ei taustatuhoa, ei tärinää)
