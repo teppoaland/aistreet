@@ -403,7 +403,7 @@ const Street = (() => {
     let hitPauseTimer = 0;            // hit pause -laskuri: maailma jäätyy osumasta (frameä)
     let vehicleShakeTimer =0;          // tärinä ajoneuvon törmäyksestä  (frameä, vain visuaalinen)
     let meteorShakeTimer = 0;         // meteoriitin törmäyksen tärinä (v10.15, frameä, vain visuaalinen)
-    let meteorFlash = null;           // meteoriitin törmäysvälähdys { x, y, t } (v10.15)
+    let meteorFlash = null;           // meteoriitin taivasvälähdys { t } (v10.16)
     let iframeOpen = false;           // alapeli auki (overlay) → päivän liuku pysähtyy
 
     /* ── Kamera (mobiili: vaakasuuntainen seuranta) ── */
@@ -1585,8 +1585,8 @@ const Street = (() => {
     /* ── Tähdenlento + satelliitti – apufunktiot (v10.03, ❓4) ──
        Sama logiikka oli aiemmin kahtena kopiona (tainnutus-haara + kadun
        update). Yhdistetty, jotta sama koodi pätee molemmissa paikoissa. */
-    const METEOR_SHAKE_FRAMES = 40;   // meteoriitin törmäyksen tärinän kesto (frameä, v10.15)
-    const METEOR_FLASH_FRAMES = 16;   // meteoriitin törmäysvälähdyksen kesto (frameä, v10.15)
+    const METEOR_SHAKE_FRAMES = 150;  // meteoriitin törmäyksen tärinän kesto (frameä, ~2.5 s, v10.16)
+    const METEOR_FLASH_FRAMES = 60;   // meteoriitin taivasvälähdyksen kesto (frameä, ~1 s, v10.16)
 
     /* Meteoriitin esiintymistodennäköisyys (v10.15): tähdenlennon sijaan iso, hitaasti
        etenevä meteoriitti. NORMAL = 0 (ei koskaan). Säädettävissä pelituntuman mukaan. */
@@ -1605,14 +1605,18 @@ const Street = (() => {
             if (shootingStar) { shootingStar.timer -= dt; }
             if (!shootingStar || shootingStar.timer <= 0) {
                 if (chaosLevel !== 'normal' && Math.random() < meteoriteChance()) {
-                    // Iso, hitaasti putoava meteoriitti (v10.15) – tähdenlennon tilalla.
-                    // Putoamisnopeus (vy) määrää, milloin se on maassa → törmäys + tärinä.
+                    // Iso, hitaasti putoava meteoriitti (v10.15/v10.16) – tähdenlennon tilalla.
+                    // v10.16: viisto laskeutumiskulma 40–60° vaakasuorasta (kuten tähdenlento),
+                    // jotta ehtii nähdä ja säikähtää. Suunta oikealle/vasemmalle, lähtö vastakkaiselta reunalta.
+                    const mAng = (40 + Math.random() * 20) * Math.PI / 180;
+                    const mDir = Math.random() < 0.5 ? 1 : -1;
+                    const mSpd = 0.45 + Math.random() * 0.4;
                     shootingStar = {
                         kind: 'meteorite',
-                        x: 40 + Math.random() * (WORLD_W - 80),
+                        x: mDir > 0 ? (10 + Math.random() * 80) : (WORLD_W - 10 - Math.random() * 80),
                         y: 10 + Math.random() * 40,
-                        vx: (Math.random() - 0.5) * 0.3,
-                        vy: 0.4 + Math.random() * 0.4,
+                        vx: Math.cos(mAng) * mSpd * mDir,
+                        vy: Math.sin(mAng) * mSpd,
                         r: 8 + Math.random() * 6,
                         active: true, life: 0,
                         trail: [], timer: (600 + Math.random() * 2100) * meteorTempoMult
@@ -1636,13 +1640,15 @@ const Street = (() => {
             shootingStar.y += shootingStar.vy * dt;
             shootingStar.life += dt;
             shootingStar.trail.push({x: shootingStar.x, y: shootingStar.y});
-            if (shootingStar.trail.length > 24) shootingStar.trail.shift();
+            if (shootingStar.trail.length > 48) shootingStar.trail.shift();  // v10.16: 2x pidempi häntä
             if (shootingStar.y >= GROUND_Y) {
                 meteorShakeTimer = METEOR_SHAKE_FRAMES;
-                meteorFlash = { x: shootingStar.x, y: GROUND_Y, t: METEOR_FLASH_FRAMES };
+                meteorFlash = { t: METEOR_FLASH_FRAMES };   // v10.16: taivas välähtää (ei etualan palloa)
                 spawnParticles(shootingStar.x, GROUND_Y - 4, '#ffaa44', 18);
                 spawnParticles(shootingStar.x, GROUND_Y - 4, '#ffdd88', 10);
                 shootingStar.active = false;
+            } else if (shootingStar.x < -40 || shootingStar.x > WORLD_W + 40) {
+                shootingStar.active = false;   // lensi ulos sivusta, ei törmäystä
             }
         } else {
             shootingStar.x += shootingStar.vx * dt;
@@ -4829,6 +4835,13 @@ const Street = (() => {
             ctx.beginPath(); ctx.arc(satellite.x, satellite.y, 1.5, 0, Math.PI*2); ctx.fill();
         }
 
+        // Meteoriitin törmäysvälähdys (v10.16): koko taivas välähtää salaman lailla (talojen takana)
+        if (meteorFlash) {
+            const k = meteorFlash.t / METEOR_FLASH_FRAMES;   // 1 → 0
+            ctx.fillStyle = 'rgba(255,255,235,' + (0.8 * k) + ')';
+            ctx.fillRect(0, 0, WORLD_W, GROUND_Y);
+        }
+
         // Kaukainen kaupunkisiluetti (parallaksi 0.4×) – tähtien/taivaan päällä, talojen takana
         drawBackdrop(camX * (1 - BACKDROP_PARALLAX));
         drawBuildings();
@@ -4935,18 +4948,6 @@ const Street = (() => {
             ctx.fillRect(p.x-2, p.y-2, 4, 4);
         }
         ctx.globalAlpha = 1;
-
-        // Meteoriitin törmäysvälähdys (v10.15)
-        if (meteorFlash) {
-            const k = meteorFlash.t / METEOR_FLASH_FRAMES;
-            const fr = 8 + 26 * k;
-            const g = ctx.createRadialGradient(meteorFlash.x, meteorFlash.y, 0, meteorFlash.x, meteorFlash.y, fr);
-            g.addColorStop(0, 'rgba(255,240,190,' + (0.9 * k) + ')');
-            g.addColorStop(0.5, 'rgba(255,150,50,' + (0.5 * k) + ')');
-            g.addColorStop(1, 'rgba(255,80,20,0)');
-            ctx.fillStyle = g;
-            ctx.beginPath(); ctx.arc(meteorFlash.x, meteorFlash.y, fr, 0, Math.PI * 2); ctx.fill();
-        }
 
         // ── Päivänvalo (lopputila: kaikki 3 avainta) ──
         // Yksi additive-kerros kirkastaa koko kadun (asfaltti, talot, siluetti,
