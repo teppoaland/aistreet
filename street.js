@@ -1497,7 +1497,10 @@ const Street = (() => {
         dayFadeFrames: 1200, nightFadeFrames: 1200, cycleChangeDelayFrames: 900,
         nightLampFirst: 30, nightLampInterval: 18, spawnLampDelay: 240,
         cabBlinkMin: 420, cabBlinkMax: 700, cabRerollMin: 900, cabRerollMax: 2100,
-        mosquitoDayDim: 1, meteorTempoMult: 1, sfxVolumeMult: 1
+        mosquitoDayDim: 1, meteorTempoMult: 1, sfxVolumeMult: 1,
+        // Kaaos v10.18 – uudet akselit (NORMAL = no-op)
+        doorLockChance: 0, staggerAmount: 0, screenShakeAmount: 0,
+        lampRedFlicker: 0, barBurntLetter: -1, cabFlicker: 0, sunSizeMult: 1
     });
     let chaosLevel = 'normal';
     let chaosCfg = Object.assign({}, CHAOS_DEFAULTS2);
@@ -1517,6 +1520,19 @@ const Street = (() => {
     let meteorTempoMult = 1;      // tähdenlennon/satelliitin tahti (K2, v10.05)
     let sfxVolumeMult   = 1;      // SFX-taso (K6, v10.05)
     let fogAlpha        = 0;      // sumuverhon peittävyys (K7/K1, v10.05)
+    // Kaaos v10.18 – uudet akselit (polariteetti: ikävät = BAD/FULL, neutraalit = kaikki chaos-tasot)
+    let doorLockChance   = 0;     // lukitut ovet (jukebox + hedelmäpeli), 0 = ei koskaan (NORMAL)
+    let staggerAmount    = 0;     // pelaajan hoipertelu (0–1), 0 = suora kävely (NORMAL)
+    let screenShakeAmount = 0;    // koko ajan hiukan tärisevä kuva (0–1), 0 = ei (NORMAL)
+    let lampRedFlicker   = 0;     // lamppu napsahtaa hetkeksi punaiseksi (todennäköisyys/frame)
+    let barBurntLetter   = -1;    // BAR-kyltin palanut kirjain (-1 = ei mitään, 0–2 = B/A/R)
+    let cabFlicker       = 0;     // sähkökaapin valon "rätinä" (0–1)
+    let sunSizeMult      = 1;     // auringon koko (1 = nykyinen, 2 = tupla)
+
+    /* Kaaos v10.18 – satunnaisesti lukittu ovi (jukebox + hedelmäpeli).
+       Ei ilmoitusta (sääntö 06): ovi ei vain aukea. BAR ja makuuhuone
+       ovat aina auki (pelaajan turvapaikat) – niitä ei koskaan lukita. */
+    function doorLocked() { return doorLockChance > 0 && Math.random() < doorLockChance; }
 
     /* Deterministinen siemen + testikytkimet (v10.02, K0-infra).
        ?seed=N → sama kaaos jokaisella latauksella · ?debug → konsolidumppi. */
@@ -1724,7 +1740,8 @@ const Street = (() => {
             robberCooldown: rndInt(300, 3000),
             robberTtl: rndInt(300, 2000),
             // K3 (uhka) + K4 (keho/reppu) – v10.04. Kaikki kulkee portin läpi.
-            playerSpeedMult: rnd(0.6, 1.6),
+            // v10.18: hidastus poistettu (tylsä) → vain normaali/nopeampi; hoipertelu korvaa sen.
+            playerSpeedMult: rnd(1.0, 1.6),
             avengerChance: rnd(0, 0.6),
             avengerSpeed: rnd(0.5, 1.4),
             avengerTelegraph: rndInt(12, 45),
@@ -1768,7 +1785,16 @@ const Street = (() => {
             cabBlinkMin: rndInt(120, 600), cabBlinkMax: rndInt(600, 1200),
             cabRerollMin: rndInt(300, 1800), cabRerollMax: rndInt(1800, 3600),
             mosquitoDayDim: (Math.random() < 0.5 ? 0 : 1),
-            meteorTempoMult: rnd(0.1, 5), sfxVolumeMult: rnd(0.5, 1.5)
+            meteorTempoMult: rnd(0.1, 5), sfxVolumeMult: rnd(0.5, 1.5),
+            // Kaaos v10.18 – uudet akselit. Ikävät (oviukko/hoipertelu/tärinä) arvotaan:
+            // FULL voi saada ne tai olla ilman; BAD saa ne aina chaosProfile():ssa.
+            doorLockChance: rnd(0, 0.6),
+            staggerAmount: rnd(0, 1.0),
+            screenShakeAmount: rnd(0, 0.5),
+            lampRedFlicker: rnd(0, 0.03),
+            barBurntLetter: rndInt(-1, 2),
+            cabFlicker: rnd(0, 1),
+            sunSizeMult: rnd(0.6, 2.0)
         };
     }
 
@@ -1783,8 +1809,8 @@ const Street = (() => {
                     coinRespawnFrames: rndInt(4800, 9600),
                     robberChance: rnd(0.25, 0.55), robberSpeed: rnd(0.9, 1.25),
                     robberCooldown: rndInt(1000, 2000), robberTtl: rndInt(700, 1200),
-                    // K3 + K4 (v10.04)
-                    playerSpeedMult: rnd(0.9, 1.1),
+                    // K3 + K4 (v10.04) – v10.18: ei hidastusta (vain normaali/nopeampi)
+                    playerSpeedMult: rnd(1.0, 1.1),
                     avengerChance: rnd(0.08, 0.16), avengerSpeed: rnd(0.9, 1.1),
                     avengerTelegraph: rndInt(19, 23), avengerFreeze: rndInt(150, 210),
                     avengerCooldown: rndInt(1400, 2200), avengerStun: rndInt(540, 660),
@@ -1805,7 +1831,11 @@ const Street = (() => {
                     dayFadeFrames: 1200, nightFadeFrames: 1200, cycleChangeDelayFrames: 900,
                     nightLampFirst: rndInt(21, 39), nightLampInterval: rndInt(13, 23), spawnLampDelay: 240,
                     cabBlinkMin: 420, cabBlinkMax: 700, cabRerollMin: 900, cabRerollMax: 2100,
-                    mosquitoDayDim: 1, meteorTempoMult: 0.8, sfxVolumeMult: rnd(0.9, 1.1)
+                    mosquitoDayDim: 1, meteorTempoMult: 0.8, sfxVolumeMult: rnd(0.9, 1.1),
+                    // Kaaos v10.18 – MILD: ei ikäviä (oviukko/hoipertelu/tärinä = 0), vain hennot neutraalit efektit
+                    doorLockChance: 0, staggerAmount: 0, screenShakeAmount: 0,
+                    lampRedFlicker: rnd(0.0008, 0.002), barBurntLetter: -1,
+                    cabFlicker: rnd(0.1, 0.25), sunSizeMult: rnd(1.0, 1.1)
                 };
             case 'good':
                 return {
@@ -1838,7 +1868,11 @@ const Street = (() => {
                     dayFadeFrames: rndInt(1800, 2600), nightFadeFrames: rndInt(1800, 2600), cycleChangeDelayFrames: rndInt(1500, 2400),
                     nightLampFirst: 45, nightLampInterval: 28, spawnLampDelay: 300,
                     cabBlinkMin: 300, cabBlinkMax: 800, cabRerollMin: 1800, cabRerollMax: 3600,
-                    mosquitoDayDim: 1, meteorTempoMult: 1.5, sfxVolumeMult: rnd(0.7, 0.85)
+                    mosquitoDayDim: 1, meteorTempoMult: 1.5, sfxVolumeMult: rnd(0.7, 0.85),
+                    // Kaaos v10.18 – GOOD: ei ikäviä, vain hennot neutraalit efektit
+                    doorLockChance: 0, staggerAmount: 0, screenShakeAmount: 0,
+                    lampRedFlicker: rnd(0.0008, 0.002), barBurntLetter: -1,
+                    cabFlicker: rnd(0.1, 0.2), sunSizeMult: rnd(1.0, 1.15)
                 };
             case 'bad':
                 return {
@@ -1850,8 +1884,8 @@ const Street = (() => {
                     // Rosvo jahtaa vapaasti (robberChasesY) → ei saa ilmestyä useammin kuin 30 s välein (1800 f)
                     robberChance: 0.75, robberSpeed: 1.5, robberCooldown: 1800, robberTtl: 1400,
                     robberChasesY: true,
-                    // K3 + K4 (v10.04)
-                    playerSpeedMult: rnd(0.8, 1.0),
+                    // K3 + K4 (v10.04) – v10.18: ei hidastusta (hoipertelu korvaa sen)
+                    playerSpeedMult: 1.0,
                     avengerChance: rnd(0.30, 0.50), avengerSpeed: rnd(1.2, 1.4),
                     avengerTelegraph: rndInt(12, 21), avengerFreeze: rndInt(60, 180),
                     avengerCooldown: rndInt(600, 1200), cabinetOnChance: rnd(0.70, 0.90),
@@ -1873,7 +1907,15 @@ const Street = (() => {
                     dayFadeFrames: rndInt(400, 700), nightFadeFrames: rndInt(400, 700), cycleChangeDelayFrames: rndInt(200, 450),
                     nightLampFirst: 8, nightLampInterval: 4, spawnLampDelay: 60,
                     cabBlinkMin: 200, cabBlinkMax: 400, cabRerollMin: 500, cabRerollMax: 900,
-                    mosquitoDayDim: 0, meteorTempoMult: 0.3, sfxVolumeMult: rnd(1.15, 1.35)
+                    mosquitoDayDim: 0, meteorTempoMult: 0.3, sfxVolumeMult: rnd(1.15, 1.35),
+                    // Kaaos v10.18 – BAD: ikävät päällä (lukitut ovet, hoipertelu, tärinä) + neutraalit rajummin
+                    doorLockChance: rnd(0.4, 0.6),
+                    staggerAmount: rnd(0.5, 1.0),
+                    screenShakeAmount: rnd(0.25, 0.5),
+                    lampRedFlicker: rnd(0.006, 0.02),
+                    barBurntLetter: rndInt(0, 2),
+                    cabFlicker: rnd(0.5, 0.8),
+                    sunSizeMult: rnd(1.6, 2.0)
                 };
             case 'full':
                 return generateFullChaosSeed();
@@ -1949,6 +1991,14 @@ const Street = (() => {
         meteorTempoMult     = chaosCfg.meteorTempoMult;
         sfxVolumeMult       = chaosCfg.sfxVolumeMult;
         fogAlpha            = chaosCfg.fogAlpha;
+        // Kaaos v10.18 – uudet akselit
+        doorLockChance      = chaosCfg.doorLockChance;
+        staggerAmount       = chaosCfg.staggerAmount;
+        screenShakeAmount   = chaosCfg.screenShakeAmount;
+        lampRedFlicker      = chaosCfg.lampRedFlicker;
+        barBurntLetter      = chaosCfg.barBurntLetter;
+        cabFlicker          = chaosCfg.cabFlicker;
+        sunSizeMult         = chaosCfg.sunSizeMult;
         // Kaappien vilkuntajakso päivittyy uusiin CAB_BLINK-arvoihin
         for (const cab of electricCabinets) cab.period = CAB_BLINK_MIN + Math.random() * (CAB_BLINK_MAX - CAB_BLINK_MIN);
         // K7-korttipakka: aktivoi vain ei-NORMAL-tasoilla
@@ -2046,7 +2096,7 @@ const Street = (() => {
     function clampChaosCfg(cfg) {
         const C = chaosAbilityFor(cfg);
         const c = Object.assign({}, cfg);
-        c.playerSpeedMult  = clamp(c.playerSpeedMult, 0.6, 1.6);   // kävelynopeus (K4)
+        c.playerSpeedMult  = clamp(c.playerSpeedMult, 1.0, 1.6);   // kävelynopeus (K4) – v10.18: ei hidastusta
         c.cloudCount       = clamp(c.cloudCount, 4, 34);
         c.cloudOpacityMult = clamp(c.cloudOpacityMult, 0.4, 2.5);
         c.windSpeedMult    = clamp(c.windSpeedMult, 0.4, 3.5);
@@ -2084,6 +2134,14 @@ const Street = (() => {
         c.mosquitoDayDim   = clamp(c.mosquitoDayDim, 0, 1);
         c.meteorTempoMult  = clamp(c.meteorTempoMult, 0.1, 5);
         c.sfxVolumeMult    = clamp(c.sfxVolumeMult, 0.3, 2.0);
+        // Kaaos v10.18 – uudet akselit (visuaaliset/ei-tappavat → vain klampit, ei validointia)
+        c.doorLockChance   = clamp(c.doorLockChance, 0, 1);
+        c.staggerAmount    = clamp(c.staggerAmount, 0, 1);
+        c.screenShakeAmount= clamp(c.screenShakeAmount, 0, 1);
+        c.lampRedFlicker   = clamp(c.lampRedFlicker, 0, 0.05);
+        c.barBurntLetter   = clamp(Math.round(c.barBurntLetter), -1, 2);
+        c.cabFlicker       = clamp(c.cabFlicker, 0, 1);
+        c.sunSizeMult      = clamp(c.sunSizeMult, 0.6, 2.0);
         return c;
     }
 
@@ -3051,6 +3109,15 @@ const Street = (() => {
 
         player.x += player.vx * dt;
 
+        // Hoipertelu (kaaos K4 v10.18, vain BAD/FULL): normaali vauhti, mutta
+        // juopunut sivuttais-/pystyvärähtely → voi ajautua auton alle / kaappiin.
+        if (staggerAmount > 0 && (moveX !== 0 || moveY !== 0)) {
+            const t = Date.now() * 0.001;
+            player.x += Math.sin(t * 2.1) * staggerAmount * 0.6 * dt;
+            player.y += Math.sin(t * 1.5 + 0.8) * staggerAmount * 0.45 * dt;
+            player.y = Math.max(PLAYER_Y_MIN, Math.min(PLAYER_Y_MAX, player.y));
+        }
+
         // Estä pelaajaa kävelemästä lampputolppien läpi
         // Lamppu on kadun puolella → pelaaja kiertää joko ALHAALTA (edestä) tai YLHÄÄLTÄ (takaa)
         const LAMP_BLOCK_X = 15;
@@ -3555,6 +3622,7 @@ const Street = (() => {
         const fdx = px - fruitDoor.x, fdy = py - fruitDoor.y;
         if (Math.sqrt(fdx * fdx + fdy * fdy) < DOOR_RADIUS) {
             if (nightOnlyClosed()) { showNotification(CLOSED_SIGN); return; }
+            if (doorLocked()) return;                       // kaaos v10.18: ovi satunnaisesti lukossa (ei ilmoitusta)
             enterGame('fruitgame/game_main.html');
             return;
         }
@@ -3568,6 +3636,7 @@ const Street = (() => {
         const jkInReach = Math.sqrt(jkdx * jkdx + jkdy * jkdy) < DOOR_RADIUS;
         if (jkInReach && nightOnlyClosed()) { showNotification(CLOSED_SIGN); return; }
         if (jkLights && jkLights.lit && jkInReach) {
+            if (doorLocked()) return;                       // kaaos v10.18: ovi satunnaisesti lukossa (ei ilmoitusta)
             jukeboxRoom = true;
             jukeSel = 0;
             jukeHeldUp = false;
@@ -4641,6 +4710,14 @@ const Street = (() => {
                 Math.round(Math.cos(meteorShakeTimer * 0.7) * 2)
             );
         }
+        // Kaaos v10.18 – koko ajan hiukan tärisevä kuva (BAD/FULL): pieni jatkuva huojunta
+        if (screenShakeAmount > 0) {
+            const t = Date.now() * 0.001;
+            ctx.translate(
+                Math.round(Math.sin(t * 13.7) * screenShakeAmount * 1.4),
+                Math.round(Math.sin(t * 11.3 + 0.5) * screenShakeAmount * 1.1)
+            );
+        }
 
         // Taivas
         const skyGrad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
@@ -4673,19 +4750,20 @@ const Street = (() => {
             const rayRGB = sunColor
                 ? sunColor.slice(1).match(/../g).map(h => parseInt(h, 16)).join(',')
                 : '255,238,160';
-            const sunGlowGrad = ctx.createRadialGradient(sunX, SUN_Y, SUN_R * 0.4, sunX, SUN_Y, SUN_R * 3.4);
+            const SR = SUN_R * sunSizeMult;   // kaaos v10.18: auringon koko (NORMAL = 1)
+            const sunGlowGrad = ctx.createRadialGradient(sunX, SUN_Y, SR * 0.4, sunX, SUN_Y, SR * 3.4);
             sunGlowGrad.addColorStop(0, glowStops[0]);
             sunGlowGrad.addColorStop(0.4, glowStops[1]);
             sunGlowGrad.addColorStop(1, glowStops[2]);
             ctx.fillStyle = sunGlowGrad;
-            ctx.beginPath(); ctx.arc(sunX, SUN_Y, SUN_R * 3.4, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sunX, SUN_Y, SR * 3.4, 0, Math.PI*2); ctx.fill();
             // Hitaasti pyörivä sädekehä
             const spin = Date.now() * 0.00012;
             ctx.strokeStyle = 'rgba(' + rayRGB + ',0.35)';
             ctx.lineWidth = 1;
             for (let i = 0; i < 8; i++) {
                 const ang = spin + i * Math.PI / 4;
-                const r0 = SUN_R + 5;
+                const r0 = SR + 5;
                 const r1 = r0 + (i % 2 === 0 ? 9 : 5);
                 ctx.beginPath();
                 ctx.moveTo(sunX + Math.cos(ang) * r0, SUN_Y + Math.sin(ang) * r0);
@@ -4694,7 +4772,7 @@ const Street = (() => {
             }
             // Kiekko: sunColor (kaaos) tai lämmin keltainen (NORMAL bitti-identtinen)
             ctx.fillStyle = discColor;
-            ctx.beginPath(); ctx.arc(sunX, SUN_Y, SUN_R, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(sunX, SUN_Y, SR, 0, Math.PI*2); ctx.fill();
             ctx.restore();
         }
 
@@ -5402,7 +5480,14 @@ const Street = (() => {
 
             // Vilkkuva keltainen varoitusvalo yläosassa – vain jos kaappi on päällä;
             // jokaisella kaapilla oma vaihe ja tahti → valot vilkkuvat itsenäisesti.
-            const on = c.on && Math.sin(Date.now() / c.period + c.phase) > 0;
+            let on = c.on && Math.sin(Date.now() / c.period + c.phase) > 0;
+            // Kaaos v10.18: valo "rätisee" – nopea epäsäännöllinen välkyntä päälle/pois
+            if (cabFlicker > 0 && c.on) {
+                const t = Date.now() * 0.001;
+                const crackle = Math.sin(t * 31.7 + c.phase * 5) * Math.sin(t * 17.3 + c.x);
+                if (crackle > 1 - cabFlicker * 0.6) on = true;
+                else if (crackle < -1 + cabFlicker * 0.6) on = false;
+            }
             if (on) {
                 ctx.fillStyle = '#ffd700';
                 ctx.beginPath();
@@ -5794,10 +5879,30 @@ const Street = (() => {
         ctx.font = '9px "Press Start 2P", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.shadowColor = '#FF0055';   // Hohteen väri (hieman tummempi punapinkki kuin itse teksti)
-        ctx.shadowBlur = 10;           // Kuinka kauas hohde leviää
-        ctx.fillStyle = '#FF66A3';     // Itse tekstin (kirjainten) ydin, hieman kirkkaampi/vaaleampi
-        ctx.fillText('BAR>', tcx, tcy);
+        // Kaaos v10.18: yksi kirjain (B/A/R) voi olla "palanut" – piirretään tummana
+        // ilman hehkua. NORMALissa barBurntLetter = -1 → teksti piirtyy kuten ennen.
+        if (barBurntLetter >= 0) {
+            const sign = 'BAR>';
+            const chW = ctx.measureText('B').width;   // monospace → sama leveys joka kirjaimella
+            for (let i = 0; i < sign.length; i++) {
+                ctx.save();
+                if (i === barBurntLetter) {
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = '#3a1510';        // palanut: tumma, ei hehkua
+                } else {
+                    ctx.shadowColor = '#FF0055';
+                    ctx.shadowBlur = 10;
+                    ctx.fillStyle = '#FF66A3';
+                }
+                ctx.fillText(sign[i], tcx + (i - (sign.length - 1) / 2) * chW, tcy);
+                ctx.restore();
+            }
+        } else {
+            ctx.shadowColor = '#FF0055';   // Hohteen väri (hieman tummempi punapinkki kuin itse teksti)
+            ctx.shadowBlur = 10;           // Kuinka kauas hohde leviää
+            ctx.fillStyle = '#FF66A3';     // Itse tekstin (kirjainten) ydin, hieman kirkkaampi/vaaleampi
+            ctx.fillText('BAR>', tcx, tcy);
+        }
         ctx.restore();
     }
 
@@ -7678,6 +7783,16 @@ const Street = (() => {
         return { bx: bx, by: by, poleTop: poleTop, bulbY: bulbY };
     }
 
+    /* Kaaos v10.18 – lamppu napsahtaa satunnaisesti hetkeksi punaiseksi
+       (vain chaos-tasot; NORMAL = lampRedFlicker 0 → ei koskaan). Sama
+       "punainen välähdys" kuin ylikuumentuneella, mutta ilman savua. */
+    function lampRedSnap(lamp) {
+        if (lampRedFlicker <= 0 || !lamp.lit) return false;
+        const t = Date.now() * 0.001;
+        const s = Math.sin(t * 1.9 + lamp.x * 0.53) * Math.sin(t * 3.7 + lamp.x * 0.13);
+        return s > (1 - lampRedFlicker * 4);
+    }
+
     /* Valo: ylikuumentumisen hehku, savu ja valokeila. Piirretään AINA ennen
        pylvästä ja pelaajaa → valo ei koskaan peitä pelaajaa, vain pylväs peittää
        (ks. render: pylväs piirretään joko ennen tai jälkeen pelaajan, v4.73). */
@@ -7689,6 +7804,7 @@ const Street = (() => {
         // (MOSQUITO_DAY_DIM, v4.38). HUOM: lamp.lit ei muutu mihinkään →
         // yöllä ovet aukeavat potkaistusta lampusta täsmälleen kuten ennenkin.
         const dayDim = 1 - LAMP_DAY_DIM * dayT;
+        const redSnap = lampRedSnap(lamp);   // kaaos v10.18: satunnainen punainen välähdys
 // Ylikuumentuneen lampun punainen hehku + savu
         if (lamp.overheat) {
             const flicker = Math.sin(Date.now() * 0.02) * 0.4 + 0.6;
@@ -7712,7 +7828,11 @@ const Street = (() => {
         // Valokeila (jos palaa) – himmenee päivällä; lampHueShift värjää (kaaos K1)
         if (lamp.lit && dayDim > 0.01) {
             const g = ctx.createRadialGradient(bx, bulbY + 10, 4, bx, bulbY + 10, 90);
-            if (lampHueShift) {
+            if (redSnap) {
+                g.addColorStop(0, 'hsla(0,85%,65%,' + (0.7 * dayDim).toFixed(3) + ')');
+                g.addColorStop(0.5, 'hsla(0,90%,50%,' + (0.15 * dayDim).toFixed(3) + ')');
+                g.addColorStop(1, 'hsla(0,90%,50%,0)');
+            } else if (lampHueShift) {
                 g.addColorStop(0, 'hsla(' + lampHueShift + ',80%,70%,' + (0.7 * dayDim).toFixed(3) + ')');
                 g.addColorStop(0.5, 'hsla(' + lampHueShift + ',85%,55%,' + (0.15 * dayDim).toFixed(3) + ')');
                 g.addColorStop(1, 'hsla(' + lampHueShift + ',85%,55%,0)');
@@ -7784,6 +7904,8 @@ const Street = (() => {
         let cupFill;
         if (lamp.overheat) {
             cupFill = 'rgba(255,' + Math.round(60 + (Math.sin(Date.now() * 0.025) * 0.3 + 0.7) * 40) + ',10,0.8)';
+        } else if (lamp.lit && lampRedSnap(lamp)) {
+            cupFill = '#ff5040';   // kaaos v10.18: hetkellinen punainen välähdys
         } else if (lamp.lit) {
             cupFill = '#ffffaa';
         } else {

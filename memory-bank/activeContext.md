@@ -18,7 +18,7 @@
 
 - **Projekti:** **AI CHAOS STREET** – uusi itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages
   `teppoaland.github.io/aistreet/`), forkattu Pimeä Katu v5.02:sta. Alkuperäinen `D:\AI\Main`
-  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.17` (`index.html` → `#version-tag`).
+  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.18` (`index.html` → `#version-tag`).
 - 🔓 **Sääntö 04 (talousbalanssi-lukko) EI PÄDE enää AI CHAOS STREET -versiossa** (käyttäjän linjaus
   27.9.2026): sääntö 04 kirjoitettiin **alkuperäistä Pimeä Katu -peliä** varten ja sen lukitut arvot
   ovat NORMAL-tason arvoja. Chaos-forkissa NORMAL on vain yksi kaaostaso → talousarvot
@@ -80,6 +80,17 @@
 - **📱 Choose your -valikko vaakakuva (v10.15):** mobiilin landscape (≤ 500 px korkeus) – napit `flex-wrap: wrap`
   -riveihin (3+2), pienempi otsikko/teksti, jotta koko valikko mahtuu matalaan näyttöön (ei aiemmin ollut
   puhelinoptimoitu).
+- **🌀 Kaaos v10.18 – uudet akselit (polariteetti: ikävät = BAD/FULL, neutraalit = kaikki chaos-tasot):**
+  käyttäjän ideat "mistä saisi hyviä chaos-kohteita". **Ikävät (vain BAD/FULL):** lukitut ovet
+  (`doorLockChance`; jukebox + hedelmäpeli, **ei koskaan BAR/makuuhuone**, ei ilmoitusta – sääntö 06) ·
+  **hoipertelu** (`staggerAmount`; normaali vauhti + juopunut sivuttais-/pystyvärähtely → voi ajautua auton
+  alle / sähkökaappiin) · kuvan pieni jatkuva tärinä (`screenShakeAmount`). **Neutraalit:** lamppu napsahtaa
+  hetkeksi punaiseksi (`lampRedFlicker`, kuin potkaistu ilman savua) · BAR-kyltin palanut kirjain
+  (`barBurntLetter` −1/0/1/2) · sähkökaapin valon "rätinä" (`cabFlicker`) · auringon koko (`sunSizeMult`
+  0.6–2.0, BAD "tupla"). **Hidastus poistettu:** `playerSpeedMult` alaraja 0.6 → **1.0** (ei enää hidasta;
+  MILD 1.0–1.1 · BAD 1.0 · FULL 1.0–1.6) – hoipertelu korvaa tylsän hidastuksen. Kaikki uudet akselit
+  NORMALissa no-op → bitti-identtinen. Headless `%TEMP%`-smoke: 2170 setChaos-ajoa + 2000 FULL-arpaa → 0
+  hylättyä, 0 heittoa.
 
 
 
