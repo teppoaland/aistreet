@@ -1,6 +1,6 @@
 # 📊 Projektin edistyminen
 
-> **v10.09 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026. Kompaktoitu 23.9.2026 (täysi historia git-historiassa: viimeisin täysi versio
+> **v10.12 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026. Kompaktoitu 23.9.2026 (täysi historia git-historiassa: viimeisin täysi versio
 > `ffb1dd9`, HEAD `44db9e7`)
 
 ## 🏮 Pääportaali – AI CHAOS STREET
@@ -16,6 +16,12 @@
 | 🎵 Valikkomusiikki | ✅ **v10.07** – alkuvalikko soi oman biisin (`jukebox/alec_koff-heavy-doom-dark-metal-493397.mp3`, loop), **vain valikossa**; pelin syntikkaa/jukeboxia ei kosketa. `audio.js`: `MENU_MUSIC_FILE` + `menuEl` (loop) + `setMenuActive(on)`/`startMenuMusic`/`stopMenuMusic`, `onGesture` valikon auki ollessa soittaa vain valikkobiisin ja yrittää uudelleen autoplay-eston jälkeen, `stop()` hiljentää valikkobiisin. `street.js` `DOMContentLoaded`: valikon näyttö → `setMenuActive(true)`, `start()` → `setMenuActive(false)` + `StreetAudio.start()` |
 | 🚪 Aloitusgate | ✅ **v10.08** – autoplay-lukon kierto: `#start-gate` ("CLICK / PRESS ANY KEY TO BEGIN") ennen chaos-valikkoa; ensimmäinen ele avaa äänilukon → chaos-valikko soi musiikin kanssa. `index.html` + `style.css` (gate 9100 + blink) + `street.js` `DOMContentLoaded` (`setMenuActive(true)` gatessa, `onGesture` hoitaa musiikin, `unlock()` näyttää valikon; fallback ilman gate-elementtiä) |
 | ⏱️ Grace-jakso | ✅ **v10.09** – valikosta aloitettaessa syntikka hiljaa ensimmäiset **30 s** (vain ambientti), sitten häivytys sisään (`SYNTH_FADE_IN 800 ms`); F5 ei saa gracea. `audio.js`: `start(delayMs)` + `musicGraceMs`/`fadeInNextSynth` `playPhase()`:ssa + `startSynth(fadeInMs)` (linearRamp 0→1). `street.js` `start()` → `StreetAudio.start(30000)` |
+| ⏱️ Aloitusgaten 2 s viive | ✅ **v10.10** – korjaa mobiilin ghost-clickin: gaten napautus näytti valikon heti → sama napautus (touchend + synteettinen click) valitsi valikon alla olevan kaaostason ja eteni suoraan peliin. Nyt `unlock()` viivyttää `showMenu()`ta 2000 ms (`GATE_MENU_DELAY_MS`) + `unlocked`-lippu ja välitön kuuntelijoiden poisto → napautuksen jatkotapahtumat tapahtuvat valikon ollessa piilossa |
+| 🎵 Syntikka piiloon kunnes jukebox soi | ✅ **v10.11** – pelin oma syntikkatausta ("wave") ei soi ennen kuin jukeboxista on soitettu vähintään yksi kappale. `audio.js` `synthUnlocked` + `setSynthUnlocked()` + `playPhase()`-portti; `gameState.js` `defaultState.jukeboxPlayedOnce`; `street.js` `init()` lataa lipun ja `jukeboxExitAndPlay()` asettaa sen onnistuneen soiton jälkeen. Per run – nollautuu kuolemassa/✕-resetissä |
+| 🔪 Rosvo jahtaa BAD CHAOS:ssa | ✅ **v10.12** – uusi kaaosakseli `robberChasesY` (vain BAD = true): rosvo ohjaa vapaasti molemmilla akseleilla kuten avenger ja nappaa ilman kaistaehtoa → pakoon ei pääse kadulla. Rosvon elinikä (`robber.ttl`) kuluu nyt **myös piilossa** (huone/alapeli) kaikilla tasoilla, joten "piiloudu ja odota" toimii. Nopeus yhä klampissa ≤ 1,4 × C |
+
+
+
 | Katunäkymä, hahmo, 9 lamppua, 9 ovea, ajoneuvot, eläimet, sää | ✅ |
 | Hahmon viilaus | ✅ v4.03–v4.05 – silmä + `lookY`, lipan/kasvojen/leuan varjot, maakosketusvarjo, hengitys, potkun ennakointi + nojaus, hit pause, dynaaminen lampunvalo |
 | Pelaajan syvyysskaalaus | ✅ v4.31 – `playerDepthScale()` ±10 % (0,90 kauas / 1,00 y=315 / 1,10 lähelle), ankkuri jalkojen kosketuspisteessä; visuaalinen vain – hitboxit, törmäykset ja kamera ennallaan |

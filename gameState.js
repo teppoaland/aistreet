@@ -22,6 +22,9 @@ const GameState = (() => {
         digKeyCollected: false,
         boulderKeyCollected: false,
         bmKeyCollected: false,
+        // Onko jukeboxista soitettu vähintään yksi kappale (v10.11).
+        // Syntikkatausta pysyy piilossa, kunnes tämä on true.
+        jukeboxPlayedOnce: false,
         // Päivä/yö-tila (v4.33). Kadun makuuhuoneen Nuku-valinta vaihtaa tämän.
         //   null  = ei vielä ratkaistu → 3 avainta nostaa päivän kerran (v4.32-käytös)
         //   true  = päivä

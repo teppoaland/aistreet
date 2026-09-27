@@ -18,7 +18,7 @@
 
 - **Projekti:** **AI CHAOS STREET** – uusi itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages
   `teppoaland.github.io/aistreet/`), forkattu Pimeä Katu v5.02:sta. Alkuperäinen `D:\AI\Main`
-  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.09` (`index.html` → `#version-tag`).
+  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.12` (`index.html` → `#version-tag`).
 - 🔓 **Sääntö 04 (talousbalanssi-lukko) EI PÄDE enää AI CHAOS STREET -versiossa** (käyttäjän linjaus
   27.9.2026): sääntö 04 kirjoitettiin **alkuperäistä Pimeä Katu -peliä** varten ja sen lukitut arvot
   ovat NORMAL-tason arvoja. Chaos-forkissa NORMAL on vain yksi kaaostaso → talousarvot
@@ -50,6 +50,30 @@
   avaa äänilukon → chaos-valikko aukeaa **musiikin soidessa**. `index.html` `#start-gate` + `style.css`
   (gate 9100, blink-animaatio) + `street.js` `DOMContentLoaded` (`setMenuActive(true)` jo gatessa, `onGesture`
   hoitaa musiikin, `unlock()` näyttää valikon). Fallback ilman gate-elementtiä.
+- **⏱️ Aloitusgaten 2 s viive (v10.10):** korjaa mobiilin ghost-clickin – gaten napautus avasi valikon heti,
+  jolloin sama napautus (touchend + synteettinen click) osui valikon alla olevaan kaaostasonappiin ja eteni
+  suoraan peliin. Nyt `unlock()` viivyttää `showMenu()`ta **2000 ms** (`GATE_MENU_DELAY_MS`, `setTimeout`) ja
+  poistaa kuuntelijat välittömästi + `unlocked`-lippu estää toiston → napautuksen synteettiset jatkotapahtumat
+  tapahtuvat valikon ollessa vielä piilossa.
+- **🎵 Syntikka piilossa kunnes jukebox soi (v10.11):** pelin oma taustamusiikki (proseduraalinen syntikka /
+  "wave") ei soi ennen kuin jukeboxista on soitettu vähintään yksi kappale. `audio.js`: `synthUnlocked`-lippu +
+  julkinen `setSynthUnlocked(on)` (nollaa `musicGraceMs`/`fadeInNextSynth`); `playPhase()` palaa heti
+  (`phase='silent'`, ei ajastinta) kun lukittu. `gameState.js`: `defaultState.jukeboxPlayedOnce: false`.
+  `street.js`: `init()` → `StreetAudio.setSynthUnlocked(state.jukeboxPlayedOnce === true)`;
+  `jukeboxExitAndPlay()` asettaa lipun onnistuneen soiton jälkeen (molemmat haarat). Lukituksen auettua
+  `onJukeboxEnded()` → `playPhase()` alkaa soida normaalilla syklillä. Lippu on `pimeakatu_gamestate`:ssa →
+  nollautuu kuolemassa/✕-resetissä (per run, käyttäjän valinta). Valikkobiisi ja grace koskematta.
+- **🔪 Rosvo jahtaa vapaasti BAD CHAOS -tasolla (v10.12):** uusi kaaosakseli `robberChasesY` (boolean, oletus
+  `false`; `CHAOS_DEFAULTS2` false, `chaosProfile('bad')` true, muut/full false). `ROBBER_CHASES_Y`-lippu +
+  `applyChaosProfile()` kirjoittaa sen. `updateRobber()`: jahtaus haarassa ohjaa molemmilla akseleilla kuten
+  avenger (`r.x += sign(pcx−rcx)·speed·dt`, `r.y += sign(player.y−r.y)·speed·dt`, `facing` pelaajaan) ja kiinniotto
+  **ilman** `onLane`-ehtoa (pelkkä etäisyys < `ROBBER_HIT_R`); muuten partiointi + kaistakiinniotto bitti-identtinen.
+  **Rosvon elinikä kuluu nyt myös piilossa** (kaikki tasot): uusi blokki `trackHiddenStreet()`:n jälkeen tikittää
+  `robber.ttl`:ää kun `iframeOpen || sleepRoom || barRoom || jukeboxRoom || newsRoom` → "piiloudu ja odota"
+  -pakoreitti toimii. Renderöinti ennallaan (rosvo aina pylvään takana, kuten avenger). Nopeus yhä klampissa ≤ 1,4 × C.
+
+
+
 - **⏱️ Grace-jakso (v10.09):** menun heavy metal → pelin syntikka -pudotus pehmennetty: pelin alkaessa
   **valikosta** syntikka on hiljaa ensimmäiset **30 s** (vain kadun ambientti), sitten häivyttyy sisään
   (`SYNTH_FADE_IN 800 ms`). F5 ei saa gracea. `audio.js`: `start(delayMs)`, `musicGraceMs` + `fadeInNextSynth`

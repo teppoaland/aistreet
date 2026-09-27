@@ -17,6 +17,7 @@ const StreetAudio = (() => {
     let loopId = null;
     let started = false;
     let melodyReverse = false;
+    let synthUnlocked = false;   // v10.11: syntikka piilossa, kunnes jukeboxista soitettu kerran
 
     // ── Taustamusiikin lähde ─────────────────────────────────
     // 'synth' = proseduraalinen syntikkalooppi (oletus – soi aina)
@@ -771,6 +772,13 @@ const StreetAudio = (() => {
     function playPhase() {
         if (!ctx) return;
         if (cycleTimer) { clearTimeout(cycleTimer); cycleTimer = null; }
+        // v10.11: syntikka pysyy piilossa, kunnes jukeboxista on soitettu kerran.
+        // Ei ajastinta → ei taustamusiikkia ennen lukituksen aukeamista.
+        if (!synthUnlocked) {
+            phase = 'silent';
+            started = false;
+            return;
+        }
         phase = 'playing';
         // Grace-jakso (v10.09): menun jälkeen syntikka hiljaa, sitten häivyttyy sisään.
         if (musicGraceMs > 0) {
@@ -918,7 +926,20 @@ const StreetAudio = (() => {
     function getDestination() { init(); return ctx ? ctx.destination : null; }
     function setHungerTempo(mult) { hungerTempo = mult; }
 
+    /* v10.11: avaa syntikan lukitus (kutsutaan kun jukeboxista on soitettu kerran).
+       Nollaa valikosta mahdollisesti jääneen gracen, ettei lukituksen auettua
+       jää ylimääräistä 30 s hiljaisuutta. Ei käynnistä sykliä itse – jukebox-kappaleen
+       loputtua onJukeboxEnded() ajoittaa playPhase()n, joka nyt alkaa soida. */
+    function setSynthUnlocked(on) {
+        synthUnlocked = !!on;
+        if (on) {
+            musicGraceMs = 0;
+            fadeInNextSynth = false;
+        }
+    }
+
     return { init, start, stop, playDeathGong, getCtx, getDestination,
              playJukebox, playJukeboxQueue, appendJukeboxQueue, stopJukebox,
-             isJukeboxPlaying, getJukeboxQueuePos, setHungerTempo, setMenuActive };
+             isJukeboxPlaying, getJukeboxQueuePos, setHungerTempo, setMenuActive,
+             setSynthUnlocked };
 })();

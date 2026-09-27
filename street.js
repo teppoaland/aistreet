@@ -389,6 +389,7 @@ const Street = (() => {
                                         // BAR:ssa usein; muissa ovissa huono tuuri sallitaan
     let   ROBBER_STUN          = 900;   // ~15 s tainnutus kiinniotosta – pidempi kuin muiden
                                         // osumien 600, jotta pelaaja ehtii nähdä, mitä kävi; kaaos K4
+    let   ROBBER_CHASES_Y      = false; // v10.12: rosvo jahtaa vapaasti y-akselilla (vain BAD CHAOS)
     let robber = null;        // { x, y, w, h, facing, dir, speed, pause, walkTimer, ttl }
     let robberCooldown = 0;   // tauko ennen kuin uusi rosvo voi ilmestyä
     let playerDead = false;          // kuolemasekvenssi käynnissä
@@ -981,45 +982,51 @@ const Street = (() => {
             }
         }
 
-        // Kävely edestakaisin + reunapysähdys (väistöikkuna)
+        // v10.12: BAD CHAOS → rosvo jahtaa vapaasti (molemmat akselit, kuten avenger).
+        // Muuten partioi jalkakäytäväkaistalla edestakaisin + reunapysähdys (väistöikkuna).
         if (r.pause > 0) {
             r.pause -= dt;
+        } else if (ROBBER_CHASES_Y) {
+            r.facing = (pcx - rcx) >= 0 ? 1 : -1;
+            r.x += Math.sign(pcx - rcx) * r.speed * dt;
+            r.y += Math.sign(player.y - r.y) * r.speed * dt;
+            r.walkTimer += dt;
         } else {
             r.x += r.dir * r.speed * dt;
             r.walkTimer += dt;
         }
-        if (r.x <= 4) {
-            r.x = 4;
-            if (r.dir < 0) { r.dir = 1; r.pause = ROBBER_TURN; }
-        } else if (r.x >= WORLD_W - r.w - 4) {
-            r.x = WORLD_W - r.w - 4;
-            if (r.dir > 0) { r.dir = -1; r.pause = ROBBER_TURN; }
-        }
-        r.facing = r.dir;
-
-        // Kiinniotto: pelaajan jalat samalla jalkakäytäväkaistalla JA lähellä
-        const playerFootY = player.y + player.h;
-        const onLane = playerFootY >= ROBBER_LANE_TOP && playerFootY <= ROBBER_LANE_BOTTOM;
-        if (onLane && !player.knockedDown && !playerDead) {
-            const dx = pcx - rcx, dy = pcy - rcy;
-            if (Math.sqrt(dx * dx + dy * dy) < ROBBER_HIT_R) {
-                spawnParticles(pcx, pcy, '#ff6644', 14);
-                spawnParticles(rcx, rcy, '#ff6644', 8);
-                playKnock();
-                knockPlayerDown();   // tainnutus + −1 🍔 (0 → kuolema)
-                if (!playerDead) player.knockdownTimer = ROBBER_STUN;   // pidennetty maassaolo – ehtii nähdä, mitä kävi
-                // Rosvo vie kaikki rahat (v4.68): kolikkosaldo nollataan.
-                // Ei erillistä dialogia (sääntö 06) – pelaaja huomaa itse.
-                if (coinCount > 0) {
-                    coinCount = 0;
-                    state.inventory.coinCount = 0;
-                    GameState.save(state);
-                    updateHUD();
-                }
-                const push = (pcx < rcx) ? -1 : 1;
-                player.x = Math.max(0, Math.min(WORLD_W - player.w, player.x + push * 30));
-                robber = null;       // rosvo katoaa nappauksen jälkeen (ei jää jahtaamaan)
+        if (!ROBBER_CHASES_Y) {
+            if (r.x <= 4) {
+                r.x = 4;
+                if (r.dir < 0) { r.dir = 1; r.pause = ROBBER_TURN; }
+            } else if (r.x >= WORLD_W - r.w - 4) {
+                r.x = WORLD_W - r.w - 4;
+                if (r.dir > 0) { r.dir = -1; r.pause = ROBBER_TURN; }
             }
+            r.facing = r.dir;
+        }
+
+        // Kiinniotto: jahtauksessa (BAD) pelkkä etäisyys; muuten vaatii jalkakäytäväkaistan.
+        const dx = pcx - rcx, dy = pcy - rcy;
+        const onLane = (player.y + player.h >= ROBBER_LANE_TOP && player.y + player.h <= ROBBER_LANE_BOTTOM);
+        const canGrab = !player.knockedDown && !playerDead && (ROBBER_CHASES_Y || onLane);
+        if (canGrab && Math.sqrt(dx * dx + dy * dy) < ROBBER_HIT_R) {
+            spawnParticles(pcx, pcy, '#ff6644', 14);
+            spawnParticles(rcx, rcy, '#ff6644', 8);
+            playKnock();
+            knockPlayerDown();   // tainnutus + −1 🍔 (0 → kuolema)
+            if (!playerDead) player.knockdownTimer = ROBBER_STUN;   // pidennetty maassaolo – ehtii nähdä, mitä kävi
+            // Rosvo vie kaikki rahat (v4.68): kolikkosaldo nollataan.
+            // Ei erillistä dialogia (sääntö 06) – pelaaja huomaa itse.
+            if (coinCount > 0) {
+                coinCount = 0;
+                state.inventory.coinCount = 0;
+                GameState.save(state);
+                updateHUD();
+            }
+            const push = (pcx < rcx) ? -1 : 1;
+            player.x = Math.max(0, Math.min(WORLD_W - player.w, player.x + push * 30));
+            robber = null;       // rosvo katoaa nappauksen jälkeen (ei jää jahtaamaan)
         }
     }
 
@@ -1469,7 +1476,7 @@ const Street = (() => {
         playerSpeedMult: 1,               // kävelynopeuskerroin (kaaos K4, v10.04; klampi 0.6–1.6)
         avengerChance: 0.12, avengerSpeed: 1.0, avengerTelegraph: 21,
         avengerStun: 600, avengerFreeze: 180, avengerCooldown: 1800,
-        robberStun: 900, cabinetOnChance: 0.5,
+        robberStun: 900, robberChasesY: false, cabinetOnChance: 0.5,   // robberChasesY: rosvo jahtaa vapaasti y-akselilla (v10.12, vain BAD)
         startBurgers: 5, startCoins: 2, hungerWakeGrace: 600, burgerInterval: 2400,
         fogAlpha: 0,
         cloudCount: 18, cloudOpacityMult: 1, cloudBandTop: 40, cloudBandH: 40,
@@ -1766,6 +1773,7 @@ const Street = (() => {
                     birdMin: 0, birdMax: 4,
                     coinRespawnFrames: 14400,
                     robberChance: 0.75, robberSpeed: 1.5, robberCooldown: 700, robberTtl: 1400,
+                    robberChasesY: true,
                     // K3 + K4 (v10.04)
                     playerSpeedMult: rnd(0.8, 1.0),
                     avengerChance: rnd(0.30, 0.50), avengerSpeed: rnd(1.2, 1.4),
@@ -1814,6 +1822,7 @@ const Street = (() => {
         ROBBER_SPEED         = chaosCfg.robberSpeed;
         ROBBER_COOLDOWN      = chaosCfg.robberCooldown;
         ROBBER_TTL           = chaosCfg.robberTtl;
+        ROBBER_CHASES_Y      = chaosCfg.robberChasesY === true;
         windSpeedMult        = chaosCfg.windSpeedMult;
         windDirFlip          = chaosCfg.windDirFlip;
         trafficSpeedMult     = chaosCfg.trafficSpeedMult;
@@ -2172,6 +2181,8 @@ const Street = (() => {
         ctx.imageSmoothingEnabled = false;
         randomizeBuildingColors();  // arvo taloille uudet sävyt joka kerta
         state = GameState.load();
+        // v10.11: syntikka soi vasta, kun jukeboxista on soitettu kerran.
+        StreetAudio.setSynthUnlocked(state.jukeboxPlayedOnce === true);
         /* Onko kyseessä aivan uusi peli (0-tila)? Kuun kello (moonClock)
            jätetään vertailusta pois: se tallentuu itsestään heti yön alettua,
            eikä sen kuulu sammuttaa aloitusohjetta. Sama auringon kellolle. */
@@ -2707,6 +2718,15 @@ const Street = (() => {
         //    1/10 mahdollisuus, että viemärinkannen tilanne muuttuu
         //    (kansi katoaa tai asennetaan takaisin paikalleen).
         trackHiddenStreet();
+
+        // v10.12: rosvon elinikä kuluu myös piilossa (huone/alapeli), jotta
+        // "piiloudu ja odota" -pakoreitti toimii kaikilla kaaostasoilla.
+        if (robber && (iframeOpen || sleepRoom || barRoom || jukeboxRoom || newsRoom)) {
+            if (robber.ttl !== undefined) {
+                robber.ttl -= dt;
+                if (robber.ttl <= 0) robber = null;
+            }
+        }
 
         // ── Avoin kaivo: pudotus / ylöskiipeäminen käynnissä (v4.51) ──
         // Katu on jäissä sekvenssin ajan (kuten nukkumisen pimennys).
@@ -3797,6 +3817,8 @@ const Street = (() => {
                 jukeQueue = before.concat(play).concat(after);
                 state.jukeQueue = jukeQueue.slice();
                 state.jukePos = qPos;
+                state.jukeboxPlayedOnce = true;
+                StreetAudio.setSynthUnlocked(true);
                 GameState.save(state);
                 playCoin();
                 if (play.length < picks.length) {
@@ -3817,6 +3839,8 @@ const Street = (() => {
                 jukeQueue = play.slice();
                 state.jukeQueue = jukeQueue.slice();
                 state.jukePos = 0;
+                state.jukeboxPlayedOnce = true;
+                StreetAudio.setSynthUnlocked(true);
                 GameState.save(state);
                 jukeSavedPos = 0;
                 playCoin();
@@ -8741,11 +8765,15 @@ window.addEventListener('DOMContentLoaded', () => {
     if (gate) {
         gate.classList.remove('hidden');
         StreetAudio.setMenuActive(true);   // valikko aktiiviseksi jo gatessa → onGesture avaa musiikin
+        const GATE_MENU_DELAY_MS = 2000;   // 2 s viive → sama napautus ei osu chaos-valikon nappiin (mobiilin ghost-click)
+        let unlocked = false;
         const unlock = () => {
-            showMenu();
+            if (unlocked) return;
+            unlocked = true;
             window.removeEventListener('keydown', unlock);
             window.removeEventListener('mousedown', unlock);
             window.removeEventListener('touchstart', unlock);
+            setTimeout(showMenu, GATE_MENU_DELAY_MS);
         };
         window.addEventListener('keydown', unlock);
         window.addEventListener('mousedown', unlock);
