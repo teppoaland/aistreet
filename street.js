@@ -1847,7 +1847,8 @@ const Street = (() => {
                     dayCycleFrames: 5400, skyDir: -1,
                     birdMin: 0, birdMax: 4,
                     coinRespawnFrames: 14400,
-                    robberChance: 0.75, robberSpeed: 1.5, robberCooldown: 700, robberTtl: 1400,
+                    // Rosvo jahtaa vapaasti (robberChasesY) → ei saa ilmestyä useammin kuin 30 s välein (1800 f)
+                    robberChance: 0.75, robberSpeed: 1.5, robberCooldown: 1800, robberTtl: 1400,
                     robberChasesY: true,
                     // K3 + K4 (v10.04)
                     playerSpeedMult: rnd(0.8, 1.0),
