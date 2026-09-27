@@ -138,8 +138,8 @@ const Street = (() => {
     // eikä kaappi iske. Testityökalu (ei tallenna): ?cabs=1 = molemmat päällä,
     // ?cabs=0 = molemmat sammuksissa (jäädyttää tilakellon).
     let   ELECTRIC_CABINET_ON = 0.5;      // todennäköisyys, että kaappi on päällä (kaaos K3)
-    const CAB_BLINK_MIN = 420, CAB_BLINK_MAX = 700;   // oma vilkunta ms / kaappi
-    const CAB_REROLL_MIN = 900, CAB_REROLL_MAX = 2100;  // uusi arpa 15–35 s välein / kaappi
+    let   CAB_BLINK_MIN = 420, CAB_BLINK_MAX = 700;   // oma vilkunta ms / kaappi (kaaos K2, v10.05)
+    let   CAB_REROLL_MIN = 900, CAB_REROLL_MAX = 2100;  // uusi arpa 15–35 s välein / kaappi (kaaos K2)
     const CAB_FORCE = (typeof location !== 'undefined' && typeof URLSearchParams !== 'undefined')
         ? new URLSearchParams(location.search).get('cabs') : null;
     const cabOn = () => CAB_FORCE === '1' ? true : (CAB_FORCE === '0' ? false : Math.random() < ELECTRIC_CABINET_ON);
@@ -435,8 +435,8 @@ const Street = (() => {
        avaimet ja talous eivät muutu mihinkään. Poikkeus: Jukebox ja
        Hedelmäpeli ovat auki vain öisin (v4.34, ks. CLOSED_SIGN). */
     let dayT = 0;                          // 0 = yö … 1 = päivä (liukuva)
-    const DAY_FADE_FRAMES   = 1200;        // ~20 s auringonnousu (yö → päivä)
-    const NIGHT_FADE_FRAMES = 1200;        // ~20 s auringonlasku (päivä → yö)
+    let   DAY_FADE_FRAMES   = 1200;        // ~20 s auringonnousu (yö → päivä; kaaos K2, v10.05)
+    let   NIGHT_FADE_FRAMES = 1200;        // ~20 s auringonlasku (päivä → yö; kaaos K2)
     let DAY_SKY_TOP     = '#3f7fc0';     // päivätaivaan yläosa (kaaos K1, v10.03)
     let DAY_SKY_MID     = '#78b4e0';     // keskikohta
     let DAY_SKY_HORIZON = '#ffd9a0';     // lämmin horisontti
@@ -468,7 +468,7 @@ const Street = (() => {
     const SUN_SET_X = WORLD_W + SUN_R * 3;        // laskeuma ≈ 878 → kokonaan pois
     let   SUN_DAY_FRAMES = DAY_CYCLE_FRAMES;      // auringon liukuaika (sama kuin sykli)
     const SUN_SAVE_FRAMES = 120;                  // tallenna auringon paikka ~2 s välein
-    const CYCLE_CHANGE_DELAY_FRAMES = 900;        // 15 s viive ennen automaattista vaihtoa (v4.89)
+    let   CYCLE_CHANGE_DELAY_FRAMES = 900;        // 15 s viive ennen automaattista vaihtoa (kaaos K2, v10.05)
     /* ── Kuun ulkoasu (v4.72) ──
        Kuu piirretään tähtien JÄLKEEN (mutta pilvien eteen), jotta tähdet eivät
        enää tuiki kuun läpi – ennen kuu näytti "leikatulta reijältä". Pimeä puoli
@@ -535,7 +535,7 @@ const Street = (() => {
     const DAY_LIGHT_RGB   = [70, 58, 40];  // additive-päivänvalon sävy
     const DAY_LIGHT_ALPHA = 0.30;          // 0 = ei valoa … ~0.35 = kirkas päivä
     const LAMP_DAY_DIM    = 0.15;          // paljonko lampun hehkusta jää päivällä
-    const MOSQUITO_DAY_DIM = 1;            // 1 = moskiitot häviävät päivällä (yöllä ennallaan), 0 = ei muutosta
+    let   MOSQUITO_DAY_DIM = 1;            // 1 = moskiitot häviävät päivällä (yöllä ennallaan); kaaos K2 (v10.05)
     /* ── Pilvien päivätummuus (v4.40) ──
        Muoto ja määrä ovat yön ennallaan (initClouds) – vain väri tummenee ja
        peittävyys kasvaa dayT:n mukana, jotta pilvet erottuvat päivätaivaalta.
@@ -592,13 +592,13 @@ const Street = (() => {
        HUOM: kickCount ei kasva → avain-cheat (5 potkua), kolikkopalkkio
        (20 potkua) ja ylikuumeneminen (5 potkua) pysyvät täysin ennallaan.
        Testityökalu ?day=0 näyttää efektin heti. */
-    const NIGHT_LAMP_FIRST    = 30;      // ~0,5 s ennen ensimmäistä lamppua
-    const NIGHT_LAMP_INTERVAL = 18;      // ~0,3 s lamppujen välissä (5 lamppua ≈ 1,7 s)
+    let   NIGHT_LAMP_FIRST    = 30;      // ~0,5 s ennen ensimmäistä lamppua (kaaos K2, v10.05)
+    let   NIGHT_LAMP_INTERVAL = 18;      // ~0,3 s lamppujen välissä (5 lamppua ≈ 1,7 s; kaaos K2)
     const NIGHT_LAMP_ORDER    = 'wave';  // 'wave' = x-järjestys · 'near' = lähin ensin
     let nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päivä→yö-siirtymästä
     let nightShowQueue = [];             // syttymättömien lamppujen indeksit
     let nightShowTimer = 0;              // frameä seuraavaan lamppuun
-    const SPAWN_LAMP_DELAY = 240;        // 4 s viive ennen lamppushowta spawnissa (v4.90)
+    let   SPAWN_LAMP_DELAY = 240;        // 4 s viive ennen lamppushowta spawnissa (kaaos K2, v10.05)
     let spawnLampTimer = 0;              // laskuri spawn-lamppushow'lle
 
     /* Saako yön lamppushow laueta? Vain kun päivä/yö on jo ratkaistu
@@ -1192,7 +1192,7 @@ const Street = (() => {
             filter.type = 'highpass';
             filter.frequency.value = 800;
             const gain = audioCtx.createGain();
-            gain.gain.setValueAtTime(0.83, now);
+            gain.gain.setValueAtTime(0.83 * sfxVolumeMult, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
             src.connect(filter).connect(gain).connect(audioCtx.destination);
             src.start(now);
@@ -1211,7 +1211,7 @@ const Street = (() => {
             const src = audioCtx.createBufferSource(); src.buffer = buf;
             const filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 300;
             const gain = audioCtx.createGain();
-            gain.gain.setValueAtTime(0.68, now);
+            gain.gain.setValueAtTime(0.68 * sfxVolumeMult, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
             src.connect(filter).connect(gain).connect(audioCtx.destination);
             src.start(now); src.stop(now + 0.05);
@@ -1229,7 +1229,7 @@ const Street = (() => {
                 osc.type = 'sine';
                 osc.frequency.value = freq;
                 const gain = audioCtx.createGain();
-                gain.gain.setValueAtTime(0.18, now);
+                gain.gain.setValueAtTime(0.18 * sfxVolumeMult, now);
                 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
                 osc.connect(gain).connect(audioCtx.destination);
                 osc.start(now); osc.stop(now + 0.08);
@@ -1254,7 +1254,7 @@ const Street = (() => {
             filter.type = 'lowpass';
             filter.frequency.value = 500;
             const gain = audioCtx.createGain();
-            gain.gain.setValueAtTime(0.75, now);
+            gain.gain.setValueAtTime(0.75 * sfxVolumeMult, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
             src.connect(filter).connect(gain).connect(audioCtx.destination);
             src.start(now); src.stop(now + 0.12);
@@ -1264,7 +1264,7 @@ const Street = (() => {
             osc.frequency.setValueAtTime(150, now);
             osc.frequency.exponentialRampToValueAtTime(45, now + 0.11);
             const ogain = audioCtx.createGain();
-            ogain.gain.setValueAtTime(0.30, now);
+            ogain.gain.setValueAtTime(0.30 * sfxVolumeMult, now);
             ogain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
             osc.connect(ogain).connect(audioCtx.destination);
             osc.start(now); osc.stop(now + 0.12);
@@ -1285,7 +1285,7 @@ const Street = (() => {
             const src = audioCtx.createBufferSource();
             src.buffer = buf;
             const ngain = audioCtx.createGain();
-            ngain.gain.setValueAtTime(0.5, now);
+            ngain.gain.setValueAtTime(0.5 * sfxVolumeMult, now);
             ngain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
             src.connect(ngain).connect(audioCtx.destination);
             src.start(now); src.stop(now + 0.18);
@@ -1295,7 +1295,7 @@ const Street = (() => {
             osc.frequency.setValueAtTime(120, now);
             osc.frequency.exponentialRampToValueAtTime(30, now + 0.15);
             const ogain = audioCtx.createGain();
-            ogain.gain.setValueAtTime(0.12, now);
+            ogain.gain.setValueAtTime(0.12 * sfxVolumeMult, now);
             ogain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
             osc.connect(ogain).connect(audioCtx.destination);
             osc.start(now); osc.stop(now + 0.15);
@@ -1319,7 +1319,7 @@ const Street = (() => {
             const src = audioCtx.createBufferSource(); src.buffer = buf;
             const hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1200;
             const ngain = audioCtx.createGain();
-            ngain.gain.setValueAtTime(0.32, now);
+            ngain.gain.setValueAtTime(0.32 * sfxVolumeMult, now);
             ngain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
             src.connect(hp).connect(ngain).connect(audioCtx.destination);
             src.start(now); src.stop(now + 0.045);
@@ -1329,7 +1329,7 @@ const Street = (() => {
             osc.frequency.setValueAtTime(420, now);
             osc.frequency.exponentialRampToValueAtTime(200, now + 0.14);
             const ogain = audioCtx.createGain();
-            ogain.gain.setValueAtTime(0.10, now);
+            ogain.gain.setValueAtTime(0.10 * sfxVolumeMult, now);
             ogain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
             osc.connect(ogain).connect(audioCtx.destination);
             osc.start(now); osc.stop(now + 0.16);
@@ -1483,7 +1483,12 @@ const Street = (() => {
         cloudDayAlpha: 5,                       // CLOUD_DAY_ALPHA (päivän pilvien peittävyys)
         daySkyTop: '#3f7fc0', daySkyMid: '#78b4e0', daySkyHorizon: '#ffd9a0',
         silhouetteChance: 0.5, winDayFill: '#151716',
-        lampRadius: 30, batCountMax: 5, buildingPalette: null
+        lampRadius: 30, batCountMax: 5, buildingPalette: null,
+        // K2 (kellon rytmit) + K6 (SFX) – v10.05
+        dayFadeFrames: 1200, nightFadeFrames: 1200, cycleChangeDelayFrames: 900,
+        nightLampFirst: 30, nightLampInterval: 18, spawnLampDelay: 240,
+        cabBlinkMin: 420, cabBlinkMax: 700, cabRerollMin: 900, cabRerollMax: 2100,
+        mosquitoDayDim: 1, meteorTempoMult: 1, sfxVolumeMult: 1
     });
     let chaosLevel = 'normal';
     let chaosCfg = Object.assign({}, CHAOS_DEFAULTS2);
@@ -1500,6 +1505,9 @@ const Street = (() => {
     let windowTargetMax = 5, windowDurMin = 10000, windowDurMax = 30000;
     let lampHueShift = 0, threatWarnMult = 1;
     let buildingPalette = null;   // talojen väripaletti (null = BUILDING_PALETTE)
+    let meteorTempoMult = 1;      // tähdenlennon/satelliitin tahti (K2, v10.05)
+    let sfxVolumeMult   = 1;      // SFX-taso (K6, v10.05)
+    let fogAlpha        = 0;      // sumuverhon peittävyys (K7/K1, v10.05)
 
     /* Deterministinen siemen + testikytkimet (v10.02, K0-infra).
        ?seed=N → sama kaaos jokaisella latauksella · ?debug → konsolidumppi. */
@@ -1580,7 +1588,7 @@ const Street = (() => {
                     vx: Math.cos(ang) * spd,
                     vy: Math.sin(ang) * spd,
                     active: true, life: 120 + Math.random() * 180,
-                    trail: [], timer: 600 + Math.random() * 2100
+                    trail: [], timer: cardState.meteorBurst ? (5 + Math.random() * 15) : (600 + Math.random() * 2100) * meteorTempoMult
                 };
             }
         } else {
@@ -1605,7 +1613,7 @@ const Street = (() => {
                     y: 25 + Math.random() * 70,
                     vx: dir * (0.25 + Math.random() * 0.5),
                     active: true, blinkPhase: Math.random() * Math.PI * 2,
-                    timer: 400 + Math.random() * 900
+                    timer: (400 + Math.random() * 900) * meteorTempoMult
                 };
             }
         } else {
@@ -1670,7 +1678,15 @@ const Street = (() => {
             beetleCount: rndInt(0, 4),
             windowTargetMax: rndInt(0, 12),
             windowDurMin: rndInt(3000, 60000), windowDurMax: rndInt(60000, 300000),
-            buildingPalette: randomHuePalette()
+            buildingPalette: randomHuePalette(),
+            // K2 + K6 (v10.05)
+            dayFadeFrames: rndInt(300, 3000), nightFadeFrames: rndInt(300, 3000),
+            cycleChangeDelayFrames: rndInt(120, 1800),
+            nightLampFirst: rndInt(4, 90), nightLampInterval: rndInt(2, 60), spawnLampDelay: rndInt(0, 900),
+            cabBlinkMin: rndInt(120, 600), cabBlinkMax: rndInt(600, 1200),
+            cabRerollMin: rndInt(300, 1800), cabRerollMax: rndInt(1800, 3600),
+            mosquitoDayDim: (Math.random() < 0.5 ? 0 : 1),
+            meteorTempoMult: rnd(0.1, 5), sfxVolumeMult: rnd(0.5, 1.5)
         };
     }
 
@@ -1703,7 +1719,11 @@ const Street = (() => {
                     batSpawnFrames: 1800, batCountMax: 5,
                     birdSpeedMult: 1, beetleCount: 1,
                     windowTargetMax: rndInt(3, 6), windowDurMin: 10000, windowDurMax: 30000,
-                    buildingPalette: null
+                    buildingPalette: null,
+                    dayFadeFrames: 1200, nightFadeFrames: 1200, cycleChangeDelayFrames: 900,
+                    nightLampFirst: rndInt(21, 39), nightLampInterval: rndInt(13, 23), spawnLampDelay: 240,
+                    cabBlinkMin: 420, cabBlinkMax: 700, cabRerollMin: 900, cabRerollMax: 2100,
+                    mosquitoDayDim: 1, meteorTempoMult: 0.8, sfxVolumeMult: rnd(0.9, 1.1)
                 };
             case 'good':
                 return {
@@ -1732,7 +1752,11 @@ const Street = (() => {
                     batSpawnFrames: 1800, batCountMax: 3,
                     birdSpeedMult: 1.2, beetleCount: 1,
                     windowTargetMax: rndInt(5, 8), windowDurMin: 20000, windowDurMax: 60000,
-                    buildingPalette: WARM_PALETTE
+                    buildingPalette: WARM_PALETTE,
+                    dayFadeFrames: rndInt(1800, 2600), nightFadeFrames: rndInt(1800, 2600), cycleChangeDelayFrames: rndInt(1500, 2400),
+                    nightLampFirst: 45, nightLampInterval: 28, spawnLampDelay: 300,
+                    cabBlinkMin: 300, cabBlinkMax: 800, cabRerollMin: 1800, cabRerollMax: 3600,
+                    mosquitoDayDim: 1, meteorTempoMult: 1.5, sfxVolumeMult: rnd(0.7, 0.85)
                 };
             case 'bad':
                 return {
@@ -1761,7 +1785,11 @@ const Street = (() => {
                     batSpawnFrames: 600, batCountMax: 12,
                     birdSpeedMult: 0.8, beetleCount: 1,
                     windowTargetMax: rndInt(0, 2), windowDurMin: 3000, windowDurMax: 10000,
-                    buildingPalette: NEAR_BLACK_PALETTE
+                    buildingPalette: NEAR_BLACK_PALETTE,
+                    dayFadeFrames: rndInt(400, 700), nightFadeFrames: rndInt(400, 700), cycleChangeDelayFrames: rndInt(200, 450),
+                    nightLampFirst: 8, nightLampInterval: 4, spawnLampDelay: 60,
+                    cabBlinkMin: 200, cabBlinkMax: 400, cabRerollMin: 500, cabRerollMax: 900,
+                    mosquitoDayDim: 0, meteorTempoMult: 0.3, sfxVolumeMult: rnd(1.15, 1.35)
                 };
             case 'full':
                 return generateFullChaosSeed();
@@ -1819,6 +1847,25 @@ const Street = (() => {
         WIN_DAY_FILL        = chaosCfg.winDayFill;
         LAMP_RADIUS         = chaosCfg.lampRadius;
         BAT_COUNT_MAX       = chaosCfg.batCountMax;
+        // K2 (kellon rytmit) + K6 (SFX) – v10.05
+        DAY_FADE_FRAMES     = chaosCfg.dayFadeFrames;
+        NIGHT_FADE_FRAMES   = chaosCfg.nightFadeFrames;
+        CYCLE_CHANGE_DELAY_FRAMES = chaosCfg.cycleChangeDelayFrames;
+        NIGHT_LAMP_FIRST    = chaosCfg.nightLampFirst;
+        NIGHT_LAMP_INTERVAL = chaosCfg.nightLampInterval;
+        SPAWN_LAMP_DELAY    = chaosCfg.spawnLampDelay;
+        CAB_BLINK_MIN       = chaosCfg.cabBlinkMin;
+        CAB_BLINK_MAX       = chaosCfg.cabBlinkMax;
+        CAB_REROLL_MIN      = chaosCfg.cabRerollMin;
+        CAB_REROLL_MAX      = chaosCfg.cabRerollMax;
+        MOSQUITO_DAY_DIM    = chaosCfg.mosquitoDayDim;
+        meteorTempoMult     = chaosCfg.meteorTempoMult;
+        sfxVolumeMult       = chaosCfg.sfxVolumeMult;
+        fogAlpha            = chaosCfg.fogAlpha;
+        // Kaappien vilkuntajakso päivittyy uusiin CAB_BLINK-arvoihin
+        for (const cab of electricCabinets) cab.period = CAB_BLINK_MIN + Math.random() * (CAB_BLINK_MAX - CAB_BLINK_MIN);
+        // K7-korttipakka: aktivoi vain ei-NORMAL-tasoilla
+        chaosCardsReset();
         // K3 (uhka) + K4 (keho/reppu) – v10.04: C-indeksi tuotantokäyttöön
         AVENGER_CHANCE      = chaosCfg.avengerChance;
         AVENGER_SPEED       = chaosCfg.avengerSpeed;
@@ -1914,6 +1961,20 @@ const Street = (() => {
         c.hungerWakeGrace  = clamp(c.hungerWakeGrace, 600, 1800);
         c.burgerInterval   = Math.max(c.burgerInterval, burgerIntervalMin(c, C));  // 🍔-tahti
         c.fogAlpha         = clamp(c.fogAlpha, 0, 0.5);
+        // K2 (kellon rytmit) + K6 (SFX) – v10.05
+        c.dayFadeFrames    = clamp(c.dayFadeFrames, 300, 3000);
+        c.nightFadeFrames  = clamp(c.nightFadeFrames, 300, 3000);
+        c.cycleChangeDelayFrames = clamp(c.cycleChangeDelayFrames, 120, 1800);
+        c.nightLampFirst   = clamp(c.nightLampFirst, 4, 90);
+        c.nightLampInterval = clamp(c.nightLampInterval, 2, 60);
+        c.spawnLampDelay   = clamp(c.spawnLampDelay, 0, 900);
+        c.cabBlinkMin      = clamp(c.cabBlinkMin, 120, 1200);
+        c.cabBlinkMax      = Math.max(clamp(c.cabBlinkMax, 120, 1200), c.cabBlinkMin + 50);
+        c.cabRerollMin     = clamp(c.cabRerollMin, 300, 3600);
+        c.cabRerollMax     = Math.max(clamp(c.cabRerollMax, 300, 3600), c.cabRerollMin + 50);
+        c.mosquitoDayDim   = clamp(c.mosquitoDayDim, 0, 1);
+        c.meteorTempoMult  = clamp(c.meteorTempoMult, 0.1, 5);
+        c.sfxVolumeMult    = clamp(c.sfxVolumeMult, 0.3, 2.0);
         return c;
     }
 
@@ -1944,6 +2005,141 @@ const Street = (() => {
         return clampChaosCfg(Object.assign({}, CHAOS_DEFAULTS2, generateFullChaosSeed()));
     }
 
+
+    /* ═══════════════════════════════════════════════════════════
+       KAAOS K7 – tapahtumakortit (v10.05)
+       v1 = vain visuaalisia. Kortit laukeavat itsestään kesken
+       session ja palautuvat itsestään. Ei vahinkoa, ei taloutta,
+       ei uutta tekstiä. NORMALissa pois päältä (bitti-identtinen).
+       ═══════════════════════════════════════════════════════════ */
+    const CARD_FIRST_DELAY = 3600;                       // 60 s ennen ensimmäistä korttia
+    const CARD_GAP_MIN = 5400, CARD_GAP_MAX = 18000;     // 90–300 s korttien välillä
+    let cardState = {
+        enabled: false,
+        timer: CARD_FIRST_DELAY,        // frameä seuraavaan korttiin
+        left: 0,                        // kortteja jäljellä tässä sessiossa
+        active: null,                   // { id, t, dur, saved, restore }
+        meteorBurst: false,             // Tähtisade
+        lightsOut: false,               // Valot sammuvat
+        animalParade: 0                 // Eläinparaati: montako eläintä vielä
+    };
+
+    function chaosCardsReset() {
+        cardState.enabled = (chaosLevel !== 'normal');
+        cardState.timer = CARD_FIRST_DELAY;
+        cardState.left = (chaosLevel === 'normal') ? 0 : (3 + Math.floor(chaosRng() * 4)); // 3–6
+        cardState.active = null;
+        cardState.meteorBurst = false;
+        cardState.lightsOut = false;
+        cardState.animalParade = 0;
+    }
+
+    // Korttidekit: save() kaappaa tilan, apply() aloittaa, restore(saved) palauttaa.
+    function chaosCardDefs() {
+        const skyPresets = [
+            { sun: '#7dff7d', glow: ['rgba(120,255,120,0.55)','rgba(90,220,90,0.20)','rgba(70,180,70,0)'], top: '#2f5a2f', mid: '#4f7a4f', hor: '#7a9a6a' },
+            { sun: '#d37dff', glow: ['rgba(200,140,255,0.55)','rgba(170,110,230,0.20)','rgba(140,90,190,0)'], top: '#4a2f5a', mid: '#6a4f7a', hor: '#8a6a9a' },
+            { sun: '#ff4d4d', glow: ['rgba(255,100,100,0.55)','rgba(220,80,80,0.20)','rgba(180,60,60,0)'], top: '#5a2f2f', mid: '#7a4f4f', hor: '#9a6a6a' }
+        ];
+        return [
+            {   // 1. Vihreä hetki ⭐ – auringon väri + taivaan sävy
+                id: 'green', dur: [1200, 2400],
+                save: () => ({ sun: sunColor, glow: sunGlow, top: DAY_SKY_TOP, mid: DAY_SKY_MID, hor: DAY_SKY_HORIZON }),
+                apply: () => { const p = skyPresets[Math.floor(Math.random() * skyPresets.length)]; sunColor = p.sun; sunGlow = p.glow; DAY_SKY_TOP = p.top; DAY_SKY_MID = p.mid; DAY_SKY_HORIZON = p.hor; },
+                restore: (s) => { sunColor = s.sun; sunGlow = s.glow; DAY_SKY_TOP = s.top; DAY_SKY_MID = s.mid; DAY_SKY_HORIZON = s.hor; }
+            },
+            {   // 2. Tähtisade – 30–60 tähdenlentoa lyhyessä ajassa
+                id: 'meteor', dur: [360, 600],
+                save: () => ({}),
+                apply: () => { cardState.meteorBurst = true; },
+                restore: () => { cardState.meteorBurst = false; }
+            },
+            {   // 3. Sumu nousee – sumuverho α 0.25–0.45
+                id: 'fog', dur: [1800, 3600],
+                save: () => ({ fog: fogAlpha }),
+                apply: () => { fogAlpha = 0.25 + Math.random() * 0.20; },
+                restore: (s) => { fogAlpha = s.fog; }
+            },
+            {   // 4. Tuulenpuuska – tuuli ×2–3, puut nojaavat
+                id: 'gust', dur: [900, 1800],
+                save: () => ({ wind: windSpeed }),
+                apply: () => { windSpeed *= 2 + Math.random(); },
+                restore: (s) => { windSpeed = s.wind; }
+            },
+            {   // 5. Valot sammuvat – lamput + ikkunat pimeiksi hetkeksi
+                id: 'blackout', dur: [240, 480],
+                save: () => ({}),
+                apply: () => { cardState.lightsOut = true; },
+                restore: () => { cardState.lightsOut = false; }
+            },
+            {   // 6. Kaikki ikkunat syttyvät – 8–12 ikkunaa kerralla (raja 12)
+                id: 'windows', dur: [1200, 1800],
+                save: () => ({}),
+                apply: () => { cardFlashWindows(8 + Math.floor(Math.random() * 5)); },
+                restore: () => {}
+            },
+            {   // 7. Eläinparaati – 3–5 eläintä peräkkäin
+                id: 'parade', dur: [600, 1200],
+                save: () => ({}),
+                apply: () => { cardState.animalParade = 3 + Math.floor(Math.random() * 3); animalSpawnTimer = 0; },
+                restore: () => { cardState.animalParade = 0; }
+            },
+            {   // 8. Värien vaihto – talojen paletti sekoittuu (pysyvä)
+                id: 'palette', dur: [0, 0],
+                save: () => ({}),
+                apply: () => { buildingPalette = randomHuePalette(); randomizeBuildingColors(); },
+                restore: () => {}
+            },
+            {   // 9. Taivaan vaihto – päivätaivas hetkeksi myrskyiseksi
+                id: 'sky', dur: [1800, 3600],
+                save: () => ({ top: DAY_SKY_TOP, mid: DAY_SKY_MID, hor: DAY_SKY_HORIZON }),
+                apply: () => { DAY_SKY_TOP = '#3a4044'; DAY_SKY_MID = '#565e62'; DAY_SKY_HORIZON = '#6e6a5e'; },
+                restore: (s) => { DAY_SKY_TOP = s.top; DAY_SKY_MID = s.mid; DAY_SKY_HORIZON = s.hor; }
+            },
+            {   // 10. Tähtitaivas täyteen – tähdet 80 → 140
+                id: 'stars', dur: [1200, 2400],
+                save: () => ({}),
+                apply: () => { const add = Math.max(0, 140 - stars.length); for (let i = 0; i < add; i++) stars.push({ x: Math.random() * WORLD_W, y: Math.random() * (GROUND_Y - 30), r: (Math.random() * 1.5 + 0.5) * starSizeMult, blink: Math.random() * Math.PI * 2 }); },
+                restore: () => { if (stars.length > starCount) stars.length = starCount; }
+            }
+        ];
+    }
+
+    function cardFlashWindows(count) {
+        const avail = getAvailableWindows().filter(w =>
+            !litWindows.some(l => l.wx === w.wx && l.wy === w.wy && l.bldgIdx === w.bldgIdx));
+        const n = Math.max(0, Math.min(count, avail.length, 12 - litWindows.length));
+        for (let i = 0; i < n; i++) {
+            const w = avail[Math.floor(Math.random() * avail.length)];
+            litWindows.push({ wx: w.wx, wy: w.wy, bldgIdx: w.bldgIdx, offTime: Date.now() + 15000, colorType: pickColorType() });
+        }
+    }
+
+    function updateCards(dt) {
+        if (!cardState.enabled) return;
+        // Aktiivinen kortti käynnissä → tikitä ja palauta, kun aika täynnä
+        if (cardState.active) {
+            cardState.active.t += dt;
+            if (cardState.active.t >= cardState.active.dur) {
+                cardState.active.restore(cardState.active.saved);
+                cardState.active = null;
+                cardState.timer = CARD_GAP_MIN + Math.random() * (CARD_GAP_MAX - CARD_GAP_MIN);
+            }
+            return;
+        }
+        // Odotetaan seuraavaa korttia
+        if (cardState.left <= 0) return;
+        cardState.timer -= dt;
+        if (cardState.timer <= 0) {
+            const defs = chaosCardDefs();
+            const d = defs[Math.floor(Math.random() * defs.length)];
+            const dur = d.dur[0] + Math.random() * (d.dur[1] - d.dur[0]);
+            const saved = d.save();
+            d.apply();
+            cardState.active = { id: d.id, t: 0, dur: dur, saved: saved, restore: d.restore };
+            cardState.left--;
+        }
+    }
 
     function init(canvasEl) {
         canvas = canvasEl;
@@ -2995,6 +3191,9 @@ const Street = (() => {
         if (robberCooldown > 0) robberCooldown -= dt;
         updateRobber(dt);
 
+        // ── K7-korttipakka (v10.05): laukaisee/palauttaa visuaaliset kortit ──
+        updateCards(dt);
+
         // ── Katueläin ────────────────────────────────
         if (!groundAnimal) {
             animalSpawnTimer -= dt;
@@ -3008,7 +3207,8 @@ const Street = (() => {
                 else if (type==='rat') { w=14; h=6; speed=(1.2+Math.random()*0.8)*animalSpeedMult; }
                 else { w=10; h=10; speed=(1.5+Math.random()*0.8)*animalSpeedMult; }
                 groundAnimal = { type,w,h,x:dir>0?-w:WORLD_W+w,y:baseY-h,vx:dir*speed,direction:dir,hopY:0,hopVel:0,animTimer:0,pauseTimer:0 };
-                animalSpawnTimer = 900;
+                if (cardState.animalParade > 0) { cardState.animalParade--; animalSpawnTimer = 60; }
+                else animalSpawnTimer = 900;
             }
         } else {
             const a = groundAnimal;
@@ -4624,6 +4824,20 @@ const Street = (() => {
             ctx.restore();
         }
 
+        // ── Sumuverho (kaaos K1 / K7-kortti "Sumu nousee", v10.05) ──
+        // Peittävyys ≤ 0.5 (luettavuus). Vaalea harmaasävy peittää koko
+        // kadun mutta jättää hahmon ja ovet erottuviksi.
+        if (fogAlpha > 0.001) {
+            ctx.save();
+            ctx.globalAlpha = Math.min(0.5, fogAlpha);
+            const fogGrad = ctx.createLinearGradient(0, 0, 0, WORLD_H);
+            fogGrad.addColorStop(0, '#aebfd0');
+            fogGrad.addColorStop(1, '#8a9bab');
+            ctx.fillStyle = fogGrad;
+            ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+            ctx.restore();
+        }
+
         // ── Oviukon isku: jäädytyksen vinjetti + iskuvälähdys + tähdet ──
         if (avenger && avenger.phase === 'hold') {
             const hk = 1 - Math.max(0, Math.min(1, hitPauseTimer / AVENGER_FREEZE));   // 0 → 1
@@ -4861,7 +5075,7 @@ const Street = (() => {
             ctx.fillStyle = bodyC;
             ctx.fillRect(b.x, GROUND_Y - b.h, b.w, b.h);
             // Ikkunat
-            const houseLit = (idx === 0 && firstHouseWindowsLit) || (smallHouseLights[idx] && smallHouseLights[idx].lit);
+            const houseLit = !cardState.lightsOut && ((idx === 0 && firstHouseWindowsLit) || (smallHouseLights[idx] && smallHouseLights[idx].lit));
             // Oven "ei-ikkunaa" -alue (sis. +2px syvennysreunus) – ikkunoita ei piirretä oven taakse
             const dLeft = b.x + b.w / 2 - DOOR_W / 2 - 2;
             const dTop = GROUND_Y - DOOR_H - 2;
@@ -4887,7 +5101,7 @@ const Street = (() => {
                         ctx.fillStyle = glow;
                         ctx.fillRect(wx-6, wy-5, 22, 24);
                     } else {
-                        const litWin = litWindows.find(w => w.wx === wx && w.wy === wy && w.bldgIdx === idx);
+                        const litWin = cardState.lightsOut ? null : litWindows.find(w => w.wx === wx && w.wy === wy && w.bldgIdx === idx);
                         if (litWin) {
                             const ct = litWin.colorType || 'yellow';
                             const wc = getWindowColors(ct, wx, wy);
@@ -7323,6 +7537,7 @@ const Street = (() => {
        pylvästä ja pelaajaa → valo ei koskaan peitä pelaajaa, vain pylväs peittää
        (ks. render: pylväs piirretään joko ennen tai jälkeen pelaajan, v4.73). */
     function drawLampGlow(lamp) {
+        if (cardState.lightsOut) return;   // K7-kortti "Valot sammuvat" (v10.05)
         const geom = lampGeom(lamp);
         const bx = geom.bx, bulbY = geom.bulbY;
         // Päivällä hehku himmenee (LAMP_DAY_DIM) ja moskiitot häipyvät

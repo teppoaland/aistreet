@@ -1,6 +1,6 @@
 # 📊 Projektin edistyminen
 
-> **v10.04 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026. Kompaktoitu 23.9.2026 (täysi historia git-historiassa: viimeisin täysi versio
+> **v10.05 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026. Kompaktoitu 23.9.2026 (täysi historia git-historiassa: viimeisin täysi versio
 > `ffb1dd9`, HEAD `44db9e7`)
 
 ## 🏮 Pääportaali – AI CHAOS STREET
@@ -11,6 +11,7 @@
 | 🛡️ Kaaosportti K0 | ✅ v10.02 – `clampChaosCfg`/`validateChaosCfg`/`chaosAbility`, `makeRng`-siemen, `?chaos=`/`?seed=`/`?debug`, `CHAOS_DEFAULTS2` + uudet `let`:t NORMAL-arvoilla; NORMAL bitti-identtinen, ei näkyvää muutosta |
 | 🌀 Kaaos K1 (visuaalinen) | ✅ **v10.03** – MUST-kohteet: kova tuuli (`windSpeedMult` BAD 2.0–3.5) · paksut pilvet + myrskytaivas (`cloudCount/cloudOpacityMult/cloudSizeMult`/`cloudBandTop/H`/`cloudCirrusShare`/`CLOUD_DAY_ALPHA`/`DAY_SKY_*`) · vihreä/violetti/verenpunainen aurinko (`sunColor`/`sunGlow`). Pääosa: tähdet, ikkunavalot, talopaletit (lämmin/lähes musta/sävykierros), eläimet, lepakot, linnut, kuoriaiset, lamppujen sävy/radius. ❓4 ratkaistu: tähdenlento/satelliitti yhdistetty `updateShootingStar`/`updateSatellite`-apufunktioiksi (ei meteoriittia). NORMAL bitti-identtinen |
 | 🛡️⚔️ Kaaos K3+K4 (uhka + keho) | ✅ **v10.04** – C-indeksi tuotantokäyttöön: `drawChaosCfg` (klampit + validointi, FULL rejection sampling ≤ 40). `chaosAbilityFor(cfg)` = `playerSpeedMult × hungerMultFor(startBurgers)`. K3: oviukon tn/nopeus/varoitus/jäädytys/tauko, rosvon nopeusarpa ≤ 1.4·C, liikenteen ylityssääntö, sähkökaappi (`cabinetOnChance`). K4: kävelynopeus `playerSpeedMult` (0.6–1.6, ❓1=c), tainnutus ≤ nykyinen, herätysrako, 🍔-tahti (`burgerInterval` lattia 1200 f) + aloituskolikot/🍔 (`startCoins` 1–100 · `startBurgers` 2–10, vain uudessa pelissä). NORMAL bitti-identtinen; offline-linteri 20 000 arpaa → 0 hylättyä |
+| 🎴🔊 Kaaos K2+K6+K7 (kello/ääni/kortit) | ✅ **v10.05** – K2 loput: hämärä (`dayFadeFrames`/`nightFadeFrames`), vuorokausiviive (`cycleChangeDelayFrames`), lamppushow (`nightLampFirst`/`nightLampInterval`/`spawnLampDelay`), kaappien tahti (`cabBlinkMin/Max`/`cabRerollMin/Max`), hyttyset (`mosquitoDayDim`), tähdenlento/satelliitti-tahti (`meteorTempoMult`). K6 (vain `street.js`, ❓3=a): SFX-taso `sfxVolumeMult`. K7 (❓5=a): **10 visuaalista korttia** (Vihreä hetki · Tähtisade · Sumu · Tuulenpuuska · Valot sammuvat · Ikkunat syttyvät · Eläinparaati · Värien vaihto · Taivaan vaihto · Tähtitaivas) – `chaosCardDefs`/`updateCards`/`cardFlashWindows`, vain ei-NORMAL, 1 kerrallaan, 3–6/sessio, itsestään palautuvat, ei vahinkoa/taloutta/tekstiä. Sumuverho (`fogAlpha`) + piirto. NORMAL bitti-identtinen; headless 2000 FULL-arpaa → 0 hylättyä |
 | Katunäkymä, hahmo, 9 lamppua, 9 ovea, ajoneuvot, eläimet, sää | ✅ |
 | Hahmon viilaus | ✅ v4.03–v4.05 – silmä + `lookY`, lipan/kasvojen/leuan varjot, maakosketusvarjo, hengitys, potkun ennakointi + nojaus, hit pause, dynaaminen lampunvalo |
 | Pelaajan syvyysskaalaus | ✅ v4.31 – `playerDepthScale()` ±10 % (0,90 kauas / 1,00 y=315 / 1,10 lähelle), ankkuri jalkojen kosketuspisteessä; visuaalinen vain – hitboxit, törmäykset ja kamera ennallaan |

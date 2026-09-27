@@ -18,7 +18,7 @@
 
 - **Projekti:** **AI CHAOS STREET** – uusi itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages
   `teppoaland.github.io/aistreet/`), forkattu Pimeä Katu v5.02:sta. Alkuperäinen `D:\AI\Main`
-  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.04` (`index.html` → `#version-tag`).
+  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.05` (`index.html` → `#version-tag`).
 - 🔓 **Sääntö 04 (talousbalanssi-lukko) EI PÄDE enää AI CHAOS STREET -versiossa** (käyttäjän linjaus
   27.9.2026): sääntö 04 kirjoitettiin **alkuperäistä Pimeä Katu -peliä** varten ja sen lukitut arvot
   ovat NORMAL-tason arvoja. Chaos-forkissa NORMAL on vain yksi kaaostaso → talousarvot
@@ -34,7 +34,7 @@
   vuorokausi (`DAY_CYCLE_FRAMES`, `skyDir` = auringon/kuun suunta), linnut (`BIRD_COUNT_MIN/MAX`),
   kolikko (`COIN_RESPAWN_FRAMES`), rosvo (`ROBBER_APPEAR_CHANCE/SPEED/COOLDOWN/TTL`).
   NORMAL = nykyiset arvot bitti-identtisinä.
-- **📄 Kaaosparametrien suunnitelma v2 (27.9.2026):** `docs/chaos.md` – kategoriat K0–K7, tasomanifesti, C-kyvykkyysindeksi + 🍔-intervallin lattia (1200 f), kielletyt yhdistelmät, MUST-kohteet (kova tuuli · paksut pilvet + myrskytaivas · vihreä aurinko), toteutusresepti portteineen, testaus/DoD, 4 vaihetta ja avoimet päätökset (`❓`). Koodivaiheet `v10.02`…`v10.05` – **v10.02 (K0), v10.03 (K1), v10.04 (K3+K4) valmiit.**
+- **📄 Kaaosparametrien suunnitelma v2 (27.9.2026):** `docs/chaos.md` – kategoriat K0–K7, tasomanifesti, C-kyvykkyysindeksi + 🍔-intervallin lattia (1200 f), kielletyt yhdistelmät, MUST-kohteet (kova tuuli · paksut pilvet + myrskytaivas · vihreä aurinko), toteutusresepti portteineen, testaus/DoD, 4 vaihetta ja avoimet päätökset (`❓`). Koodivaiheet `v10.02`…`v10.05` – **v10.02 (K0), v10.03 (K1), v10.04 (K3+K4), v10.05 (K2+K6+K7) valmiit.**
 - **🛡️ Kaaoksen kaksi pääsääntöä:** (1) **NORMAL ei saa koskaan hajota** – kaaosarvot ovat NORMALissa no-op ja peli on bitti-identtinen; (2) **koko peli pysyy pelattavana kaikissa moodeissa** – jokainen arpa kulkee `clampChaosCfg()` + `validateChaosCfg()` -portin läpi (ei epäreilua kuolemaa, uhkanopeus ≤ 1,4 × C).
 - **🛡️ Kaaosportti K0 (v10.02):** `street.js` – `makeRng` (mulberry32) + `chaosRng`, testikytkimet
   `?chaos=`/`?seed=`/`?debug`, `CHAOS_DEFAULTS2` (täysi superset NORMAL-arvoilla) + uudet `let`:t
@@ -62,6 +62,16 @@
   `robberStun` ≤ nykyinen), herätysrako `hungerWakeGrace`, 🍔-tahti `burgerInterval` (lattia 1200 f) +
   aloituskolikot/🍔 (`startCoins` 1–100 · `startBurgers` 2–10, vain `init`in `freshGame`-haarassa). NORMAL
   bitti-identtinen (portti no-op); offline-linteri `%TEMP%\chaos-phase3-test.cjs` 20 000 arpaa → 0 hylättyä.
+- **🎴🔊 Kaaos Vaihe 4 (K2+K6+K7, → v10.05) VALMIS:** K2 loput: hämärä (`dayFadeFrames`/`nightFadeFrames`),
+  vuorokausiviive (`cycleChangeDelayFrames`), lamppushow (`nightLampFirst`/`nightLampInterval`/`spawnLampDelay`),
+  kaappien tahti (`cabBlinkMin/Max`/`cabRerollMin/Max`), hyttyset (`mosquitoDayDim`), tähdenlento/satelliitin
+  tahti (`meteorTempoMult`). K6 (vain `street.js`, ❓3=a): SFX-taso `sfxVolumeMult` (potku/kolikko/osuma/
+  kävely/sähköisku/lamppu). K7 (❓5=a): **10 visuaalista korttia** (`chaosCardDefs`/`updateCards`/
+  `cardFlashWindows` + `cardState`): Vihreä hetki · Tähtisade · Sumu nousee · Tuulenpuuska · Valot sammuvat ·
+  Kaikki ikkunat syttyvät · Eläinparaati · Värien vaihto · Taivaan vaihto · Tähtitaivas täyteen. 1 kerrallaan,
+  3–6/sessio (ensimmäinen ≥ 60 s, väli 90–300 s), itsestään palautuvat, **ei vahinkoa/taloutta/tekstiä**,
+  vain ei-NORMAL-tasoilla. Sumuverho (`fogAlpha`) + piirto renderissä. NORMAL bitti-identtinen;
+  headless `%TEMP%\street-k2k6k7-test.cjs` (5 tarkistusta, 2000 FULL-arpaa → 0 hylättyä).
 - ✅ **NORMAL varmistettu puhtaaksi** (headless, 56 avainta / 0 eroa): kaaosarvoja ei valu NORMALiin.
   Spawn-paikan arpa joka latauksella on **tarkoituksellinen** forkin ominaisuus (v10.01, ei korjata) –
   sama kuin talovärien ja tuulen suunnan arvonta.
@@ -262,9 +272,6 @@ mopo, puut, kolikko, mobiilikamera, potkukolikko).
 
 ## 🔜 Seuraavaksi (odottaa käyttäjän päätöstä)
 
-- **🌀 Kaaos Vaihe 4 (K7 + K2 loput + K6, → v10.05):** Korttipakka (10 visuaalista korttia), kellon
-  rytmit (hämärä, lamppushow, kaappien tahti), ääni (vain jos `audio.js`-lupa ❓3). Avoimet ❓5
-  (K7-korttilista) ja ❓6 (offline-linteri pyydettäessä).
 - **Blue Mäx:** TESTIMODE pois → vihollisten ammunta takaisin 60 % aggressiolle.
 - **Pääsiäismunat Dig Däshiin.**
 - **Hedelmäpeli:** RTP-presetit (A 74 % / **B 78,5 % oletus** / C 85 %), panosvalitsin 1/2/5,
