@@ -35,6 +35,55 @@ const StreetAudio = (() => {
 
     const MUSIC_VOLUME = 0.05; // kappaleen perusvoimakkuus (vastaa masterGain 0.05025)
 
+    /* ── Valikkomusiikki (v10.07): soi VAIN alkuvalikossa (Choose your chaos
+       level). Itsenäinen soitin – ei koske pelin syntikkaa eikä jukeboxia.
+       Autoplay-lukon takia ensimmäinen ele käynnistää, jos soitto oli estetty. */
+    const MENU_MUSIC_FILE = 'jukebox/alec_koff-heavy-doom-dark-metal-493397.mp3';
+    let menuEl = null;            // <audio>-elementti (loop)
+    let menuActive = false;       // onko alkuvalikko auki
+    let menuMusicBlocked = false; // autoplay estetty – yritetään uudelleen eleessä
+
+    function startMenuMusic() {
+        init();
+        try { if (ctx && ctx.state === 'suspended') ctx.resume(); } catch (e) {}
+        if (!menuActive) return;
+        try {
+            if (!menuEl) {
+                menuEl = new Audio(MENU_MUSIC_FILE);
+                menuEl.loop = true;
+                menuEl.preload = 'auto';
+                menuEl.volume = MUSIC_VOLUME;
+            }
+            // Hiljennä pelin tausta, ettei soi valikkobiisin päällä
+            if (loopId) { clearInterval(loopId); loopId = null; }
+            if (cycleTimer) { clearTimeout(cycleTimer); cycleTimer = null; }
+            if (fadeTimer) { clearInterval(fadeTimer); fadeTimer = null; }
+            if (synthFadeTimer) { clearInterval(synthFadeTimer); synthFadeTimer = null; }
+            if (synthGain) synthGain.gain.value = 0;
+            started = false;
+            stopMusicLoop();
+            stopJukebox();
+            menuMusicBlocked = false;
+            const p = menuEl.play();
+            if (p && typeof p.catch === 'function') {
+                p.catch(() => { menuMusicBlocked = true; });
+            }
+        } catch (e) {}
+    }
+
+    function stopMenuMusic() {
+        if (menuEl) {
+            try { menuEl.pause(); } catch (e) {}
+            try { menuEl.currentTime = 0; } catch (e) {}
+        }
+    }
+
+    function setMenuActive(on) {
+        menuActive = !!on;
+        if (on) startMenuMusic();
+        else stopMenuMusic();
+    }
+
     // ── Jukebox (kadun jukebox-huone): koko kappale alusta loppuun ──
     // Taustamusiikin sykli peruutetaan soiton ajaksi ja palaa itsestään.
     const JUKEBOX_VOLUME = MUSIC_VOLUME; // soittotaso (säädettävä nuppi – sama kuin taustamusiikki)
@@ -609,6 +658,9 @@ const StreetAudio = (() => {
     const SONG_PLAY_LIMIT = 30000;     // kappaleesta soitetaan vain alku (ms)
     const SONG_FADE_OUT = 600;         // häivytyksen kesto lopussa (ms, 0 = kova katkaisu)
     const SYNTH_PLAY_DURATION = 30000; // syntikka-fallbackin soittoaika (ms)
+    const SYNTH_FADE_IN = 800;         // syntikan sisäänhäivytys gracen jälkeen (ms, v10.09)
+    let musicGraceMs = 0;              // kertaluontoinen hiljaisuus ennen ensimmäistä syntikkaa (ms; 0 = ei)
+    let fadeInNextSynth = false;       // gracen jälkeinen syntikka häivyttyy sisään
 
     function getSilenceDuration() {
         return 30000 + Math.random() * 60000; // 30–90s taukoa
@@ -684,11 +736,20 @@ const StreetAudio = (() => {
         cycleTimer = setTimeout(playPhase, delay);
     }
 
-    function startSynth() {
+    function startSynth(fadeInMs) {
         if (!ctx) return;
         started = true;
         if (synthFadeTimer) { clearInterval(synthFadeTimer); synthFadeTimer = null; }
-        if (synthGain) synthGain.gain.value = 1; // syntikka kuuluviin
+        if (synthGain) {
+            const now = ctx.currentTime;
+            synthGain.gain.cancelScheduledValues(now);
+            if (fadeInMs > 0) {
+                synthGain.gain.setValueAtTime(0, now);
+                synthGain.gain.linearRampToValueAtTime(1, now + fadeInMs / 1000);
+            } else {
+                synthGain.gain.setValueAtTime(1, now);
+            }
+        }
         melodyReverse = Math.random() < 0.5;
         // Tempo 🍔-vauhtiin (v4.93): hidas → minimi, normaali → keskiväli, nopea → maksimi
         if (hungerTempo <= 0.7) {
@@ -711,13 +772,24 @@ const StreetAudio = (() => {
         if (!ctx) return;
         if (cycleTimer) { clearTimeout(cycleTimer); cycleTimer = null; }
         phase = 'playing';
+        // Grace-jakso (v10.09): menun jälkeen syntikka hiljaa, sitten häivyttyy sisään.
+        if (musicGraceMs > 0) {
+            const grace = musicGraceMs;
+            musicGraceMs = 0;
+            fadeInNextSynth = true;
+            phase = 'silent';
+            started = false;
+            cycleTimer = setTimeout(playPhase, grace);
+            return;
+        }
         if (musicReady && !musicBlocked) {
             // Aito äänite: soitetaan kerran loppuun
             startMusicLoop();
             armPlayTimer(true);
         } else {
             // Syntikkatausta (oletus): proseduraalinen synteesi
-            startSynth();
+            startSynth(fadeInNextSynth ? SYNTH_FADE_IN : 0);
+            fadeInNextSynth = false;
             armPlayTimer(false);
         }
     }
@@ -725,6 +797,11 @@ const StreetAudio = (() => {
     function onGesture() {
         init();
         if (ctx && ctx.state === 'suspended') ctx.resume();
+        // Valikko auki → soi vain valikkobiisi, ei pelitaustaa
+        if (menuActive) {
+            if (menuMusicBlocked) startMenuMusic();
+            return;
+        }
         // Jukebox soi → ei taustamusiikkia päälle
         if (jukePlaying || phase === 'jukebox') return;
         // Autoplay-eston jälkeen soitetaan odottava jukebox-jono (osto on jo tehty)
@@ -810,7 +887,7 @@ const StreetAudio = (() => {
     }
 
     /* ── Julkinen API ────────────────────────────────── */
-    function start() {
+    function start(delayMs) {
         init();
         if (!ctx) return;
         if (ctx.state === 'suspended') {
@@ -818,6 +895,8 @@ const StreetAudio = (() => {
         }
         // Jukebox soi → ei käynnistetä taustamusiikkia sen päälle
         if (jukePlaying || phase === 'jukebox') return;
+        // Grace-jakso (v10.09): valikosta aloitettaessa syntikka hiljaa ensin
+        if (delayMs) musicGraceMs = delayMs;
         // Käynnistä vain jos mikään sykli ei ole käynnissä
         if (!cycleTimer && !started) playPhase();
     }
@@ -831,6 +910,7 @@ const StreetAudio = (() => {
         phase = 'silent';
         stopJukebox();             // myös jukebox-kappale hiljenee (kuolema keskeyttää kaiken)
         stopMusicLoop();
+        stopMenuMusic();                            // valikkobiisi hiljenee (kuolema)
         if (synthGain) synthGain.gain.value = 0;   // syntikkatausta hiljenee heti (kuolema)
     }
 
@@ -840,5 +920,5 @@ const StreetAudio = (() => {
 
     return { init, start, stop, playDeathGong, getCtx, getDestination,
              playJukebox, playJukeboxQueue, appendJukeboxQueue, stopJukebox,
-             isJukeboxPlaying, getJukeboxQueuePos, setHungerTempo };
+             isJukeboxPlaying, getJukeboxQueuePos, setHungerTempo, setMenuActive };
 })();

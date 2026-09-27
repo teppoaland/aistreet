@@ -431,3 +431,39 @@ body::after {
     border-color: #ffe066;
     color: #ffe066;
 }
+
+/* ═══ ALOITUSGATE (äänilukko auki ennen chaos-valikkoa) ═══ */
+#start-gate {
+    position: fixed;
+    inset: 0;
+    z-index: 9100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 26px;
+    background: #0a0a0a;
+    text-align: center;
+    cursor: pointer;
+}
+
+#start-gate h1 {
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    font-size: 1.6rem;
+    color: #ffe066;
+    text-shadow: 0 0 12px rgba(255, 224, 102, 0.7);
+    letter-spacing: 2px;
+}
+
+#start-gate .press-start {
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    font-size: 0.6rem;
+    color: #c9cede;
+    animation: gate-blink 1.1s steps(2, start) infinite;
+}
+
+@keyframes gate-blink {
+    0%, 60% { opacity: 1; }
+    61%, 100% { opacity: 0.15; }
+}
+

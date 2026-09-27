@@ -10,6 +10,12 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- ═══ ALOITUSGATE (äänilukko auki ennen chaos-valikkoa) ═══ -->
+    <div id="start-gate" class="hidden">
+        <h1>AI CHAOS STREET</h1>
+        <p class="press-start">CLICK / PRESS ANY KEY TO BEGIN</p>
+    </div>
+
     <!-- ═══ AI CHAOS -ALKUHUBI (valitaan kaaostaso ennen peliä) ═══ -->
     <div id="chaos-menu" class="hidden">
         <h1>AI CHAOS STREET</h1>
@@ -24,7 +30,7 @@
     </div>
 
     <!-- Versionumero (aina näkyvissä – myös alkunäkymässä) -->
-    <div id="version-tag">v10.05</div>
+    <div id="version-tag">v10.09</div>
 
     <!-- ═══ PÄÄNÄKYMÄ ═══════════════════════════════════ -->
     <div id="game-wrapper">
@@ -101,6 +107,7 @@
             // 3. Kadulla → kysy vahvistus ja aloita alusta
             if (confirm('Haluatko varmasti aloittaa alusta?\nKaikki edistyminen katoaa.')) {
                 try { localStorage.removeItem(GameState.STORAGE_KEY); } catch (e) {}
+                if (typeof Street !== 'undefined' && Street.clearChaosSession) Street.clearChaosSession();
                 location.reload();
             }
         }

@@ -41,6 +41,14 @@ sovitetaan näkyvään ikkunaan keskitettynä x = 400 (jukebox v4.22, BAR v4.25:
 (kolmannen osapuolen heavy metal, kansikuvat `jukebox/covers/{4,5,6}.png`). Masterit repon ulkopuolella
 `D:\AI\Knived` / `D:\AI\free_music` (`.gitignore` estää `*.mpeg`/`*.mp4`).
 
+**Valikkomusiikki + portti + grace (v10.07–v10.09):** alkuvalikko ("Choose your chaos level") on erillinen
+**portti** peliin (näytetään vain: uusi peli / ✕-hard reset / kuolema). Valikko soi oman biisin
+(`jukebox/alec_koff-heavy-doom-dark-metal-493397.mp3`, loop, `audio.js` `setMenuActive`/`menuEl`).
+Autoplay-lukon kierto = `#start-gate` ("CLICK / PRESS ANY KEY TO BEGIN", `index.html` + `style.css`),
+jonka ensimmäinen ele avaa äänen ja näyttää valikon musiikin soidessa. Valikosta peliin siirryttäessä
+syntikka on hiljaa 30 s (`StreetAudio.start(30000)`, `musicGraceMs`) ja häivyttyy sitten sisään
+(`SYNTH_FADE_IN 800 ms`). F5 (soft reset) ohittaa portin + gracen ja jatkaa suoraan peliin.
+
 **Kuvat:** `assets/justiina.png` (315×261) = BAR-huoneen seinätaulu (`BAR_PIC_SRC`, `barPicReady`,
 varapinta jos ei lataudu) · `fruitgame/assets/dude_mv.jpg` (672×400, MV) = hedelmäpelin huoneen seinäkuva
 HTML-elementtinä `#wall-pic` (ei canvasin piirrossa; koko/asemointi `renderer.wallPicSize()`, piiloon

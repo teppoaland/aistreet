@@ -18,7 +18,7 @@
 
 - **Projekti:** **AI CHAOS STREET** – uusi itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages
   `teppoaland.github.io/aistreet/`), forkattu Pimeä Katu v5.02:sta. Alkuperäinen `D:\AI\Main`
-  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.05` (`index.html` → `#version-tag`).
+  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.09` (`index.html` → `#version-tag`).
 - 🔓 **Sääntö 04 (talousbalanssi-lukko) EI PÄDE enää AI CHAOS STREET -versiossa** (käyttäjän linjaus
   27.9.2026): sääntö 04 kirjoitettiin **alkuperäistä Pimeä Katu -peliä** varten ja sen lukitut arvot
   ovat NORMAL-tason arvoja. Chaos-forkissa NORMAL on vain yksi kaaostaso → talousarvot
@@ -34,6 +34,26 @@
   vuorokausi (`DAY_CYCLE_FRAMES`, `skyDir` = auringon/kuun suunta), linnut (`BIRD_COUNT_MIN/MAX`),
   kolikko (`COIN_RESPAWN_FRAMES`), rosvo (`ROBBER_APPEAR_CHANCE/SPEED/COOLDOWN/TTL`).
   NORMAL = nykyiset arvot bitti-identtisinä.
+- **🔄 F5-soft reset (v10.06):** hubia **ei näytetä** F5/reloadissa – valittu mode + ratkaistu
+  `chaosCfg` tallennetaan `sessionStorage`en (`aistreet_chaos_session`; selviää reloadista, tyhjenee
+  uudessa välilehdessä). F5 jatkaa samassa modessa ja **samalla** kaaosconfigilla (myös FULL:in
+  satunnaiset värit/palettit) – kolikot/🍔 säilyvät `pimeakatu_gamestate`:ssa. Hubi näytetään vain:
+  **ensivierailu/uusi välilehti**, **✕-hard reset** ja **kuolema** (kaikki kolme tyhjentävät sessionin).
+- **🎵 Valikkomusiikki (v10.07):** alkuvalikko ("Choose your chaos level") soi oman biisin –
+  `jukebox/alec_koff-heavy-doom-dark-metal-493397.mp3` (loop). **Vain valikossa** – pelin syntikkaa ja
+  jukeboxia ei kosketa. `audio.js`: `MENU_MUSIC_FILE`, oma `menuEl` (loop), `setMenuActive(on)` +
+  `startMenuMusic`/`stopMenuMusic`; `onGesture` valikon auki ollessa soittaa vain valikkobiisin (ei
+  pelitaustaa) ja yrittää uudelleen autoplay-eston jälkeen. `street.js` `DOMContentLoaded`:
+  valikon näyttö → `StreetAudio.setMenuActive(true)`, `start()` → `setMenuActive(false)` + `StreetAudio.start()`.
+- **🚪 Aloitusgate (v10.08):** autoplay-lukon takia valikkobiisi ei ehdi kuulua, jos chaos-tason klikkaa heti.
+  Ratkaisu: ennen chaos-valikkoa pieni `#start-gate` ("CLICK / PRESS ANY KEY TO BEGIN") – ensimmäinen ele
+  avaa äänilukon → chaos-valikko aukeaa **musiikin soidessa**. `index.html` `#start-gate` + `style.css`
+  (gate 9100, blink-animaatio) + `street.js` `DOMContentLoaded` (`setMenuActive(true)` jo gatessa, `onGesture`
+  hoitaa musiikin, `unlock()` näyttää valikon). Fallback ilman gate-elementtiä.
+- **⏱️ Grace-jakso (v10.09):** menun heavy metal → pelin syntikka -pudotus pehmennetty: pelin alkaessa
+  **valikosta** syntikka on hiljaa ensimmäiset **30 s** (vain kadun ambientti), sitten häivyttyy sisään
+  (`SYNTH_FADE_IN 800 ms`). F5 ei saa gracea. `audio.js`: `start(delayMs)`, `musicGraceMs` + `fadeInNextSynth`
+  `playPhase()`:ssä, `startSynth(fadeInMs)` (linearRamp 0→1). `street.js` `start()` → `StreetAudio.start(30000)`.
 - **📄 Kaaosparametrien suunnitelma v2 (27.9.2026):** `docs/chaos.md` – kategoriat K0–K7, tasomanifesti, C-kyvykkyysindeksi + 🍔-intervallin lattia (1200 f), kielletyt yhdistelmät, MUST-kohteet (kova tuuli · paksut pilvet + myrskytaivas · vihreä aurinko), toteutusresepti portteineen, testaus/DoD, 4 vaihetta ja avoimet päätökset (`❓`). Koodivaiheet `v10.02`…`v10.05` – **v10.02 (K0), v10.03 (K1), v10.04 (K3+K4), v10.05 (K2+K6+K7) valmiit.**
 - **🛡️ Kaaoksen kaksi pääsääntöä:** (1) **NORMAL ei saa koskaan hajota** – kaaosarvot ovat NORMALissa no-op ja peli on bitti-identtinen; (2) **koko peli pysyy pelattavana kaikissa moodeissa** – jokainen arpa kulkee `clampChaosCfg()` + `validateChaosCfg()` -portin läpi (ei epäreilua kuolemaa, uhkanopeus ≤ 1,4 × C).
 - **🛡️ Kaaosportti K0 (v10.02):** `street.js` – `makeRng` (mulberry32) + `chaosRng`, testikytkimet

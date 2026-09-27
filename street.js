@@ -1798,9 +1798,11 @@ const Street = (() => {
         }
     }
 
-    function applyChaosProfile(level) {
+    function applyChaosProfile(level, cfgOverride) {
         chaosLevel = level || 'normal';
-        chaosCfg = drawChaosCfg(chaosLevel);   // portti: klampit + validointi (pääsääntö 2)
+        // cfgOverride = F5-soft reset: käytetään tallennettua ratkaistua configia
+        // suoraan (klampataan idempotentisti turvaksi) – ei uutta arpaa.
+        chaosCfg = cfgOverride ? clampChaosCfg(cfgOverride) : drawChaosCfg(chaosLevel);   // portti: klampit + validointi (pääsääntö 2)
         // Kirjoitetaan kertoimet olemassa oleviin muuttujiin
         DAY_CYCLE_FRAMES     = chaosCfg.dayCycleFrames;
         MOON_NIGHT_FRAMES    = chaosCfg.dayCycleFrames;
@@ -1892,9 +1894,31 @@ const Street = (() => {
         }
     }
 
-    function setChaos(level) {
-        applyChaosProfile(level);
+    function setChaos(level, cfg) {
+        applyChaosProfile(level, cfg);
         return chaosLevel;
+    }
+
+    /* Kaaossession (v10.06): F5/reload palauttaa saman moden ilman alkuhubia.
+       sessionStorage selviää reloadista mutta tyhjenee uudessa välilehdessä
+       (→ "peliin tulo" näyttää hubin). ✕-hard reset ja kuolema tyhjentävät sen. */
+    const CHAOS_SESSION_KEY = 'aistreet_chaos_session';
+    function saveChaosSession() {
+        try {
+            sessionStorage.setItem(CHAOS_SESSION_KEY, JSON.stringify({ level: chaosLevel, cfg: chaosCfg }));
+        } catch (e) {}
+    }
+    function loadChaosSession() {
+        try {
+            const raw = sessionStorage.getItem(CHAOS_SESSION_KEY);
+            if (!raw) return null;
+            const s = JSON.parse(raw);
+            if (!s || typeof s.level !== 'string') return null;
+            return s;
+        } catch (e) { return null; }
+    }
+    function clearChaosSession() {
+        try { sessionStorage.removeItem(CHAOS_SESSION_KEY); } catch (e) {}
     }
 
     /* ═══════════════════════════════════════════════════════════
@@ -2645,6 +2669,7 @@ const Street = (() => {
             deathTimer -= dt;
             deathAlpha = Math.min(1, 1 - (deathTimer / 180));
             if (deathTimer <= 0) {
+                clearChaosSession();   // kuolema vie takaisin alkuhubiin (kuten ennen)
                 GameState.reset();
                 location.reload();
             }
@@ -8683,7 +8708,7 @@ const Street = (() => {
         camX = Math.max(0, Math.min(WORLD_W - viewW, camX));
     }
 
-    return { init, resize, closeGame, closeRoom, setChaos };
+    return { init, resize, closeGame, closeRoom, setChaos, saveChaosSession, loadChaosSession, clearChaosSession };
 })();
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -8698,11 +8723,44 @@ window.addEventListener('DOMContentLoaded', () => {
         return;
     }
     if (!menu) { Street.init(canvas); return; }   // ei hubia → käynnistä suoraan
+    // F5-soft reset: jos kaaossession on tallessa, ohita hubi ja jatka samassa modessa.
+    const savedChaos = Street.loadChaosSession();
+    if (savedChaos) {
+        menu.classList.add('hidden');
+        Street.setChaos(savedChaos.level, savedChaos.cfg);
+        Street.init(canvas);
+        return;
+    }
     menu.classList.remove('hidden');
+    // Aloitusgate (v10.08): ensimmäinen ele avaa äänilukon ja näyttää chaos-valikon.
+    const gate = document.getElementById('start-gate');
+    const showMenu = () => {
+        if (gate) gate.classList.add('hidden');
+        menu.classList.remove('hidden');
+    };
+    if (gate) {
+        gate.classList.remove('hidden');
+        StreetAudio.setMenuActive(true);   // valikko aktiiviseksi jo gatessa → onGesture avaa musiikin
+        const unlock = () => {
+            showMenu();
+            window.removeEventListener('keydown', unlock);
+            window.removeEventListener('mousedown', unlock);
+            window.removeEventListener('touchstart', unlock);
+        };
+        window.addEventListener('keydown', unlock);
+        window.addEventListener('mousedown', unlock);
+        window.addEventListener('touchstart', unlock);
+    } else {
+        showMenu();
+        StreetAudio.setMenuActive(true);   // fallback: ei gate-elementtiä
+    }
     const start = (level) => {
         menu.classList.add('hidden');
+        StreetAudio.setMenuActive(false);   // valikkobiisi pois, peli alkaa
         Street.setChaos(level);
+        Street.saveChaosSession();
         Street.init(canvas);
+        StreetAudio.start(30000);           // grace: syntikka hiljaa 30 s valikosta aloitettaessa (v10.09)
     };
     menu.querySelectorAll('[data-level]').forEach(btn => {
         btn.addEventListener('click', () => start(btn.getAttribute('data-level')));
