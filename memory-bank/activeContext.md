@@ -75,8 +75,8 @@
   meteoriitti (ei-NORMAL: MILD 12 % · GOOD 8 % · BAD 40 % · FULL 55 %; NORMAL 0 %). `shootingStar.kind` +
   `meteoriteChance()`. v10.16 hienosäätö: viisto laskeutumiskulma 40–60° vaakasuorasta (kuten tähdenlento),
   häntä 2x pidempi, tärinä ~2,5 s, ja törmäysvälähdys = koko **taivas** välähtää salaman lailla (~1 s,
-  talojen takana) – ei etualan tulipalloa. Kipinät (`spawnParticles`) + `drawMeteorite()` (tulinen vana +
-  sykkivä hehku). Tärinä/välähdys vain katunäkymässä (huoneet return-varhain; meteoriitti päivittyy vain
+  talojen takana) – ei etualan tulipalloa. Kipinät (`spawnParticles`) + `drawMeteorite()` (kalpea hoikka vana +
+  heikko hehku). Tärinä/välähdys vain katunäkymässä (huoneet return-varhain; meteoriitti päivittyy vain
   kadun yöpolussa).
 - **📱 Choose your -valikko vaakakuva (v10.15):** mobiilin landscape (≤ 500 px korkeus) – napit `flex-wrap: wrap`
   -riveihin (3+2), pienempi otsikko/teksti, jotta koko valikko mahtuu matalaan näyttöön (ei aiemmin ollut

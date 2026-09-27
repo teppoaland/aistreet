@@ -1644,8 +1644,8 @@ const Street = (() => {
             if (shootingStar.y >= GROUND_Y) {
                 meteorShakeTimer = METEOR_SHAKE_FRAMES;
                 meteorFlash = { t: METEOR_FLASH_FRAMES };   // v10.16: taivas välähtää (ei etualan palloa)
-                spawnParticles(shootingStar.x, GROUND_Y - 4, '#ffaa44', 18);
-                spawnParticles(shootingStar.x, GROUND_Y - 4, '#ffdd88', 10);
+                spawnParticles(shootingStar.x, GROUND_Y - 4, '#dbe6ff', 18);
+                spawnParticles(shootingStar.x, GROUND_Y - 4, '#f4f8ff', 10);
                 shootingStar.active = false;
             } else if (shootingStar.x < -40 || shootingStar.x > WORLD_W + 40) {
                 shootingStar.active = false;   // lensi ulos sivusta, ei törmäystä
@@ -1664,27 +1664,25 @@ const Street = (() => {
 
     function drawMeteorite() {
         const m = shootingStar;
-        // Tulinen vana (oranssi → punainen, häipyvä ylöspäin)
+        // Kapea, vaalea, häipyvä vana (kalpea + hoikka, ei "joulupukin reki")
         for (let t = 0; t < m.trail.length; t++) {
             const tr = m.trail[t];
             const k = t / m.trail.length;
-            ctx.fillStyle = 'rgba(255,' + Math.floor(150 - k * 90) + ',30,' + (k * 0.65) + ')';
-            ctx.beginPath(); ctx.arc(tr.x, tr.y, 1.5 + k * 2.5, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = 'rgba(205,220,245,' + (k * 0.4) + ')';
+            ctx.beginPath(); ctx.arc(tr.x, tr.y, 0.7 + k * 1.4, 0, Math.PI * 2); ctx.fill();
         }
-        // Sykkivä hehku
+        // Hoikka, vaalea ydin + heikko kylmä hehku
         const pulse = 0.85 + Math.sin(m.life * 0.12) * 0.15;
-        const r = m.r * pulse;
-        const glow = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, r * 3.2);
-        glow.addColorStop(0, 'rgba(255,210,110,' + (0.6 * pulse) + ')');
-        glow.addColorStop(0.45, 'rgba(255,120,40,0.35)');
-        glow.addColorStop(1, 'rgba(255,60,10,0)');
+        const r = m.r * pulse * 0.55;   // laihempi ydin
+        const glow = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, r * 2.4);
+        glow.addColorStop(0, 'rgba(240,246,255,' + (0.5 * pulse) + ')');
+        glow.addColorStop(0.55, 'rgba(175,195,225,0.20)');
+        glow.addColorStop(1, 'rgba(150,170,200,0)');
         ctx.fillStyle = glow;
-        ctx.beginPath(); ctx.arc(m.x, m.y, r * 3.2, 0, Math.PI * 2); ctx.fill();
-        // Ydin
-        ctx.fillStyle = '#fff3c4';
-        ctx.beginPath(); ctx.arc(m.x, m.y, r * 0.45, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#ff8a2a';
-        ctx.beginPath(); ctx.arc(m.x, m.y, r * 0.8, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(m.x, m.y, r * 2.4, 0, Math.PI * 2); ctx.fill();
+        // Vaalea ydin
+        ctx.fillStyle = '#f4f8ff';
+        ctx.beginPath(); ctx.arc(m.x, m.y, r * 0.7, 0, Math.PI * 2); ctx.fill();
     }
 
     function updateSatellite(dt) {
