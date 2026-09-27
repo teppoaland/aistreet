@@ -69,7 +69,7 @@
   autot "ylempänä" mutta pelaaja autojen TAKANA. Sama periaate kuin lamppupylväillä
   (v4.73); takapylväs/autot -järjestys ja katueläimen asema säilyvät.
 - **Tila:** pääportaali + 5 alipeliä valmiit ja pelattavat (`digGame1` ⛏️, `digGame2` 💎, `bm` ✈️,
-  `fruitgame` 🍒); julkaisu GitHub Pages `https://teppoaland.github.io/pimeakatu/`.
+  `fruitgame` 🍒); **julkaistu – `https://teppoaland.github.io/aistreet/` (ONLINE)**.
 - **Kadun canvas-huoneet (ei iframe):** makuuhuone (talo 7) · BAR (talo 9) · jukebox (`buildings[4]`,
   ovi x 410) · sanomalehti (`newsRoom`) · hedelmäpelitalo (`buildings[6]`, iframe).
 - **Aukiolo (v4.34):** jukebox + hedelmäpeli auki **vain öisin** (päivällä `dayT >= 0.5` → popup
@@ -261,4 +261,4 @@ mopo, puut, kolikko, mobiilikamera, potkukolikko).
 - **Headless-validointi** onnistuu Node `vm` + Proxy-canvas-stub -tekniikalla (rAF ohjattavana);
   testiskriptit `%TEMP%\*.cjs` – ei repossa (luettelo `progress.md`:ssä).
 - Pääportaalin mobiiliohjain: `position: absolute`, `opacity: 0.65`, landscape overlay, D-pad + ⚡.
-- Julkaisu: GitHub Pages `https://teppoaland.github.io/pimeakatu/`.
+- Julkaisu: GitHub Pages `https://teppoaland.github.io/aistreet/` (ONLINE 27.9.2026).

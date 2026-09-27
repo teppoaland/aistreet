@@ -80,7 +80,7 @@
 | 🚫 Ei ylimääräisiä dialogeja | ✅ v4.68 – sääntö 06 (`.clinerules/06-ei-dialogeja.md`); rosvon rahaviesti poistettu |
 | Tekijänoikeudet | ✅ 20.9.2026 – juuren `LICENSE` (Copyright (c) 2024–2026 Teppo Ålander, All rights reserved) + README-osio; 22.9.2026 LICENSE/README mainitsevat myös jukeboxin kolmannen osapuolen raidat (raidat 4–6) |
 | Pelinimien yhdenmukaistus | ✅ 20.9.2026 – näkyvät nimet "Dig Däsh" ja "Blue Mäx" kaikkialla; sisäiset tunnisteet ennallaan |
-| Julkaisu | GitHub Pages `https://teppoaland.github.io/pimeakatu/` |
+| Julkaisu | ✅ **ONLINE** – GitHub Pages `https://teppoaland.github.io/aistreet/` (27.9.2026) |
 
 ## 🧪 Testipenkit (ei repossa)
 
