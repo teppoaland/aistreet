@@ -78,7 +78,7 @@
 |-----------|------|
 | `.clinerules/` (01–06) + `memory-bank/` + Git | ✅ |
 | Muistipankin kompaktio | ✅ 20.9.2026 (activeContext 83 kt → ~16 kt) · ✅ 23.9.2026 (v4.71) – kaikki kolme tiedostoa tiivistetty: activeContext 53,7 → 15,8 kt (631 → 199 riviä), progress 18,5 → 10,3 kt, systemPatterns 11,8 → 10,5 kt; täysi historia git-historiassa |
-| 🔒 Talousbalanssi lukittu | ✅ v4.24 – sääntö 04 + `docs/economy-balance-memo.md`; rosvo/kaivo/🍔-vauhti kirjattu sääntöön (v4.68/v4.69/v4.70) |
+| 🔒 Talousbalanssi lukittu | ✅ v4.24 – sääntö 04 + `docs/economy-balance-memo.md`; rosvo/kaivo/🍔-vauhti kirjattu sääntöön (v4.68/v4.69/v4.70) · **🔓 SUPERSEDED 27.9.2026:** sääntö 04 EI enää päde AI CHAOS STREET -forkissa (kirjoitettu alkuperäistä Pimeä Katu -peliä varten) – talousarvot vapaita kaikilla tasoilla |
 | 🚫 Ei ylimääräisiä dialogeja | ✅ v4.68 – sääntö 06 (`.clinerules/06-ei-dialogeja.md`); rosvon rahaviesti poistettu |
 | Tekijänoikeudet | ✅ 20.9.2026 – juuren `LICENSE` (Copyright (c) 2024–2026 Teppo Ålander, All rights reserved) + README-osio; 22.9.2026 LICENSE/README mainitsevat myös jukeboxin kolmannen osapuolen raidat (raidat 4–6) |
 | Pelinimien yhdenmukaistus | ✅ 20.9.2026 – näkyvät nimet "Dig Däsh" ja "Blue Mäx" kaikkialla; sisäiset tunnisteet ennallaan |

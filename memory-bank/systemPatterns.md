@@ -133,9 +133,15 @@ peli/
 
 ## 🔒 Talousbalanssi (LUKITTU 20.9.2026)
 
-> **⚠️ ISO VAROITUS:** älä muuta kolikko-/🍔-/RTP-arvoja ilman käyttäjän eksplisiittistä pyyntöä.
-> Sitova sääntö **`.clinerules/04-economy-balance.md`**, tausta **`docs/economy-balance-memo.md`**
-> sekä säännön 02 kohta "Talous ja palkkiotase".
+> **⚠️ SUPERSEDED 27.9.2026:** sääntö 04 oli kirjoitettu **alkuperäistä Pimeä Katu -peliä** varten.
+> **AI CHAOS STREET -forkissa se EI enää päde** – NORMAL on vain yksi kaaostaso, ja talousarvot
+> (aloituskolikot/🍔, 🍔-tahti, RTP, hinnat) ovat vapaita muutettaviksi/kaaostettaviksi myös NORMALissa.
+> Alla olevat arvot säilyvät **historiallisena dokumentaationa** alkuperäispelin balanssista,
+> eivät sitovina rajoituksina chaos-versiossa.
+
+> **Vanha ISO VAROITUS (alkuperäispeli):** älä muuta kolikko-/🍔-/RTP-arvoja ilman käyttäjän
+> eksplisiittistä pyyntöä. Sitova sääntö **`.clinerules/04-economy-balance.md`**, tausta
+> **`docs/economy-balance-memo.md`** sekä säännön 02 kohta "Talous ja palkkiotase".
 
 - **Hedelmäpeli:** panos 1, painot 🍒7 🍋5 🔔4 🍔2 💎2, maksut 💎35 🍔20 🔔12 🍋7 🍒4 + pari = panos takaisin
   → **RTP ≈ 78,5 %**; ilmainen pyöräytys 1 / 120 s.

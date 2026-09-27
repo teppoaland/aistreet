@@ -19,6 +19,13 @@
 - **Projekti:** **AI CHAOS STREET** – uusi itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages
   `teppoaland.github.io/aistreet/`), forkattu Pimeä Katu v5.02:sta. Alkuperäinen `D:\AI\Main`
   (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.03` (`index.html` → `#version-tag`).
+- 🔓 **Sääntö 04 (talousbalanssi-lukko) EI PÄDE enää AI CHAOS STREET -versiossa** (käyttäjän linjaus
+  27.9.2026): sääntö 04 kirjoitettiin **alkuperäistä Pimeä Katu -peliä** varten ja sen lukitut arvot
+  ovat NORMAL-tason arvoja. Chaos-forkissa NORMAL on vain yksi kaaostaso → talousarvot
+  (aloituskolikot/🍔, 🍔-tahti, RTP, hinnat, syntymäpaketti) ovat **vapaita muutettaviksi/kaaostettaviksi**
+  myös NORMALissa. `.clinerules/04-economy-balance.md` ja `docs/economy-balance-memo.md` ovat
+  historiallisia viitteitä alkuperäispeliin, **eivät sitovia** chaos-versiossa. K4-taloudelliset akselit
+  (❓2) voidaan siten avata ilman sääntö 04:n prosessia.
 - **🌀 Alkuhubi + kaaostasot (v10.01):** `index.html` `#chaos-menu` (NORMAL / MILD / GOOD / BAD /
   FULL CHAOS). `street.js` `setChaos()` + `chaosProfile()` + `applyChaosProfile()` +
   `generateFullChaosSeed()`. Hub näytetään aina latauksessa → valinnan jälkeen spawn-arpa ja
