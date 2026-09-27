@@ -18,7 +18,7 @@
 
 - **Projekti:** **AI CHAOS STREET** – uusi itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages
   `teppoaland.github.io/aistreet/`), forkattu Pimeä Katu v5.02:sta. Alkuperäinen `D:\AI\Main`
-  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.16` (`index.html` → `#version-tag`).
+  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.17` (`index.html` → `#version-tag`).
 - 🔓 **Sääntö 04 (talousbalanssi-lukko) EI PÄDE enää AI CHAOS STREET -versiossa** (käyttäjän linjaus
   27.9.2026): sääntö 04 kirjoitettiin **alkuperäistä Pimeä Katu -peliä** varten ja sen lukitut arvot
   ovat NORMAL-tason arvoja. Chaos-forkissa NORMAL on vain yksi kaaostaso → talousarvot
@@ -71,13 +71,12 @@
   **Rosvon elinikä kuluu nyt myös piilossa** (kaikki tasot): uusi blokki `trackHiddenStreet()`:n jälkeen tikittää
   `robber.ttl`:ää kun `iframeOpen || sleepRoom || barRoom || jukeboxRoom || newsRoom` → "piiloudu ja odota"
   -pakoreitti toimii. Renderöinti ennallaan (rosvo aina pylvään takana, kuten avenger). Nopeus yhä klampissa ≤ 1,4 × C.
-- **🌠 Meteoriitti + valikon vaakakuva (v10.15/v10.16):** tähdenlennon tilalla iso, hitaasti putoava
+- **🌠 Meteoriitti + valikon vaakakuva (v10.15–v10.17):** tähdenlennon tilalla iso, hitaasti putoava
   meteoriitti (ei-NORMAL: MILD 12 % · GOOD 8 % · BAD 40 % · FULL 55 %; NORMAL 0 %). `shootingStar.kind` +
-  `meteoriteChance()`. v10.16 hienosäätö: viisto laskeutumiskulma 40–60° vaakasuorasta (kuten tähdenlento),
-  häntä 2x pidempi, tärinä ~2,5 s, ja törmäysvälähdys = koko **taivas** välähtää salaman lailla (~1 s,
-  talojen takana) – ei etualan tulipalloa. Kipinät (`spawnParticles`) + `drawMeteorite()` (kalpea hoikka vana +
-  heikko hehku). Tärinä/välähdys vain katunäkymässä (huoneet return-varhain; meteoriitti päivittyy vain
-  kadun yöpolussa).
+  `meteoriteChance()`. v10.16: viisto laskeutumiskulma 40–60° vaakasuorasta (kuten tähdenlento), häntä
+  2x pidempi, tärinä ~2,5 s, törmäysvälähdys = koko **taivas** välähtää salaman lailla (~1 s, talojen takana).
+  v10.17: kalpea, hoikka ulkoasu – jäänvalkoinen ydin + kylmä hehku, ei "joulupukin reki"; kipinät kalpeat.
+  Tärinä/välähdys vain katunäkymässä (huoneet return-varhain; meteoriitti päivittyy vain kadun yöpolussa).
 - **📱 Choose your -valikko vaakakuva (v10.15):** mobiilin landscape (≤ 500 px korkeus) – napit `flex-wrap: wrap`
   -riveihin (3+2), pienempi otsikko/teksti, jotta koko valikko mahtuu matalaan näyttöön (ei aiemmin ollut
   puhelinoptimoitu).
