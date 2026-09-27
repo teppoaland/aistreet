@@ -1,6 +1,6 @@
 # 📊 Projektin edistyminen
 
-> **v10.17 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026. Kompaktoitu 23.9.2026 (täysi historia git-historiassa: viimeisin täysi versio
+> **v10.24 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026. Kompaktoitu 23.9.2026 (täysi historia git-historiassa: viimeisin täysi versio
 > `ffb1dd9`, HEAD `44db9e7`)
 
 ## 🏮 Pääportaali – AI CHAOS STREET
@@ -21,6 +21,9 @@
 | 🔪 Rosvo jahtaa BAD CHAOS:ssa | ✅ **v10.12** – uusi kaaosakseli `robberChasesY` (vain BAD = true): rosvo ohjaa vapaasti molemmilla akseleilla kuten avenger ja nappaa ilman kaistaehtoa → pakoon ei pääse kadulla. Rosvon elinikä (`robber.ttl`) kuluu nyt **myös piilossa** (huone/alapeli) kaikilla tasoilla, joten "piiloudu ja odota" toimii. Nopeus yhä klampissa ≤ 1,4 × C |
 | 🌠 Meteoriitti + 📱 valikko vaakakuva | ✅ **v10.15–v10.17** – tähdenlennon tilalla iso hitaasti putoava meteoriitti (ei-NORMAL: MILD 12 % · GOOD 8 % · BAD 40 % · FULL 55 %, NORMAL 0 %); `shootingStar.kind` + `meteoriteChance()`. v10.16: laskeutumiskulma 40–60°, häntä 2x pidempi, tärinä ~2,5 s, välähdys = koko taivas salaman lailla (~1 s, talojen takana) + kipinät. v10.17: kalpea, hoikka ulkoasu (jäänvalkoinen, kylmä hehku). Vain katunäkymässä. Choose your -valikko optimoitu puhelimen vaakakuvaan (napit `flex-wrap`, max-height 500 px) |
 | 🌀 Kaaos v10.18 – uudet akselit | ✅ **v10.18** – polariteetti: ikävät = BAD/FULL, neutraalit = chaos-tasot. **Ikävät:** lukitut ovet `doorLockChance` (jukebox+hedelmäpeli, ei koskaan BAR/makuuhuone, ei ilmoitusta) · hoipertelu `staggerAmount` (normaali vauhti + juopunut värähtely) · kuvan tärinä `screenShakeAmount`. **Neutraalit:** lamppu punaiseksi `lampRedFlicker` · BAR-kyltin palanut kirjain `barBurntLetter` · kaapin rätinä `cabFlicker` · auringon koko `sunSizeMult` (0.6–2.0). **Hidastus poistettu:** `playerSpeedMult` alaraja 0.6→1.0 (hoipertelu korvaa sen). NORMAL bitti-identtinen; headless 2000 FULL-arpaa → 0 hylättyä |
+| 🌠 Meteoriitti tuhoaa taustarivin | ✅ **v10.19** – meteoriitin osuessa maahan poistetaan 3 taustataloa `backdrop.blocks`-taulukosta (lähin lohko + 2 viereistä, wrap-around; `destroyBackdropHouses` + `METEOR_BACKDROP_HOUSES = 3`). Rivistö (~33 taloa, 28–38) häviää ~10 meteoriitilla. Tärinä/välähdys/partikkelit ennallaan. Vain ei-NORMAL → NORMAL bitti-identtinen. Ei uutta localStorage-avainta; `initBackdrop()` palauttaa rivin kuoleman/resetin yhteydessä |
+| 🔫 Sädease + meteoriitit vain FULL | ✅ **v10.20** – meteoriitit vain FULL (`meteoriteChance()` full 0.55, muut 0). Sädease = kadulta poimittava esine (`beamPickup`, vain FULL, kerran per run, satunnainen paikka); `beamWeaponCollected` (uusi `gameState.js`-kenttä). PC: hiiri-tähtäys + klikkaus; mobiili: täppäys taivaalle; osuma (`distanceToSegment` < r + 10) räjäyttää meteoriitin ennen maahan osumista (ei taustatuhoa). HUD `🔫`. Ammukset rajattomat, ei rahapalkkiota. NORMAL bitti-identtinen |
+| 🔫 Sädease & meteoriitit – viimeistely | ✅ **v10.21–v10.24** – v10.21: poimintadialogi + harmaa kepakko 45° käteen + laserääni + valojuova 1 s. v10.22: säde piipun kärjestä (`beamMuzzle`), ammunta vaatii kääntyneenä meteoriitin suuntaan (`facing*vx<0`) + lamppurivistön alapuolella (jalkapiste ≥ 325), ääni 1 s. v10.23: talojen läpi ei voi ampua (`beamHitsBuilding`, Liang–Barsky). v10.24: meteoriitit BADissa harvakseltaan (25 %, ei asetta) – pelaaja katsoo kaupungin tuhoutuvan. NORMAL bitti-identtinen |
 
 
 

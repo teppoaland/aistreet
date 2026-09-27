@@ -22,6 +22,8 @@ const GameState = (() => {
         digKeyCollected: false,
         boulderKeyCollected: false,
         bmKeyCollected: false,
+        // Onko sädease poimittu kadulta (v10.20; vain FULL CHAOS).
+        beamWeaponCollected: false,
         // Onko jukeboxista soitettu vähintään yksi kappale (v10.11).
         // Syntikkatausta pysyy piilossa, kunnes tämä on true.
         jukeboxPlayedOnce: false,

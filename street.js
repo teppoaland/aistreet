@@ -123,6 +123,17 @@ const Street = (() => {
     function randomCoinY() { return COIN_Y_MIN + Math.random() * (COIN_Y_MAX - COIN_Y_MIN); }
     let COIN_RESPAWN_FRAMES = 7200;   // 120 s @ 60 fps – säädettävissä kaaostasolla (v5.03)
 
+    /* ── Sädease (v10.20) – poimittava kadulta, vain FULL CHAOS ── */
+    let beamWeaponCollected = false;   // tallennettu tila (gameState.js)
+    let beamPickup = null;             // { x, y } – esine kadulla (null = ei näkyvissä)
+    let aimX = 0, aimY = 0;            // tähtäyspiste (maailmakoordinaatit)
+    let aimActive = false;             // hiiri on käynyt (ristikko näytetään PC:llä)
+    let beamFireTimer = 0;             // säteen piirto frameä laukaisun jälkeen
+    let beamStartX = 0, beamStartY = 0;  // säteen lähtöpiste (jäädytetään laukaisussa)
+    let beamEndX = 0, beamEndY = 0;      // säteen kohdepiste (jäädytetään laukaisussa)
+    const BEAM_HIT_TOLERANCE = 10;     // säteen osuman sallittu etäisyys (px)
+    const BEAM_FIRE_FRAMES = 60;       // säteen näkyvyysaika (frameä) – ~1 s valoraita
+
     /* ── Sähkökaapit (talojen kyljissä, kerrostalon vas. seinä) ── */
     // 1. kaappi: 1. puu (trees[0], x 175) on talojen 1–2 välissä. Sen oikealla
     // puolella olevan talon (buildings[2], x 200–250) vasen seinä on x 200.
@@ -1311,6 +1322,35 @@ const Street = (() => {
         } catch(e) {}
     }
 
+    /* ── Sädeaseen laserääni (v10.21) – "pew" kuin Star Wars ── */
+    function playLaser() {
+        try {
+            initAudio();
+            if (!audioCtx || audioCtx.state !== 'running') return;
+            const now = audioCtx.currentTime;
+            // Vingahdus: korkea → matala sweep (sahatonni), ~1 s (v10.22)
+            const osc = audioCtx.createOscillator();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(1900, now);
+            osc.frequency.exponentialRampToValueAtTime(160, now + 1.0);
+            const ogain = audioCtx.createGain();
+            ogain.gain.setValueAtTime(0.16 * sfxVolumeMult, now);
+            ogain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+            osc.connect(ogain).connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 1.0);
+            // Kirkas neliökerros → terävämpi "pew"
+            const osc2 = audioCtx.createOscillator();
+            osc2.type = 'square';
+            osc2.frequency.setValueAtTime(2800, now);
+            osc2.frequency.exponentialRampToValueAtTime(320, now + 0.8);
+            const g2 = audioCtx.createGain();
+            g2.gain.setValueAtTime(0.09 * sfxVolumeMult, now);
+            g2.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+            osc2.connect(g2).connect(audioCtx.destination);
+            osc2.start(now); osc2.stop(now + 0.8);
+        } catch(e) {}
+    }
+
     /* ── Katuvalon syttyminen (yön lamppushow, v4.42) ──
        Pehmeä naksahdus: lyhyt korkea kohinapiikki + lämmin humahdus.
        Sama tyyli kuin muilla kadun SFX:illä (Web Audio, ei tiedostoja). */
@@ -1603,17 +1643,132 @@ const Street = (() => {
        update). Yhdistetty, jotta sama koodi pätee molemmissa paikoissa. */
     const METEOR_SHAKE_FRAMES = 150;  // meteoriitin törmäyksen tärinän kesto (frameä, ~2.5 s, v10.16)
     const METEOR_FLASH_FRAMES = 60;   // meteoriitin taivasvälähdyksen kesto (frameä, ~1 s, v10.16)
+    const METEOR_BACKDROP_HOUSES = 3; // meteoriitin osuma tuhoaa N taustataloa rivistä (v10.19)
 
-    /* Meteoriitin esiintymistodennäköisyys (v10.15): tähdenlennon sijaan iso, hitaasti
-       etenevä meteoriitti. NORMAL = 0 (ei koskaan). Säädettävissä pelituntuman mukaan. */
+    /* Meteoriitin esiintymistodennäköisyys (v10.20/v10.24): tappavat meteoriitit
+       tulevat FULL CHAOS -modessa aina ja BAD CHAOS -modessa harvakseltaan
+       (BAD:ssa ei ole sädeasetta → pelaaja joutuu katsomaan kaupungin tuhoutuvan).
+       MILD/GOOD/NORMAL = 0 (ei koskaan). */
     function meteoriteChance() {
-        switch (chaosLevel) {
-            case 'mild': return 0.12;
-            case 'good': return 0.08;
-            case 'bad':  return 0.40;
-            case 'full': return 0.55;
-            default:     return 0;   // normal
+        if (chaosLevel === 'full') return 1;       // aina (sädease testattavissa)
+        if (chaosLevel === 'bad') return 0.25;     // harvakseltaan tuhoavia, ei asetta
+        return 0;
+    }
+
+    /* Meteoriitin osuma tuhoaa taustarivin taloja (v10.19): lähin lohko + sen
+       viereiset (yhteensä METEOR_BACKDROP_HOUSES), jotta skyline sortuu paikallisesti
+       siihen missä meteoriitti osui. Wrap-around pitää rivin ehjänä reunalla. */
+    function destroyBackdropHouses(impactX) {
+        if (!backdrop || !backdrop.blocks.length) return;
+        const bgShift = camX * (1 - BACKDROP_PARALLAX);
+        const target = impactX - bgShift;   // maailmakoordinaatti → tausta-avaruus
+        let best = 0, bestDist = Infinity;
+        for (let i = 0; i < backdrop.blocks.length; i++) {
+            const cx = backdrop.blocks[i].x + backdrop.blocks[i].w / 2;
+            const d = Math.abs(cx - target);
+            if (d < bestDist) { bestDist = d; best = i; }
         }
+        // Poista lähin + seuraavat (kierrä reunalla), suurimmasta indeksistä pienimpään
+        const remove = [];
+        for (let k = 0; k < METEOR_BACKDROP_HOUSES && remove.length < backdrop.blocks.length; k++) {
+            remove.push((best + k) % backdrop.blocks.length);
+        }
+        remove.sort((a, b) => b - a);
+        for (const i of remove) backdrop.blocks.splice(i, 1);
+    }
+
+    /* ── Sädease: tähtäys + laukaisu (v10.20) ── */
+    function beamCanFire() {
+        if (!beamWeaponCollected) return false;
+        if (!shootingStar || !shootingStar.active || shootingStar.kind !== 'meteorite') return false;
+        if (dayT > 0) return false;
+        // v10.22: pelaajan on oltava kääntyneenä meteoriitin tulosuuntaan (ei ammuntaa selästä)
+        if (player.facing * shootingStar.vx >= 0) return false;
+        // v10.22: ampuu vain lamppurivistön alapuolella (kadun puolella, ei talojen takaa)
+        if (player.y + player.h < LAMP_BASE_Y) return false;
+        return true;
+    }
+
+    /* Sädeaseen piipun kärki maailmakoordinaateissa (v10.22): sama piste
+       piirrolle ja säteen lähtöpisteelle → säde lähtee aseesta, ei sen alta. */
+    function beamMuzzle() {
+        const cx = player.x + player.w / 2;
+        const dir = player.facing;
+        const gripX = cx + dir * 5;         // etukäden ote
+        const gripY = player.y + 18;        // nostettu ote (v10.22)
+        const len = 12.5;                   // piipun kärjen etäisyys otteesta
+        const a = -Math.PI / 4;             // 45° ylös-eteen
+        return {
+            x: gripX + dir * Math.cos(a) * len,
+            y: gripY + Math.sin(a) * len    // sin(-45°) < 0 → y pienenee (ylös)
+        };
+    }
+
+    /* Liang–Barsky: leikkaako jana (x1,y1)→(x2,y2) suorakaiteen
+       [rx1,rx2]×[ry1,ry2]. v10.23 */
+    function segmentIntersectsRect(x1, y1, x2, y2, rx1, ry1, rx2, ry2) {
+        let t0 = 0, t1 = 1;
+        const dx = x2 - x1, dy = y2 - y1;
+        const p = [-dx, dx, -dy, dy];
+        const q = [x1 - rx1, rx2 - x1, y1 - ry1, ry2 - y1];
+        for (let i = 0; i < 4; i++) {
+            if (p[i] === 0) {
+                if (q[i] < 0) return false;
+            } else {
+                const r = q[i] / p[i];
+                if (p[i] < 0) {
+                    if (r > t1) return false;
+                    if (r > t0) t0 = r;
+                } else {
+                    if (r < t0) return false;
+                    if (r < t1) t1 = r;
+                }
+            }
+        }
+        return true;
+    }
+
+    /* Onko säteen linja (suuaukko → tähtäyspiste) jonkin katurivin talon takana. */
+    function beamHitsBuilding(x1, y1, x2, y2) {
+        for (const b of buildings) {
+            if (segmentIntersectsRect(x1, y1, x2, y2, b.x, GROUND_Y - b.h, b.x + b.w, GROUND_Y)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function distanceToSegment(px, py, ax, ay, bx, by) {
+        const dx = bx - ax, dy = by - ay;
+        const len2 = dx * dx + dy * dy;
+        if (len2 === 0) return Math.hypot(px - ax, py - ay);
+        let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+        t = Math.max(0, Math.min(1, t));
+        return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+    }
+
+    function fireBeam() {
+        if (!beamCanFire()) return;
+        beamFireTimer = BEAM_FIRE_FRAMES;
+        const m = beamMuzzle();
+        beamStartX = m.x; beamStartY = m.y;
+        beamEndX = aimX; beamEndY = aimY;
+        playLaser();
+        // v10.23: talojen läpi ei voi ampua – jos linja kulkee talon kautta, ei osumaa
+        if (beamHitsBuilding(m.x, m.y, aimX, aimY)) return;
+        const d = distanceToSegment(shootingStar.x, shootingStar.y, m.x, m.y, aimX, aimY);
+        if (d < shootingStar.r + BEAM_HIT_TOLERANCE) {
+            // Osuma → meteoriitti räjähtää ennen maahan osumista (ei taustatuhoa, ei tärinää)
+            spawnParticles(shootingStar.x, shootingStar.y, '#dbe6ff', 22);
+            spawnParticles(shootingStar.x, shootingStar.y, '#f4f8ff', 12);
+            shootingStar.active = false;
+        }
+    }
+
+    function spawnBeamPickup() {
+        // Vain FULL CHAOS ja vain jos ase on vielä ansaitsematta.
+        if (chaosLevel !== 'full' || beamWeaponCollected) { beamPickup = null; return; }
+        beamPickup = { x: randomCoinX(), y: randomCoinY() };
     }
 
     function updateShootingStar(dt) {
@@ -1635,7 +1790,7 @@ const Street = (() => {
                         vy: Math.sin(mAng) * mSpd,
                         r: 8 + Math.random() * 6,
                         active: true, life: 0,
-                        trail: [], timer: (600 + Math.random() * 2100) * meteorTempoMult
+                        trail: [], timer: chaosLevel === 'full' ? 600 : (600 + Math.random() * 2100) * meteorTempoMult
                     };
                 } else {
                     const ang = -0.3 - Math.random() * 0.5;
@@ -1660,6 +1815,7 @@ const Street = (() => {
             if (shootingStar.y >= GROUND_Y) {
                 meteorShakeTimer = METEOR_SHAKE_FRAMES;
                 meteorFlash = { t: METEOR_FLASH_FRAMES };   // v10.16: taivas välähtää (ei etualan palloa)
+                destroyBackdropHouses(shootingStar.x);      // v10.19: taustarivi sortuu osumakohdasta
                 spawnParticles(shootingStar.x, GROUND_Y - 4, '#dbe6ff', 18);
                 spawnParticles(shootingStar.x, GROUND_Y - 4, '#f4f8ff', 10);
                 shootingStar.active = false;
@@ -2360,6 +2516,8 @@ const Street = (() => {
         digKeyCollected = state.digKeyCollected || false;
         boulderKeyCollected = state.boulderKeyCollected || false;
         bmKeyCollected = state.bmKeyCollected || false;
+        beamWeaponCollected = state.beamWeaponCollected || false;
+        spawnBeamPickup();
         /* Päivä/yö on tallennettu tila (state.isDay, v4.33):
              null  = ei vielä ratkaistu → 3 avainta nostaa päivän kerran
              true  = päivä, false = yö (makuuhuoneen Nuku-valinta)
@@ -2419,6 +2577,14 @@ const Street = (() => {
     /* ═══════════════════════════════════════════════════
        SYÖTTEET
        ═══════════════════════════════════════════════════ */
+    function clientToWorld(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        if (!rect.width || !rect.height) return { x: 0, y: 0 };
+        const x = (clientX - rect.left) / rect.width * canvas.width + camX;
+        const y = (clientY - rect.top) / rect.height * canvas.height;
+        return { x, y };
+    }
+
     function setupInput() {
         // ⚡ Pakota D-pad näkyviin kaikilla kosketuslaitteilla
         //    (varmempi kuin pelkkä CSS @media, toimii myös HTTPS/Pagesissa)
@@ -2443,6 +2609,25 @@ const Street = (() => {
             keys[e.key] = false;
             if (e.key === ' ' || e.key === 'Enter') actionPressed = false;
         });
+
+        // Sädease (v10.20): PC = hiiri (tähtäys + klikkaus), mobiili = täppäys taivaalle
+        canvas.addEventListener('mousemove', (e) => {
+            const p = clientToWorld(e.clientX, e.clientY);
+            aimX = p.x; aimY = p.y; aimActive = true;
+        });
+        canvas.addEventListener('mousedown', (e) => {
+            const p = clientToWorld(e.clientX, e.clientY);
+            aimX = p.x; aimY = p.y; aimActive = true;
+            fireBeam();
+        });
+        canvas.addEventListener('touchstart', (e) => {
+            if (!e.touches || !e.touches.length) return;
+            const t = e.touches[0];
+            const p = clientToWorld(t.clientX, t.clientY);
+            aimX = p.x; aimY = p.y;
+            fireBeam();
+            if (e.cancelable) e.preventDefault();
+        }, { passive: false });
 
         const setupBtn = (id, key) => {
             const btn = document.getElementById(id);
@@ -2647,6 +2832,7 @@ const Street = (() => {
         // Ajoneuvon törmäyksen tärinä (vain visuaalinen – ei jäädytä pelilogiikkaa)
         if  (vehicleShakeTimer > 0) { vehicleShakeTimer -= dt; }
         if (meteorShakeTimer > 0) { meteorShakeTimer -= dt; }
+        if (beamFireTimer > 0) { beamFireTimer -= dt; }
         if (meteorFlash) { meteorFlash.t -= dt; if (meteorFlash.t <= 0) meteorFlash = null; }
 
         // ── Hit pause: maailma jäätyy 2  frameä osumasta (render jatkaa) ──
@@ -3182,6 +3368,22 @@ const Street = (() => {
                 playCoin();
                 coinRespawnTimer = COIN_RESPAWN_FRAMES;  // 120s @ 60fps (kaaos: väli)
                 spawnParticles(cx, cy, '#ffd700', 12);
+                updateHUD();
+            }
+        }
+
+        // ── Sädeaseen poiminta (v10.20) ──────────────
+        if (beamPickup) {
+            const dx = (player.x + player.w/2) - beamPickup.x;
+            const dy = (player.y + player.h) - beamPickup.y;
+            if (Math.sqrt(dx*dx + dy*dy) < 10) {
+                beamWeaponCollected = true;
+                state.beamWeaponCollected = true;
+                GameState.save(state);
+                spawnParticles(beamPickup.x, beamPickup.y, '#bcd7ff', 14);
+                playCoin();
+                showNotification('Sädease. Ammu meteoriitit!');
+                beamPickup = null;
                 updateHUD();
             }
         }
@@ -4133,6 +4335,8 @@ const Street = (() => {
         digKeyCollected = state.digKeyCollected || false;
         boulderKeyCollected = state.boulderKeyCollected || false;
         bmKeyCollected = state.bmKeyCollected || false;
+        beamWeaponCollected = state.beamWeaponCollected || false;
+        spawnBeamPickup();
         sleepRoom = false;
         sleepSel = 0;
         sleepHeldUp = false;
@@ -4179,7 +4383,7 @@ const Street = (() => {
 
     function showSpawnHint() {
         // Aloitusohje: pitempi lukuaika (+2s) kuin muilla popupeilla
-        showNotification('Liiku kadulla, mutta omalla vastuulla. Muista syödä, äläkä pelaa kaikkia rahojasi!', 4500);
+        showNotification('Vinkki: Potki kaikkea, mutta omalla vastuulla!', 4500);
     }
 
     function spawnParticles(x, y, color, count) {
@@ -4206,6 +4410,7 @@ const Street = (() => {
             status = ' 🔑 Avaimia: ' + keys + '/3';
         }
         status += ' | 💰 Kolikoita: ' + coinCount;
+        if (beamWeaponCollected) status += ' 🔫';   // sädease ansaittu (v10.20)
         // Hampurilaiset (lives) – vilkkuva varoitus kun jäljellä <= HUNGER_WARN (3)
         var burgerStr = '';
         if (hamburgerCount <= HUNGER_WARN) {
@@ -4955,6 +5160,9 @@ const Street = (() => {
         // Kolikko
         if (!coin.collected) drawCoin();
 
+        // Sädease-esine kadulla (v10.20)
+        if (beamPickup) drawBeamPickup();
+
         // Kukkaruukku
         if (flowerPot && flowerPot.active) drawFlowerPot();
 
@@ -4991,6 +5199,9 @@ const Street = (() => {
 
         // Pelaaja – avoimessa kaivossa vajoaa/kiipeää (v4.51)
         if (mhAction) { drawPlayerManhole(); } else { drawPlayer(); }
+
+        // Sädease: säde + tähtäysristikko (v10.20)
+        drawBeam();
         // Avoin kaivo: musta aukko pelaajan PÄÄLLE pudotuksen aikana,
         // jotta pelaaja näyttää katoavan reikään (v4.51)
         drawManholeOverlay();
@@ -8200,6 +8411,63 @@ const Street = (() => {
         ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     }
 
+    /* ── Sädease-esine kadulla (v10.20) ───────────── */
+    function drawBeamPickup() {
+        const bx = beamPickup.x, by = beamPickup.y;
+        const glow = ctx.createRadialGradient(bx, by, 1, bx, by, 7);
+        glow.addColorStop(0, 'rgba(150,200,255,0.5)');
+        glow.addColorStop(1, 'rgba(150,200,255,0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath(); ctx.arc(bx, by, 7, 0, Math.PI * 2); ctx.fill();
+        // Sädease: kapea runko + piippu (osoittaa ylös)
+        ctx.save();
+        ctx.translate(bx, by);
+        ctx.fillStyle = '#3a4a66';
+        ctx.fillRect(-2, -8, 4, 8);          // runko
+        ctx.fillStyle = '#9fb8d8';
+        ctx.fillRect(-1, -14, 2, 6);         // piippu
+        ctx.fillStyle = '#7fe0ff';           // hohtava kärki
+        ctx.fillRect(-1, -15, 2, 2);
+        ctx.restore();
+    }
+
+    /* ── Säde: pystyviiva pelaajasta tähtäyspisteeseen (v10.20) ── */
+    function drawBeam() {
+        // Tähtäysristikko vain PC:llä (hiiri), kun tähtäys aktiivinen
+        if (beamCanFire() && !isTouchDevice && aimActive) {
+            ctx.strokeStyle = 'rgba(150,210,255,0.9)';
+            ctx.lineWidth = 1;
+            const r = 4;
+            ctx.beginPath();
+            ctx.moveTo(aimX - r, aimY); ctx.lineTo(aimX + r, aimY);
+            ctx.moveTo(aimX, aimY - r); ctx.lineTo(aimX, aimY + r);
+            ctx.stroke();
+            ctx.beginPath(); ctx.arc(aimX, aimY, 6, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(150,210,255,0.4)';
+            ctx.stroke();
+        }
+        // Laser-valoraita: kirkas ydin + hehku, häipyy ~1 s ajan (v10.21)
+        if (beamFireTimer > 0) {
+            const life = beamFireTimer / BEAM_FIRE_FRAMES;   // 1 → 0
+            const fade = Math.min(1, life * 1.6);            // kirkkaana alussa, häipyy lopussa
+            ctx.save();
+            ctx.lineCap = 'round';
+            // Ulompi hehku (leveä, himmeä)
+            ctx.strokeStyle = 'rgba(120,190,255,' + (0.32 * fade).toFixed(3) + ')';
+            ctx.lineWidth = 7;
+            ctx.beginPath(); ctx.moveTo(beamStartX, beamStartY); ctx.lineTo(beamEndX, beamEndY); ctx.stroke();
+            // Keskimmäinen raita
+            ctx.strokeStyle = 'rgba(170,215,255,' + (0.65 * fade).toFixed(3) + ')';
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(beamStartX, beamStartY); ctx.lineTo(beamEndX, beamEndY); ctx.stroke();
+            // Ydin (lähes valkoinen)
+            ctx.strokeStyle = 'rgba(238,250,255,' + (0.95 * fade).toFixed(3) + ')';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(beamStartX, beamStartY); ctx.lineTo(beamEndX, beamEndY); ctx.stroke();
+            ctx.restore();
+        }
+    }
+
     /* ── Kukkaruukku ──────────────────────────────── */
     function drawFlowerPot() {
         const fp = flowerPot;
@@ -8861,6 +9129,19 @@ const Street = (() => {
             ctx.fillStyle = 'rgba(255,221,136,' + rimA.toFixed(3) + ')';
             ctx.fillRect(torsoX, py + 10 + bobY, 1, ph - 19);
             ctx.fillRect(headX, py + 7 + bobY, 1, 3);
+        }
+        // Sädease kädessä (v10.21): harmaa kepakko 45° kulmassa etukädessä, osoittaa eteen-ylös
+        if (beamWeaponCollected) {
+            ctx.save();
+            ctx.translate(frontArmX + 1, frontArmY + 6);
+            ctx.rotate(-Math.PI / 4);
+            ctx.fillStyle = '#8a9098';          // harmaa runko
+            ctx.fillRect(-2, -1.5, 15, 3);
+            ctx.fillStyle = '#6b7179';          // varjokaista
+            ctx.fillRect(-2, -0.5, 15, 1);
+            ctx.fillStyle = '#b7c0c9';          // vaalea kärki (hohtava)
+            ctx.fillRect(11, -1.5, 3, 3);
+            ctx.restore();
         }
         ctx.restore();   // potkun nojaus päättyy
         // Jalat – housut (tumma laivastonsininen erottuu paidasta)

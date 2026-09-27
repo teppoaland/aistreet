@@ -18,7 +18,7 @@
 
 - **Projekti:** **AI CHAOS STREET** – uusi itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages
   `teppoaland.github.io/aistreet/`), forkattu Pimeä Katu v5.02:sta. Alkuperäinen `D:\AI\Main`
-  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.18` (`index.html` → `#version-tag`).
+  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.24` (`index.html` → `#version-tag`).
 - 🔓 **Sääntö 04 (talousbalanssi-lukko) EI PÄDE enää AI CHAOS STREET -versiossa** (käyttäjän linjaus
   27.9.2026): sääntö 04 kirjoitettiin **alkuperäistä Pimeä Katu -peliä** varten ja sen lukitut arvot
   ovat NORMAL-tason arvoja. Chaos-forkissa NORMAL on vain yksi kaaostaso → talousarvot
@@ -72,7 +72,7 @@
   `robber.ttl`:ää kun `iframeOpen || sleepRoom || barRoom || jukeboxRoom || newsRoom` → "piiloudu ja odota"
   -pakoreitti toimii. Renderöinti ennallaan (rosvo aina pylvään takana, kuten avenger). Nopeus yhä klampissa ≤ 1,4 × C.
 - **🌠 Meteoriitti + valikon vaakakuva (v10.15–v10.17):** tähdenlennon tilalla iso, hitaasti putoava
-  meteoriitti (ei-NORMAL: MILD 12 % · GOOD 8 % · BAD 40 % · FULL 55 %; NORMAL 0 %). `shootingStar.kind` +
+  meteoriitti (v10.20: vain FULL CHAOS; aiemmin ei-NORMAL MILD 12 % · GOOD 8 % · BAD 40 % · FULL 55 %; NORMAL 0 %). `shootingStar.kind` +
   `meteoriteChance()`. v10.16: viisto laskeutumiskulma 40–60° vaakasuorasta (kuten tähdenlento), häntä
   2x pidempi, tärinä ~2,5 s, törmäysvälähdys = koko **taivas** välähtää salaman lailla (~1 s, talojen takana).
   v10.17: kalpea, hoikka ulkoasu – jäänvalkoinen ydin + kylmä hehku, ei "joulupukin reki"; kipinät kalpeat.
@@ -91,6 +91,26 @@
   MILD 1.0–1.1 · BAD 1.0 · FULL 1.0–1.6) – hoipertelu korvaa tylsän hidastuksen. Kaikki uudet akselit
   NORMALissa no-op → bitti-identtinen. Headless `%TEMP%`-smoke: 2170 setChaos-ajoa + 2000 FULL-arpaa → 0
   hylättyä, 0 heittoa.
+- **🌠 Meteoriitti tuhoaa taustarivin taloja (v10.19):** meteoriitin osuessa maahan (`shootingStar.y >= GROUND_Y`)
+  poistetaan **3** taustataloa `backdrop.blocks`-taulukosta (lähin lohko + 2 viereistä, wrap-around reunalla;
+  `destroyBackdropHouses` + `METEOR_BACKDROP_HOUSES = 3`). Rivistö (~33 taloa, 28–38) häviää ~10 meteoriitilla.
+  Tärinä/välähdys/partikkelit ennallaan (käyttäjän linjaus: erillistä tärinää ei tarvita). Vain ei-NORMAL →
+  NORMAL bitti-identtinen. Ei uutta localStorage-avainta – `initBackdrop()` palauttaa rivin kuoleman/resetin
+  yhteydessä.
+- **🔫 Sädease kadulta + meteoriitit (v10.20–v10.24):** Sädease = kadulta poimittava esine (`beamPickup`,
+  vain FULL, kerran per run, satunnainen paikka) → `beamWeaponCollected` (uusi `gameState.js`-kenttä,
+  nollautuu kuolemassa). Ohjaus: **PC = hiiri** (tähtäysristikko seuraa kursoria, klikkaus ampuu),
+  **mobiili = täppäys taivaalle** (tähtää + ampuu). HUD `🔫`, ammukset rajattomat, ei rahapalkkiota.
+  **v10.21:** poiminta → dialogi "Sädease: ammu putoavat meteoriitit!"; harmaa kepakko 45° pelaajan etukädessä
+  (`drawPlayer`); laserääni (`playLaser`) + valojuova ~1 s (`BEAM_FIRE_FRAMES` 60, hehku + häivytys).
+  **v10.22:** säde lähtee piipun kärjestä (`beamMuzzle()` = sama piste piirrolle ja osumalle); `beamCanFire()`
+  vaatii pelaajan kääntyneeksi meteoriitin tulosuuntaan (`facing * vx < 0`, ei ammuntaa selästä) JA
+  lamppurivistön alapuolelle (jalkapiste ≥ `LAMP_BASE_Y` 325); laserääni pidennetty 1 s.
+  **v10.23:** talojen läpi ei voi ampua – `beamHitsBuilding()` (Liang–Barsky `segmentIntersectsRect`):
+  jos säteen linja kulkee katurivin talon kautta, osumaa ei rekisteröidä.
+  **v10.24:** `meteoriteChance()` FULL = **1** (aina, ~10 s) · BAD = **0.25** (harvakseltaan tuhoavia,
+  **ei sädeasetta** → pelaaja joutuu katsomaan kaupungin tuhoutuvan) · MILD/GOOD/NORMAL = **0**.
+  NORMAL bitti-identtinen (ei meteoriitteja eikä esinettä).
 
 
 
