@@ -1,0 +1,203 @@
+/* ═══════════════════════════════════════════════════════════
+   style.css – Hedelmäpeli (fruitgame)
+   Retro-teema, responsiivinen: toimii pysty- ja vaaka-asennossa
+   ═══════════════════════════════════════════════════════════ */
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #07060d;
+    color: #e8e0ff;
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+    overscroll-behavior: none;
+}
+
+#game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    padding: 6px;
+    gap: 6px;
+}
+
+/* ── Otsikko + HUD ───────────────────────────────────────── */
+#game-header {
+    flex: 0 0 auto;
+    width: 100%;
+    text-align: center;
+}
+
+#game-header h1 {
+    font-size: 1rem;
+    letter-spacing: 2px;
+    color: #ffd700;
+    text-shadow: 0 0 12px rgba(255, 215, 0, 0.35);
+    margin-bottom: 5px;
+}
+
+#game-info {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 0.5rem;
+    padding: 5px 10px;
+    background: rgba(36, 29, 51, 0.85);
+    border: 1px solid #6a58a8;
+    border-radius: 6px;
+}
+#coin-display { color: #ffd700; }
+#win-display  { color: #7dff9b; }
+#stat-display { color: #8a80a8; }
+
+/* ── Canvas ──────────────────────────────────────────────── */
+#canvas-wrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;      /* seinäkuvan kiinnityskohta */
+}
+
+#game-canvas {
+    display: block;
+    /* border-box kutistaisi piirtoalueen 6 px (3 px kehys/sivu) → bittikartta
+       skaalautuisi epätasaisesti. content-box + resize():n 6 px vähennys = 1:1. */
+    box-sizing: content-box;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    border: 3px solid #4a3a6a;
+    border-radius: 8px;
+    box-shadow: 0 0 24px rgba(150, 110, 255, 0.25), inset 0 0 60px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Pelihuoneen seinäkuva (wall-pic) ──────────────────────
+   Kuva on HTML-elementti, ei canvasin sisällä → koneen kokoon, canvasin
+   skaalaukseen eikä dialogeihin ei kosketa. Koko ja sijainti lasketaan
+   renderer.resize():ssa: kuva on vaakasuunnassa keskitetty ja kiinni
+   pelikentän yläreunassa, ja koko ryhmä (kuva + kone) keskitetään
+   pystysuunnassa. renderer.js asettaa kuvan leveyden ja korkeuden. */
+#wall-pic {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: none;
+    border: 3px solid #0a0a0a;      /* musta kehys (kuten BAR-taulussa) */
+    background: #0a0a0a;
+    box-shadow: 4px 5px 0 rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+    -webkit-user-drag: none;
+}
+
+#wall-pic.visible { display: block; }
+
+/* Mobiilin vaakataso: kuva ei mahdu seinälle → piiloon, jolloin kone saa
+   koko korkeuden (sama sääntö on varmistettu myös renderer.js:ssä) */
+@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+    #wall-pic { display: none !important; }
+}
+
+/* ── Napit ───────────────────────────────────────────────── */
+#controls {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+#keyboard-hints {
+    display: flex;
+    gap: 16px;
+    font-size: 0.45rem;
+    color: #6f668c;
+}
+
+#touch-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.fruit-btn {
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.08s, background 0.15s, box-shadow 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+}
+
+.fruit-btn.spin {
+    font-size: 0.7rem;
+    padding: 16px 26px;
+    background: #ffd700;
+    color: #1a1526;
+    border: 3px solid #fff2a8;
+    box-shadow: 0 0 18px rgba(255, 215, 0, 0.4);
+}
+.fruit-btn.spin:hover { background: #ffe45c; }
+.fruit-btn.spin:active { transform: scale(0.94); }
+.fruit-btn.spin.disabled {
+    background: #4a4330;
+    color: #8a80a8;
+    border-color: #6a5f45;
+    box-shadow: none;
+}
+
+/* Talon ilmainen pyöräytys käytettävissä → vihreä hehku */
+.fruit-btn.spin.free {
+    background: #7dff9b;
+    color: #0e2a16;
+    border-color: #d6ffe3;
+    box-shadow: 0 0 22px rgba(125, 255, 155, 0.55);
+}
+.fruit-btn.spin.free:hover { background: #9dffb2; }
+
+.fruit-btn.exit {
+    font-size: 0.55rem;
+    padding: 12px 14px;
+    background: #2a2340;
+    color: #e8e0ff;
+    border: 2px solid #6a58a8;
+}
+.fruit-btn.exit:hover { background: #3a2f5a; }
+.fruit-btn.exit:active { transform: scale(0.94); }
+
+/* ── Mobiili (pysty + vaaka) ─────────────────────────────── */
+@media (max-width: 768px), (max-height: 768px) {
+    #game-header h1 { font-size: 0.72rem; margin-bottom: 3px; }
+    #game-info { font-size: 0.42rem; gap: 7px; padding: 4px 8px; }
+    #keyboard-hints { display: none; }
+    #game-canvas { border-width: 2px; }
+    .fruit-btn.spin { font-size: 0.6rem; padding: 13px 20px; border-width: 2px; }
+    .fruit-btn.exit { font-size: 0.48rem; padding: 10px 11px; }
+}
+
+/* Matala vaakunäyttö: tiiviimpi asettelu, jotta kone mahtuu */
+@media (max-height: 430px) {
+    #game-container { gap: 4px; }
+    #game-header h1 { display: none; }
+    #game-info { font-size: 0.38rem; gap: 6px; padding: 3px 7px; }
+    .fruit-btn.spin { font-size: 0.55rem; padding: 11px 18px; }
+    .fruit-btn.exit { font-size: 0.44rem; padding: 9px 10px; }
+}

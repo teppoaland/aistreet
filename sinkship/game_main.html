@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🚢 Laivanupotus</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="scanlines" aria-hidden="true"></div>
+
+    <div id="game-container">
+        <header id="game-header">
+            <h1>🚢 Laivanupotus <span class="version-tag">v0.11</span></h1>
+            <div id="game-info">
+                <span id="turn-display">🎯 Aseta laivastosi</span>
+                <span id="enemy-ships">👁 Upotettu: 0/5</span>
+                <span id="player-ships">🛡 Sinä: 5/5</span>
+                <span id="shots-display">🎯 Iskut: 0</span>
+            </div>
+        </header>
+
+        <div id="canvas-wrapper">
+            <canvas id="game-canvas"></canvas>
+        </div>
+
+        <div id="controls">
+            <div id="keyboard-hints">
+                <span>Kursori: ⬆️⬇️⬅️➡️ / W,S,D</span>
+                <span>Enter / Space = aseta · isku</span>
+                <span>R = käännä · U / ⌫ = peruuta</span>
+                <span>A = automaatti (täyttää loput)</span>
+                <span>Hiiri: klikkaa = siirrä kursori · Enter = aseta</span>
+            </div>
+            <div id="touch-controls">
+                <div class="touch-dpad">
+                    <button class="touch-btn up" data-dir="up" title="Ylös">▲</button>
+                    <button class="touch-btn left" data-dir="left" title="Vasemmalle">◄</button>
+                    <button class="touch-btn right" data-dir="right" title="Oikealle">►</button>
+                    <button class="touch-btn down" data-dir="down" title="Alas">▼</button>
+                </div>
+                <div class="touch-actions">
+                    <button class="touch-btn" id="rot-btn" title="Käännä (R)">⟳</button>
+                    <button class="touch-btn" id="act-btn" title="Toimi (Enter/Space)">⚡</button>
+                    <button class="touch-btn" id="auto-btn" title="Automaattiasetus (A)">🎲</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="notification-area" style="text-align:center; color:#ffd700; font-size:0.6rem; height:1.4em; padding:4px;"></div>
+    </div>
+
+    <div id="overlay">
+        <div id="overlay-content">
+            <h2 id="overlay-title">🚢 Laivanupotus</h2>
+            <p id="overlay-message">Upota vihollisen laivasto ennen kuin se upottaa sinun!<br>
+                Aseta omat laivasi ruudukkoon ja peli alkaa.</p>
+            <div id="overlay-buttons">
+                <button id="overlay-action-btn">Pelaa</button>
+                <button id="overlay-exit-btn" style="display:none">Poistu</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/audio.js"></script>
+    <script src="js/game.js"></script>
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('game-canvas');
+            if (canvas) Laivanupotus.init(canvas);
+        });
+        window.addEventListener('resize', () => {
+            if (Laivanupotus.rs) Laivanupotus.rs();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>✈️ Blue Mäx</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <header id="game-header">
+            <h1>✈️ Blue Mäx <span class="version-tag">dev</span></h1>
+            <div id="game-info">
+                <span id="fuel-display">⛽ 40s</span>
+                <span class="fuel-bar">
+                    <span class="fuel-fill"><span class="fuel-fill-inner" id="fuel-fill-inner" style="width:100%"></span></span>
+                </span>
+                <span id="score-display">⭐ 0</span>
+                <span id="bomb-display">💣 30</span>
+                <span id="damage-display">❤️ 5</span>
+                <span id="altitude-display">📏 KESKI</span>
+            </div>
+        </header>
+
+        <div id="canvas-wrapper">
+            <canvas id="game-canvas"></canvas>
+        </div>
+
+        <div id="controls">
+            <div id="keyboard-hints">
+                <span>⬆️⬇️⬅️➡️ / WASD = Lennä</span>
+                <span>B = Pommi</span>
+                <span>G = Konekivääri</span>
+                <span>L = Laskeudu</span>
+                <span>Enter = Aloita</span>
+            </div>
+            <div id="touch-controls">
+                <div class="touch-dpad">
+                    <button class="touch-btn up" data-dir="up">▲</button>
+                    <button class="touch-btn left" data-dir="left">◄</button>
+                    <button class="touch-btn right" data-dir="right">►</button>
+                    <button class="touch-btn down" data-dir="down">▼</button>
+                </div>
+                <div class="touch-actions">
+                    <button class="touch-btn" id="land-btn" title="Laskeudu (L)">🛬</button>
+                    <button class="touch-btn" id="gun-btn" title="Konekivääri (G)">🔫</button>
+                    <button class="touch-btn" id="bomb-btn" title="Pommi (B)">💣</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="notification-area" style="text-align:center; color:#ffd700; font-size:0.5rem; height:1.2em; padding:4px;"></div>
+    </div>
+
+    <div id="overlay" class="hidden">
+        <div id="overlay-content">
+            <h2 id="overlay-title"></h2>
+            <p id="overlay-message"></p>
+            <button id="overlay-button">Pelaa</button>
+        </div>
+    </div>
+
+    <script src="js/audio.js"></script>
+    <script src="js/game.js"></script>
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('game-canvas');
+            if (canvas) BlueMax.init(canvas);
+        });
+        window.addEventListener('resize', () => {
+            if (BlueMax.rs) BlueMax.rs();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,342 @@
+/* ═══════════════════════════════════════════════════════════
+   style.css – Laivanupotus (sinkship)
+   CRT-retro + viihtyisä päivähuone-teema, musta tausta
+   ═══════════════════════════════════════════════════════════ */
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #050505;
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+    overscroll-behavior: none;
+}
+
+/* CRT-scanlinet + kevyt vinjetti mustan taustan päälle */
+#scanlines {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    background:
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.14) 0px, rgba(0, 0, 0, 0.14) 1px, transparent 1px, transparent 3px),
+        radial-gradient(ellipse at center, transparent 62%, rgba(0, 0, 0, 0.35) 100%);
+}
+
+#game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    gap: 6px;
+    padding: 8px;
+}
+
+#game-header {
+    flex: 0 0 auto;
+    text-align: center;
+    width: 100%;
+    max-width: 700px;
+}
+
+#game-header h1 {
+    font-size: 1.0rem;
+    color: #ffd700;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+    margin-bottom: 3px;
+    letter-spacing: 2px;
+}
+
+#game-header h1 .version-tag {
+    font-size: 0.45rem;
+    font-weight: normal;
+    color: #9a9a9a;
+    vertical-align: super;
+    letter-spacing: 1px;
+}
+
+#game-info {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-size: 0.65rem;
+    background: #1a2438;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid #2c4a76;
+}
+
+#game-info span {
+    color: #b8c8e0;
+}
+
+#game-info #turn-display {
+    color: #ffd700;
+}
+
+#canvas-wrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 3px solid #3a2a18;
+    border-radius: 4px;
+    box-shadow: 0 0 22px rgba(120, 90, 40, 0.35);
+    width: 100%;
+    max-width: 700px;
+    background: #0a0a0a;
+}
+
+canvas {
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+#controls {
+    flex: 0 0 auto;
+    text-align: center;
+    width: 100%;
+    max-width: 700px;
+}
+
+#keyboard-hints {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    font-size: 0.55rem;
+    color: #777;
+    margin-bottom: 5px;
+}
+
+#keyboard-hints span {
+    background: rgba(26, 36, 56, 0.65);
+    padding: 3px 8px;
+    border-radius: 3px;
+    border: 1px solid #2c4a76;
+}
+
+#touch-controls {
+    display: none;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#touch-controls.force-show {
+    display: flex !important;
+}
+
+#touch-controls.hidden-tc {
+    display: none !important;
+}
+
+.touch-dpad .touch-btn,
+.touch-actions .touch-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    background: rgba(40, 60, 110, 0.75);
+    border: 2px solid #4a7fd8;
+    color: #eaf2ff;
+    font-size: 1.3rem;
+    cursor: pointer;
+}
+
+.touch-actions .touch-btn {
+    background: rgba(140, 90, 30, 0.8);
+    border: 2px solid #ffb733;
+    color: #ffdda0;
+}
+
+.touch-dpad {
+    display: grid;
+    grid-template-columns: 52px 52px;
+    grid-template-rows: 52px 52px;
+    gap: 3px;
+}
+
+.touch-dpad .up    { grid-column: 1 / 3; grid-row: 1; }
+.touch-dpad .left  { grid-column: 1; grid-row: 2; }
+.touch-dpad .right { grid-column: 2; grid-row: 2; }
+.touch-dpad .down  { grid-column: 3; grid-row: 2; }
+
+.touch-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#touch-controls > * { -webkit-tap-highlight-color: transparent; }
+
+.touch-btn:active {
+    transform: scale(0.9);
+    box-shadow: 0 0 14px rgba(255, 215, 0, 0.4);
+}
+
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.88);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#overlay.hidden {
+    display: none;
+}
+
+#overlay-content {
+    text-align: center;
+    color: #ffd700;
+    padding: 26px;
+    background: rgba(26, 36, 56, 0.95);
+    border: 2px solid #ffd700;
+    border-radius: 12px;
+    max-width: 500px;
+}
+
+#overlay-content h2 {
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+#overlay-content p {
+    font-size: 0.5rem;
+    color: #b8c8e0;
+    margin-bottom: 16px;
+    line-height: 1.55;
+}
+
+#overlay-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 8px;
+}
+
+#overlay-content button {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.6rem;
+    padding: 11px 26px;
+    background: #2c4a76;
+    border: 2px solid #ffd700;
+    color: #ffd700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+#overlay-content button:hover {
+    background: #3d5f96;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+}
+
+#overlay-content button:active {
+    transform: scale(0.95);
+}
+
+@media (pointer: coarse) and (max-width: 768px), (pointer: coarse) and (max-height: 768px) {
+    #game-container {
+        padding: 3px;
+        gap: 3px;
+        position: relative;
+    }
+
+    #game-header {
+        position: absolute;
+        top: 2px;
+        left: 3px;
+        right: 3px;
+        z-index: 5;
+        max-width: none;
+        pointer-events: none;
+    }
+
+    #game-header h1 { display: none; }
+
+    #game-info {
+        font-size: 0.4rem;
+        gap: 5px;
+        padding: 2px 6px;
+        background: rgba(26, 36, 56, 0.78);
+        border-radius: 3px;
+        border: 1px solid rgba(44, 74, 118, 0.6);
+        justify-content: flex-start;
+    }
+
+    #keyboard-hints { display: none; }
+
+    #canvas-wrapper {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        max-width: none;
+        border: 2px solid #3a2a18;
+    }
+
+    #touch-controls {
+        position: absolute;
+        bottom: 8px;
+        left: 4px;
+        right: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        pointer-events: none;
+        z-index: 10;
+        gap: 3px;
+    }
+
+    #touch-controls > * {
+        pointer-events: auto;
+    }
+
+    #touch-controls .touch-dpad { opacity: 0.6; }
+    #touch-controls .touch-actions .touch-btn { opacity: 0.7; }
+
+    #notification-area {
+        position: absolute;
+        bottom: 44px;
+        left: 0;
+        right: 0;
+        z-index: 5;
+        pointer-events: none;
+    }
+}
+
+/* Vaakamoodi: ohjaimet keskelle pystysuunnassa */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 768px) {
+    #touch-controls {
+        bottom: auto;
+        top: 50%;
+        transform: translateY(-50%);
+        align-items: center;
+    }
+}

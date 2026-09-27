@@ -1,0 +1,40 @@
+# Riippuvuudet
+node_modules/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Käyttöjärjestelmä
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build-tuotokset
+dist/
+build/
+*.log
+
+# Varmuuskopiot
+*.bak
+*.backup
+*.old
+
+# Väliaikaiset tiedostot
+tmp/
+temp/
+*.tmp
+
+# Ympäristömuuttujat
+.env
+.env.local
+.env.*.local
+
+# Äänilähteet – biisien masterit pidetään repon ulkopuolella (esim. D:\AI\Knived).
+# Pelissä soitettavat pakatut versiot (.mp3) kuuluvat repoon, koska GitHub Pages
+# palvelee vain repon tiedostoja (ks. memory-bank/jukebox-suunnitelma).
+*.mpeg
+*.mp4

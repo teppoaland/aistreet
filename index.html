@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🌀 AI CHAOS STREET</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- ═══ AI CHAOS -ALKUHUBI (valitaan kaaostaso ennen peliä) ═══ -->
+    <div id="chaos-menu" class="hidden">
+        <h1>AI CHAOS STREET</h1>
+        <p class="chaos-sub">Valitse kaaoksen taso</p>
+        <div class="chaos-buttons">
+            <button data-level="normal">NORMAL</button>
+            <button data-level="mild">MILD CHAOS</button>
+            <button data-level="good">GOOD CHAOS</button>
+            <button data-level="bad">BAD CHAOS</button>
+            <button data-level="full">FULL CHAOS</button>
+        </div>
+    </div>
+
+    <!-- ═══ PÄÄNÄKYMÄ ═══════════════════════════════════ -->
+    <div id="game-wrapper">
+        <!-- ✕-nappi: sulkee huoneen/alapelin, resetoi vain kadulla -->
+        <button id="reset-btn" title="Sulje / Aloita alusta">✕</button>
+
+        <!-- HUD-palkki -->
+        <div id="hud-bar"></div>
+
+        <!-- Pää-canvas (street.js) -->
+        <div id="game-area">
+            <canvas id="game-canvas" tabindex="0"></canvas>
+            <div id="touch-row">
+                <div id="touch-left">
+                    <button class="touch-btn action" id="action-btn" title="Potku"></button>
+                </div>
+                <div id="touch-right">
+                    <div class="touch-dpad">
+                        <button class="touch-btn up"    id="btn-up">▲</button>
+                        <button class="touch-btn left"  id="btn-left">◄</button>
+                        <button class="touch-btn right" id="btn-right">►</button>
+                        <button class="touch-btn down"  id="btn-down">▼</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ilmoitus -->
+        <div id="notification"></div>
+
+        <!-- Versionumero -->
+        <div id="version-tag">v1.01</div>
+    </div>
+
+    <!-- ═══ PELI-IFRAME (alapelit) ═══════════════════════ -->
+    <div id="game-iframe-overlay">
+        <button id="iframe-close-btn" title="Takaisin kadulle">✕</button>
+        <iframe src="" allow="autoplay"></iframe>
+    </div>
+
+    <!-- ═══ SKRIPTIT ═════════════════════════════════════ -->
+    <script src="gameState.js"></script>
+    <script src="audio.js"></script>
+    <script src="street.js"></script>
+
+    <!-- ✕-napit (alapeli + huone + reset) – yksi yhteinen toiminto -->
+    <script>
+        const overlayCloseBtn = document.getElementById('iframe-close-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const iframeOverlay = document.getElementById('game-iframe-overlay');
+        const CLOSE_DEDUPE_MS = 600;   // estää mobiilin tupla-/ghost-klikkauksen
+
+        let lastCloseAt = 0;
+
+        /* Yksi ✕-toiminto kaikille tiloille:
+             1. alapeli (iframe) auki → takaisin kadulle
+             2. canvas-huone auki (BAR / makuuhuone / jukebox) → huone kiinni
+             3. kadulla → vasta tässä saa resetoida pelin
+           Sama napautus saa laueta vain kerran: muuten mobiilin tuottama
+           toinen tapahtuma (touchend + synteettinen click) ehtisi sulkea
+           huoneen ja sen jälkeen avata reset-vahvistuksen. */
+        function handleCloseButton() {
+            const now = Date.now();
+            if (now - lastCloseAt < CLOSE_DEDUPE_MS) return;
+            lastCloseAt = now;
+
+            if (typeof Street === 'undefined') return;
+
+            // 1. Alapeli auki → sulje se (sama tieto DOM:ista ja streetiltä)
+            if (iframeOverlay.classList.contains('active')) {
+                Street.closeGame();
+                return;
+            }
+            // 2. Canvas-huone auki → sulje huone
+            if (Street.closeRoom && Street.closeRoom()) return;
+
+            // 3. Kadulla → kysy vahvistus ja aloita alusta
+            if (confirm('Haluatko varmasti aloittaa alusta?\nKaikki edistyminen katoaa.')) {
+                try { localStorage.removeItem(GameState.STORAGE_KEY); } catch (e) {}
+                location.reload();
+            }
+        }
+
+        /* Mobiili: touchend hoitaa napautuksen heti ja estää synteettisen
+           clickin (ei 300 ms viivettä eikä kaksoiskäsittelyä).
+           Työpöydällä click toimii kuten ennenkin. */
+        function bindCloseButton(btn) {
+            btn.addEventListener('click', handleCloseButton);
+            btn.addEventListener('touchend', (e) => {
+                if (e.cancelable) e.preventDefault();
+                handleCloseButton();
+            }, { passive: false });
+        }
+
+        bindCloseButton(overlayCloseBtn);
+        bindCloseButton(resetBtn);
+    </script>
+</body>
+</html>

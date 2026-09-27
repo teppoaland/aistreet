@@ -1,0 +1,45 @@
+# .clineignore – Vähennä kohinaa ja säästä tokeneita
+# 
+# Tiedostot ja kansiot, joita Cline EI lue automaattisesti
+# kontekstia rakentaessaan. Vähentää turhaa tokenien käyttöä.
+
+# Versionhallinta
+.git/
+
+# Riippuvuudet (ei käytössä tällä hetkellä, mutta varaudutaan)
+node_modules/
+
+# Buildatut pelitiedostot (näitä ei muokata suoraan)
+digGame1/dig_game.html
+digGame2/boulder_dash.html
+
+# Dokumentaatio (lue vain tarvittaessa manuaalisesti)
+docs/
+
+# IDE-asetukset
+.vscode/
+.idea/
+
+# Käyttöjärjestelmän roskatiedostot
+.DS_Store
+Thumbs.db
+*.tmp
+*.log
+
+# Väliaikaiset tiedostot
+tmp/
+temp/
+
+# Suuret binääritiedostot
+*.mp3
+*.mp4
+*.wav
+*.zip
+*.tar.gz
+
+# Muistipankki – luetaan vain pyydettäessä
+# (poista kommentointi jos haluat Clinen aina hakevan muistipankin automaattisesti)
+# memory-bank/
+
+# Säännöt – luetaan aina automaattisesti (ÄLÄ ignooraa!)
+# .clinerules/

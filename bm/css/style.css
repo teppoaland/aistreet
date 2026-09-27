@@ -1,0 +1,390 @@
+/* ═══════════════════════════════════════════════════════════
+   style.css – Blue Mäx -lentopeli
+   Retro-pikselityyli, tumma tunnelma
+   ═══════════════════════════════════════════════════════════ */
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0a0a0a;
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+    overscroll-behavior: none;
+}
+
+#game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    gap: 8px;
+    padding: 10px;
+}
+
+#game-header {
+    text-align: center;
+    width: 100%;
+    max-width: 800px;
+}
+
+#game-header h1 {
+    font-size: 1.5rem;
+    color: #ffd700;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    margin-bottom: 4px;
+    letter-spacing: 2px;
+}
+
+#game-header h1 .version-tag {
+    font-size: 0.45rem;
+    font-weight: normal;
+    color: #9a9a9a;
+    vertical-align: super;
+    letter-spacing: 1px;
+}
+
+#game-info {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 0.55rem;
+    background: #16213e;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid #0f3460;
+}
+
+#game-info span {
+    color: #aaa;
+}
+
+#game-info .fuel-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+#game-info .fuel-fill {
+    display: inline-block;
+    width: 60px;
+    height: 8px;
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 2px;
+    overflow: hidden;
+    vertical-align: middle;
+}
+
+#game-info .fuel-fill-inner {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #ff4444, #ffaa00, #44ff44);
+    transition: width 0.3s;
+}
+
+#canvas-wrapper {
+    border: 3px solid #1a3a5e;
+    border-radius: 4px;
+    box-shadow: 0 0 25px rgba(100, 150, 255, 0.25);
+    line-height: 0;
+    width: 100%;
+    max-width: 800px;
+    position: relative;
+}
+
+canvas {
+    display: block;
+    width: 100% !important;
+    height: auto !important;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+#controls {
+    text-align: center;
+    width: 100%;
+    max-width: 800px;
+}
+
+#keyboard-hints {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    font-size: 0.5rem;
+    color: #666;
+    margin-bottom: 6px;
+}
+
+#keyboard-hints span {
+    background: rgba(22,33,62,0.6);
+    padding: 3px 8px;
+    border-radius: 3px;
+    border: 1px solid #1a1a3e;
+}
+
+#touch-controls {
+    display: none;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* JS-pakotettu näkyvyys touch-laitteille */
+#touch-controls.force-show {
+    display: flex !important;
+}
+
+/* Piilota aloitusruudussa */
+#touch-controls.hidden-tc {
+    display: none !important;
+}
+
+.touch-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+}
+
+.touch-dpad {
+    display: grid;
+    grid-template-areas:
+        '. up .'
+        'left . right'
+        '. down .';
+    gap: 3px;
+}
+
+.touch-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+    background: rgba(22,33,62,0.85);
+    border: 2px solid #0f3460;
+    color: #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+}
+
+.touch-btn:active {
+    background: #0f3460;
+    transform: scale(0.92);
+    box-shadow: 0 0 12px rgba(100,150,255,0.4);
+}
+
+.touch-btn.up { grid-area: up; }
+.touch-btn.left { grid-area: left; }
+.touch-btn.down { grid-area: down; }
+.touch-btn.right { grid-area: right; }
+
+#bomb-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    font-size: 1.4rem;
+    background: rgba(180,30,30,0.7);
+    border: 2px solid #ff4444;
+    color: #fff;
+}
+
+#bomb-btn:active {
+    background: #cc0000;
+    transform: scale(0.9);
+    box-shadow: 0 0 20px rgba(255,50,50,0.6);
+}
+
+#gun-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    font-size: 1.3rem;
+    background: rgba(30,120,30,0.7);
+    border: 2px solid #44cc44;
+    color: #fff;
+}
+
+#gun-btn:active {
+    background: #0a5a0a;
+    transform: scale(0.9);
+    box-shadow: 0 0 20px rgba(50,255,50,0.5);
+}
+
+#land-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    font-size: 1.3rem;
+    background: rgba(30,80,180,0.7);
+    border: 2px solid #4488ff;
+    color: #fff;
+}
+
+#land-btn:active {
+    background: #0a2a6a;
+    transform: scale(0.9);
+    box-shadow: 0 0 20px rgba(50,130,255,0.5);
+}
+
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#overlay.hidden {
+    display: none;
+}
+
+#overlay-content {
+    text-align: center;
+    color: #ffd700;
+    padding: 30px;
+    background: rgba(22,33,62,0.95);
+    border: 2px solid #ffd700;
+    border-radius: 12px;
+    max-width: 400px;
+}
+
+#overlay-content h2 {
+    font-size: 1.2rem;
+    margin-bottom: 12px;
+    text-shadow: 0 0 10px rgba(255,215,0,0.5);
+}
+
+#overlay-content p {
+    font-size: 0.55rem;
+    color: #aaa;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+#overlay-content button {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.7rem;
+    padding: 12px 28px;
+    background: #1a3a5e;
+    border: 2px solid #ffd700;
+    color: #ffd700;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+#overlay-content button:hover {
+    background: #2a5a8e;
+    box-shadow: 0 0 15px rgba(255,215,0,0.3);
+}
+
+#overlay-content button:active {
+    transform: scale(0.95);
+}
+
+@media (max-width: 768px), (max-height: 768px) {
+    #game-container {
+        padding: 4px;
+        gap: 4px;
+        position: relative;
+    }
+
+    #game-header {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        right: 4px;
+        z-index: 5;
+        max-width: none;
+        pointer-events: none;
+    }
+
+    #game-header h1 { display: none; }
+
+    #game-info {
+        font-size: 0.38rem;
+        gap: 6px;
+        padding: 3px 8px;
+        background: rgba(22,33,62,0.75);
+        border-radius: 4px;
+        border: 1px solid rgba(15,52,96,0.6);
+        justify-content: flex-start;
+    }
+
+    #keyboard-hints { display: none; }
+
+    #canvas-wrapper {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        max-width: none;
+    }
+
+    #touch-controls {
+        position: absolute;
+        bottom: 10px;
+        left: 6px;
+        right: 6px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        pointer-events: none;
+        z-index: 10;
+        gap: 4px;
+    }
+
+    #touch-controls > * {
+        pointer-events: auto;
+    }
+
+    #touch-controls .touch-dpad {
+        opacity: 0.65;
+    }
+
+    #touch-controls .touch-actions .touch-btn {
+        opacity: 0.75;
+    }
+
+    #notification-area {
+        position: absolute;
+        bottom: 50px;
+        left: 0;
+        right: 0;
+        z-index: 5;
+        pointer-events: none;
+    }
+}
+
+/* Vaakamoodi: ohjaimet keskelle pystysuunnassa */
+@media (orientation: landscape) and (max-height: 768px) {
+    #touch-controls {
+        bottom: auto;
+        top: 50%;
+        transform: translateY(-50%);
+        align-items: center;
+    }
+}

@@ -1,0 +1,433 @@
+/* ═══════════════════════════════════════════════════════════
+   style.css – AI CHAOS STREET -peliportaali
+   CRT/Retro-teema, pikselityyli, tumma tunnelma
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Perustyylit ──────────────────────────────────────── */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0a0a0a;
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+    overscroll-behavior: none;
+}
+
+/* ── CRT Scanline -efekti ───────────────────────────── */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.03) 0px,
+        rgba(0, 0, 0, 0.03) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+}
+
+/* ── Päänäkymä ───────────────────────────────────────── */
+#game-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#game-canvas {
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    border: 3px solid #1a1a3e;
+    box-shadow:
+        0 0 30px rgba(100, 50, 200, 0.3),
+        inset 0 0 60px rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+    outline: none;
+}
+
+/* ── Palkki yläreunassa ──────────────────────────────── */
+#hud-bar {
+    text-align: center;
+    width: 100%;
+    max-width: 800px;
+    padding: 3px 16px;
+    margin-bottom: 4px;
+    background: rgba(10, 10, 30, 0.85);
+    border: 1px solid #1a1a3e;
+    border-radius: 4px;
+    font-size: 0.48rem;
+    color: #5a5a7a;
+    letter-spacing: 0.5px;
+}
+
+/* ── Pelialue (canvas + ohjaimet) ───────────────────── */
+#game-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+#touch-row {
+    display: none;
+    flex-direction: row;
+    gap: 20px;
+    align-items: center;
+    justify-content: center;
+}
+
+#touch-left, #touch-right {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* JS-pakotettu näkyvyys touch-laitteille */
+#touch-row.force-show {
+    display: flex !important;
+}
+.touch-dpad {
+    display: grid;
+    grid-template-areas:
+        '. up .'
+        'left . right'
+        '. down .';
+    gap: 4px;
+}
+
+.touch-btn {
+    width: 55px;
+    height: 55px;
+    font-size: 1.4rem;
+    background: rgba(22, 33, 62, 0.85);
+    border: 2px solid #0f3460;
+    color: #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+}
+
+.touch-btn:active {
+    background: #0f3460;
+    transform: scale(0.9);
+    border-color: #ffd700;
+}
+
+.touch-btn.up    { grid-area: up; }
+.touch-btn.down  { grid-area: down; }
+.touch-btn.left  { grid-area: left; }
+.touch-btn.right { grid-area: right; }
+
+#action-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(22, 33, 62, 0.7);
+    border: 2px solid #0f3460;
+    color: transparent;
+    position: relative;
+}
+/* Pieni hehku osoittamaan että nappi on aktiivinen */
+#action-btn::after {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(255, 215, 0, 0.6);
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+#action-btn:active {
+    background: #0f3460;
+    transform: scale(0.9);
+    border-color: #ffd700;
+}
+#action-btn:active::after {
+    background: rgba(255, 100, 0, 0.9);
+    box-shadow: 0 0 16px rgba(255, 100, 0, 0.7);
+}
+
+/* ── Ohjaimet (mobiili) ──────────────────────────────── */
+#game-iframe-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    z-index: 1000;
+    display: none;
+}
+
+#game-iframe-overlay.active {
+    display: block;
+}
+
+#game-iframe-overlay iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+/* ── Iframe-sulkunappi ───────────────────────────────── */
+#iframe-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1100;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(180, 30, 30, 0.85);
+    border: 2px solid #ff4444;
+    color: #fff;
+    font-size: 1.4rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+#iframe-close-btn:hover {
+    background: #cc0000;
+    transform: scale(1.1);
+    box-shadow: 0 0 15px rgba(255, 50, 50, 0.5);
+}
+/* ── Reset-nappi ──────────────────────────────────────── */
+/* ── Versionumero ────────────────────────────────────── */
+#version-tag {
+    position: fixed;
+    bottom: 8px;
+    right: 12px;
+    z-index: 500;
+    font-size: 0.5rem;
+    font-family: 'Press Start 2P', monospace;
+    color: rgba(255, 255, 255, 0.15);
+    pointer-events: none;
+    letter-spacing: 1px;
+    transition: color 0.3s;
+}
+#version-tag:hover {
+    color: rgba(255, 255, 255, 0.4);
+}
+#reset-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 500;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(60, 60, 60, 0.7);
+    border: 1px solid #555;
+    color: #999;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+#reset-btn:hover {
+    background: rgba(180, 40, 40, 0.85);
+    border-color: #ff4444;
+    color: #fff;
+    transform: scale(1.1);
+    box-shadow: 0 0 12px rgba(255, 50, 50, 0.4);
+}
+
+/* ── Ilmoitus palkki ─────────────────────────────────── */
+#notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(22, 33, 62, 0.95);
+    border: 2px solid #ffd700;
+    border-radius: 10px;
+    padding: 16px 32px;
+    font-size: 0.7rem;
+    color: #ffd700;
+    text-align: center;
+    z-index: 500;
+    opacity: 0;
+    pointer-events: none;
+    letter-spacing: 1px;
+    white-space: pre-line;   /* \n tekstissä = rivinvaihto (esim. Avoinna / Klo 20 - 06) */
+}
+
+@keyframes popIn {
+    from { transform: translate(-50%, -50%) scale(0.7); opacity: 0; }
+    to   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+@keyframes fadeOut {
+    to { opacity: 0; }
+}
+
+/* Hampurilaisen varoitusvilkkuminen */
+@keyframes burgerBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.15; }
+}
+.burger-warning {
+    animation: burgerBlink 0.8s ease-in-out infinite;
+    color: #ff4444;
+}
+
+/* ── Responsiivisuus ─────────────────────────────────── */
+/* Mobiili (pysty + vaaka): ohjaimet overlayna canvaksen päällä */
+@media (max-width: 768px), (max-height: 768px) {
+    #game-area {
+        position: relative;
+        flex: 1;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+    }
+    #touch-row {
+        position: absolute;
+        bottom: 12px;
+        left: 12px;
+        right: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        pointer-events: none;
+        z-index: 10;
+        gap: 0;
+    }
+    #touch-row > * {
+        pointer-events: auto;
+    }
+    .touch-btn {
+        opacity: 0.65;
+    }
+    #hud-bar {
+        font-size: 0.4rem;
+        padding: 4px 10px;
+    }
+    #game-canvas {
+        border-width: 2px;
+    }
+    /* ✕-napit: isommat kosketuskohteet mobiilissa (helpompi osua) */
+    #reset-btn {
+        width: 46px;
+        height: 46px;
+        font-size: 1.2rem;
+    }
+    #iframe-close-btn {
+        width: 52px;
+        height: 52px;
+        font-size: 1.6rem;
+    }
+}
+
+/* Vaakamoodin hienosäätö: ohjaimet keskelle pystysuunnassa, canvas vasemmalle */
+@media (orientation: landscape) and (max-height: 768px) {
+    #touch-row {
+        bottom: auto;
+        top: 50%;
+        transform: translateY(-50%);
+        align-items: center;
+    }
+    /* Varmistus: action-nappi ja D-pad omille keskipisteilleen */
+    #touch-left, #touch-right {
+        align-self: center;
+    }
+    #game-area {
+        padding-right: 185px;  /* tilaa D-padille → oikea reuna näkyviin */
+        padding-left: 70px;    /* tilaa action-napille vasemmalla */
+    }
+}
+
+/* Työpöytä: piilota kosketusohjaimet */
+@media (min-width: 769px) and (min-height: 769px) {
+    #touch-row {
+        display: none !important;
+    }
+}
+
+/* ═══ AI CHAOS -ALKUHUBI ═══════════════════════════════ */
+.hidden { display: none !important; }
+
+#chaos-menu {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    background: #0a0a0a;
+    text-align: center;
+}
+
+#chaos-menu h1 {
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    font-size: 1.6rem;
+    color: #ffe066;
+    text-shadow: 0 0 12px rgba(255, 224, 102, 0.7);
+    letter-spacing: 2px;
+}
+
+#chaos-menu .chaos-sub {
+    font-size: 0.55rem;
+    color: #9aa0b5;
+}
+
+#chaos-menu .chaos-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: min(320px, 86vw);
+}
+
+#chaos-menu .chaos-buttons button {
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    font-size: 0.7rem;
+    padding: 14px 10px;
+    cursor: pointer;
+    color: #e8e8e8;
+    background: #14161f;
+    border: 2px solid #3a3f55;
+    border-radius: 4px;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+#chaos-menu .chaos-buttons button:hover,
+#chaos-menu .chaos-buttons button:active {
+    background: #22263a;
+    border-color: #ffe066;
+    color: #ffe066;
+}

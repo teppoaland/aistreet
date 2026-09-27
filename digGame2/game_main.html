@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dig Däsh</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <header id="game-header">
+            <h1>💎 Dig Däsh</h1>
+            <div id="game-info">
+                <span id="level-display">Taso: 1</span>
+                <span id="diamond-display">💎 0</span>
+                <span id="diamond-goal-display">Tavoite: 0</span>
+                <span id="key-display">🔑 0</span>
+                <span id="score-display">Pisteet: 0</span>
+                <span id="lives-display">❤️ 3</span>
+                <span id="timer-display">⏱ 45</span>
+            </div>
+        </header>
+        
+        <div id="canvas-wrapper">
+            <canvas id="game-canvas"></canvas>
+        </div>
+        
+        <div id="controls">
+            <div id="keyboard-hints">
+                <span>⬆️⬇️⬅️➡️ / WASD = Liiku</span>
+                <span>Välilyönti = Etäkaivu</span>
+                <span>Enter = Jatka</span>
+                <span>P = Tauko</span>
+                <span>R = Uudelleenkäynnistys</span>
+            </div>
+            <div id="touch-controls">
+                <div class="touch-pad-row">
+                    <button class="touch-btn space-btn" id="space-btn" title="Etäkaivu (Space)">⛏️</button>
+                    <div class="touch-dpad">
+                        <div class="touch-row">
+                            <button class="touch-btn" data-dir="up">⬆️</button>
+                        </div>
+                        <div class="touch-row">
+                            <button class="touch-btn" data-dir="left">⬅️</button>
+                            <button class="touch-btn" data-dir="down">⬇️</button>
+                            <button class="touch-btn" data-dir="right">➡️</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="overlay" class="hidden">
+        <div id="overlay-content">
+            <h2 id="overlay-title"></h2>
+            <p id="overlay-message"></p>
+            <button id="overlay-button">Pelaa</button>
+        </div>
+    </div>
+
+    <script src="js/constants.js"></script>
+    <script src="js/levels.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/enemies.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>

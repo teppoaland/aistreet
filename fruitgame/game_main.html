@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🍒 Hedelmäpeli</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <header id="game-header">
+            <h1>🍒 Hedelmäpeli</h1>
+            <div id="game-info">
+                <span id="coin-display">💰 0</span>
+                <span id="bet-display">PANOS 1</span>
+                <span id="win-display">VOITTO –</span>
+                <span id="stat-display">🎰 0 / 0</span>
+            </div>
+        </header>
+
+        <div id="canvas-wrapper">
+            <canvas id="game-canvas"></canvas>
+            <!-- Pelihuoneen seinäkuva (ei canvasin sisällä): sijainti ja
+                 näkyvyys lasketaan renderer.resize():ssa vapaasta seinätilasta -->
+            <img id="wall-pic" src="assets/dude_mv.jpg" alt="" draggable="false">
+        </div>
+
+        <div id="controls">
+            <div id="keyboard-hints">
+                <span>VÄLILYÖNTI / ENTER = PYÖRÄYTÄ</span>
+                <span>ESC = POISTU KADULLE</span>
+            </div>
+            <div id="touch-controls">
+                <button class="fruit-btn exit" id="exit-btn" title="Poistu kadulle (Esc)">✕ POISTU</button>
+                <button class="fruit-btn spin" id="spin-btn" title="Pyöräytä (välilyönti)">🍒 PYÖRÄYTÄ</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/constants.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
