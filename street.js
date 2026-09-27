@@ -8773,6 +8773,7 @@ window.addEventListener('DOMContentLoaded', () => {
             window.removeEventListener('keydown', unlock);
             window.removeEventListener('mousedown', unlock);
             window.removeEventListener('touchstart', unlock);
+            gate.classList.add('faded');   // v10.13: tekstit haihtuvat pois 2 s viiveen aikana
             setTimeout(showMenu, GATE_MENU_DELAY_MS);
         };
         window.addEventListener('keydown', unlock);
@@ -8782,13 +8783,19 @@ window.addEventListener('DOMContentLoaded', () => {
         showMenu();
         StreetAudio.setMenuActive(true);   // fallback: ei gate-elementtiä
     }
+    let started = false;
     const start = (level) => {
-        menu.classList.add('hidden');
-        StreetAudio.setMenuActive(false);   // valikkobiisi pois, peli alkaa
-        Street.setChaos(level);
-        Street.saveChaosSession();
-        Street.init(canvas);
-        StreetAudio.start(30000);           // grace: syntikka hiljaa 30 s valikosta aloitettaessa (v10.09)
+        if (started) return;
+        started = true;
+        menu.classList.add('faded');        // v10.14: tekstit haihtuvat pois ennen pelin alkua
+        setTimeout(() => {
+            menu.classList.add('hidden');
+            StreetAudio.setMenuActive(false);   // valikkobiisi pois, peli alkaa
+            Street.setChaos(level);
+            Street.saveChaosSession();
+            Street.init(canvas);
+            StreetAudio.start(30000);           // grace: syntikka hiljaa 30 s valikosta aloitettaessa (v10.09)
+        }, 2000);
     };
     menu.querySelectorAll('[data-level]').forEach(btn => {
         btn.addEventListener('click', () => start(btn.getAttribute('data-level')));

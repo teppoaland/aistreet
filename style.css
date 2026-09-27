@@ -399,11 +399,13 @@ body::after {
     color: #ffe066;
     text-shadow: 0 0 12px rgba(255, 224, 102, 0.7);
     letter-spacing: 2px;
+    transition: opacity 1.6s ease-out;
 }
 
 #chaos-menu .chaos-sub {
     font-size: 0.55rem;
     color: #9aa0b5;
+    transition: opacity 1.6s ease-out;
 }
 
 #chaos-menu .chaos-buttons {
@@ -411,6 +413,7 @@ body::after {
     flex-direction: column;
     gap: 12px;
     width: min(320px, 86vw);
+    transition: opacity 1.6s ease-out;
 }
 
 #chaos-menu .chaos-buttons button {
@@ -430,6 +433,13 @@ body::after {
     background: #22263a;
     border-color: #ffe066;
     color: #ffe066;
+}
+
+/* v10.14: kaaostason valinnan jälkeen tekstit haihtuvat pois ennen pelin alkua */
+#chaos-menu.faded h1,
+#chaos-menu.faded .chaos-sub,
+#chaos-menu.faded .chaos-buttons {
+    opacity: 0;
 }
 
 /* ═══ ALOITUSGATE (äänilukko auki ennen chaos-valikkoa) ═══ */
@@ -453,6 +463,7 @@ body::after {
     color: #ffe066;
     text-shadow: 0 0 12px rgba(255, 224, 102, 0.7);
     letter-spacing: 2px;
+    transition: opacity 1.6s ease-out;
 }
 
 #start-gate .press-start {
@@ -460,6 +471,16 @@ body::after {
     font-size: 0.6rem;
     color: #c9cede;
     animation: gate-blink 1.1s steps(2, start) infinite;
+    transition: opacity 1.6s ease-out;
+}
+
+/* v10.13: napautuksen jälkeen tekstit haihtuvat pois 2 s viiveen aikana */
+#start-gate.faded h1,
+#start-gate.faded .press-start {
+    opacity: 0;
+}
+#start-gate.faded .press-start {
+    animation: none;
 }
 
 @keyframes gate-blink {
