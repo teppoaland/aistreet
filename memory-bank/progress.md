@@ -1,12 +1,13 @@
 # 📊 Projektin edistyminen
 
-> **v5.00 – 1.10.2026** · Kompaktoitu 23.9.2026 (täysi historia git-historiassa: viimeisin täysi versio
+> **v10.01 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026. Kompaktoitu 23.9.2026 (täysi historia git-historiassa: viimeisin täysi versio
 > `ffb1dd9`, HEAD `44db9e7`)
 
-## 🏮 Pääportaali – Pimeä Katu
+## 🏮 Pääportaali – AI CHAOS STREET
 
 | Ominaisuus | Tila |
 |-----------|------|
+| 🌀 Alkuhubi + kaaostasot | ✅ v10.01 – `#chaos-menu` (NORMAL/MILD/GOOD/BAD/FULL); `street.js` `setChaos`/`chaosProfile`/`applyChaosProfile`/`generateFullChaosSeed`; säädettävät: tuuli/pilvet, liikenne, vuorokausi, linnut, kolikko, rosvo – vain arvoja/kertoimia, ei uutta mekaniikkaa |
 | Katunäkymä, hahmo, 9 lamppua, 9 ovea, ajoneuvot, eläimet, sää | ✅ |
 | Hahmon viilaus | ✅ v4.03–v4.05 – silmä + `lookY`, lipan/kasvojen/leuan varjot, maakosketusvarjo, hengitys, potkun ennakointi + nojaus, hit pause, dynaaminen lampunvalo |
 | Pelaajan syvyysskaalaus | ✅ v4.31 – `playerDepthScale()` ±10 % (0,90 kauas / 1,00 y=315 / 1,10 lähelle), ankkuri jalkojen kosketuspisteessä; visuaalinen vain – hitboxit, törmäykset ja kamera ennallaan |

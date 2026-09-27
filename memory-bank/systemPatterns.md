@@ -6,6 +6,9 @@
 ## ⭐ Yleisarkkitehtuuri
 
 - **Pääportaali (juuri):** `index.html`, `style.css`, `street.js`, `gameState.js`, `audio.js` – ei `js/`-kansiota.
+- **Kaaosjärjestelmä (v10.01):** keskitetty `chaosProfiles`/`setChaos()` `street.js`:ssä kirjoittaa kertoimet
+  suoraan olemassa oleviin `let`-muuttujiin (ei uutta mekaniikkaa). Hub `#chaos-menu` (`index.html`) valitaan
+  aina ennen `Street.init()`; NORMAL = nykyiset arvot, FULL CHAOS = `generateFullChaosSeed()`.
 - **Iframet (5 alipeliä):** `digGame1/` ⛏️ Dig Game · `digGame2/` 💎 Dig Däsh · `bm/` ✈️ Blue Mäx ·
   `fruitgame/` 🍒 Hedelmäpeli (talo 7, **auki vain öisin** v4.34) · `sinkship/` 🚢 Laivanupotus (`buildings[2]`, 2 potkua oveen, aina auki, v4.86).
 - **Kadun canvas-huoneet (ei iframe):** **makuuhuone** (ex-palkintohuone, `buildings[7]`, **ovi aina auki**

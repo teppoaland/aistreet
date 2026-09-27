@@ -14,9 +14,19 @@
 
 ---
 
-## 📍 Nyt (30.9.2026)
+## 📍 Nyt (AI CHAOS STREET – fork 27.9.2026)
 
-- **Versio:** `v5.02` (`index.html` → `#version-tag`).
+- **Projekti:** **AI CHAOS STREET** – uusi itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages
+  `teppoaland.github.io/aistreet/`), forkattu Pimeä Katu v5.02:sta. Alkuperäinen `D:\AI\Main`
+  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.01` (`index.html` → `#version-tag`).
+- **🌀 Alkuhubi + kaaostasot (v10.01):** `index.html` `#chaos-menu` (NORMAL / MILD / GOOD / BAD /
+  FULL CHAOS). `street.js` `setChaos()` + `chaosProfile()` + `applyChaosProfile()` +
+  `generateFullChaosSeed()`. Hub näytetään aina latauksessa → valinnan jälkeen spawn-arpa ja
+  session valitun tason asetuksilla. Kaaos muuttaa VAIN olemassa olevia arvoja/kertoimia:
+  tuuli/pilvet (`windSpeedMult`, `windDirFlip`), liikenne (`trafficSpeedMult`, `trafficSpawnMult`),
+  vuorokausi (`DAY_CYCLE_FRAMES`, `skyDir` = auringon/kuun suunta), linnut (`BIRD_COUNT_MIN/MAX`),
+  kolikko (`COIN_RESPAWN_FRAMES`), rosvo (`ROBBER_APPEAR_CHANCE/SPEED/COOLDOWN/TTL`).
+  NORMAL = nykyiset arvot bitti-identtisinä.
 - **🌳 Puiden lisähaara (v5.01):** `street.js` `drawBareTree()` – puiden 1 ja 2 oikean alaoksan (+0.7 rad) puolivälistä lähtee nyt +45° lisähaara (Math.PI/4, pituus 50 %, leveys 55 % emooksasta, syvyys 2).
 - **🐦 Päivälinnut (v5.00):** `street.js` – päivällä 10–15 mustaa lintua istuskelee puiden latvuksissa (Y 275–285, korjattu 1.10.2026: nostettu ylemmäs oksille, pois rungolta ja latvan yläpuolelta). Liikkuvat satunnaisesti paikasta toiseen 3–12 s välein. Lepakot ennallaan yöllä.
 - **🎵 Jukebox aina vapaa (v5.00):**ebox ei enää lukkiudu soiton ajaksi. Soivan kappaleen aikana voi valita lisää kappaleita, jotka lisätään jonon perään (numerojärjestyksessä 1→N). Tilateksti näyttää `Soittojonossa: X kappaletta` (`(i/n)`-parenteesi pois SOI NYT -riviltä).
