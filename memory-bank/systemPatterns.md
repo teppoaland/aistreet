@@ -9,6 +9,12 @@
 - **Kaaosjärjestelmä (v10.01):** keskitetty `chaosProfiles`/`setChaos()` `street.js`:ssä kirjoittaa kertoimet
   suoraan olemassa oleviin `let`-muuttujiin (ei uutta mekaniikkaa). Hub `#chaos-menu` (`index.html`) valitaan
   aina ennen `Street.init()`; NORMAL = nykyiset arvot, FULL CHAOS = `generateFullChaosSeed()`.
+- **Kaaosparametrien suunnitelma (27.9.2026, ei koodattu):** `docs/chaos.md` v2 – kategoriat **K0–K7**
+  vaikutuksen mukaan (K1 visuaalinen = vapaa · K3 uhka & K4 keho = rajoitettu klampit · **K5 talous 🔒
+  lukittu** · K6 ääni · K7 tapahtumakortit = v1 vain visuaalisia). Kaikki arvat kulkevat portin
+  `clampChaosCfg()` + `validateChaosCfg()` läpi; pelaajan kyvykkyysindeksi **C** skaalaa uhkat
+  (nopeus ≤ 1,4 × C, varoitus ≥ 21/C f). Sitovat pääsäännöt: **NORMAL ei hajoa koskaan** ja
+  **peli pysyy pelattavana kaikissa moodeissa**. Toteutus vaiheittain `v10.02`…`v10.05`.
 - **Iframet (5 alipeliä):** `digGame1/` ⛏️ Dig Game · `digGame2/` 💎 Dig Däsh · `bm/` ✈️ Blue Mäx ·
   `fruitgame/` 🍒 Hedelmäpeli (talo 7, **auki vain öisin** v4.34) · `sinkship/` 🚢 Laivanupotus (`buildings[2]`, 2 potkua oveen, aina auki, v4.86).
 - **Kadun canvas-huoneet (ei iframe):** **makuuhuone** (ex-palkintohuone, `buildings[7]`, **ovi aina auki**

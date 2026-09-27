@@ -53,8 +53,9 @@ const Street = (() => {
     ];
 
     function randomizeBuildingColors() {
-        // Fisher-Yates shuffle kopio paletista
-        const shuffled = BUILDING_PALETTE.slice();
+        // Fisher-Yates shuffle kopio paletista (kaaos K1: buildingPalette korvaa oletuksen)
+        const palette = buildingPalette || BUILDING_PALETTE;
+        const shuffled = palette.slice();
         for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
@@ -432,9 +433,9 @@ const Street = (() => {
     let dayT = 0;                          // 0 = yö … 1 = päivä (liukuva)
     const DAY_FADE_FRAMES   = 1200;        // ~20 s auringonnousu (yö → päivä)
     const NIGHT_FADE_FRAMES = 1200;        // ~20 s auringonlasku (päivä → yö)
-    const DAY_SKY_TOP     = '#3f7fc0';     // päivätaivaan yläosa
-    const DAY_SKY_MID     = '#78b4e0';     // keskikohta
-    const DAY_SKY_HORIZON = '#ffd9a0';     // lämmin horisontti
+    let DAY_SKY_TOP     = '#3f7fc0';     // päivätaivaan yläosa (kaaos K1, v10.03)
+    let DAY_SKY_MID     = '#78b4e0';     // keskikohta
+    let DAY_SKY_HORIZON = '#ffd9a0';     // lämmin horisontti
     /* YÖ/PÄIVÄ -KIERTO (v4.89): kuu ja aurinko vaeltavat taivaan yli ja
        vuorokausi vaihtuu automaattisesti. Kun kuu laskee → 15 s → päivä,
        aurinko laskee → 15 s → yö. Nukkuminen ja lampun potku toimivat
@@ -539,7 +540,7 @@ const Street = (() => {
     const CLOUD_NIGHT_HAZY   = [180, 195, 215];  // yön hunnut
     const CLOUD_DAY_CIRRUS   = [96, 104, 124];   // päivä: tummanharmaa juova
     const CLOUD_DAY_HAZY     = [62, 68, 84];     // päivä: selvästi tummempi huntu
-    const CLOUD_DAY_ALPHA    = 5;                // peittävyyskerroin päivällä (1 = ei muutosta)
+    let CLOUD_DAY_ALPHA    = 5;                // peittävyyskerroin päivällä (1 = ei muutosta) – kaaos K1 (v10.03)
     const VEHICLE_HEADLIGHT_DIM = 1;       // ajovalot: 1 = kokonaan pois päivällä, 0 = ei muutosta
     /* Testityökalut (eivät tallenna mitään): ?day=1 = päivä heti,
        ?day=0 = pakota yö. Pakotettu tila ohittaa tallennetun tilan eikä
@@ -550,7 +551,7 @@ const Street = (() => {
     const DAY_DEBUG = DAY_FORCE !== null;   // pakotettu → liuku heti perille
 
     /* ── Yölepakot (v4.93) ──────────────────────── */
-    const BAT_COUNT_MAX   = 5;               // 0–5 lepakkoa, random
+    let BAT_COUNT_MAX   = 5;               // 0–5 lepakkoa, random – kaaos K1 (v10.03)
     const BAT_Y_MIN       = 45;              // ylin: kuun korkeudella (MOON_Y=60, R=30 → alareuna 90)
     const BAT_Y_MAX       = 245;             // minimi: lampun kupujen yläpuolella (bulbY = 257)
     const BAT_SPEED_MIN   = 0.25;            // hitain vauhti
@@ -1456,18 +1457,164 @@ const Street = (() => {
         coinRespawnFrames: 7200,
         robberChance: 0.4, robberSpeed: 1.05, robberCooldown: 1500, robberTtl: 900
     };
+    /* CHAOS_DEFAULTS2 = täysi superset (v10.02): kaikki kaaosakselit NORMAL-arvoilla.
+       NORMAL = nykyiset literaalit → peli pysyy bitti-identtisenä (pääsääntö 1). */
+    const CHAOS_DEFAULTS2 = Object.assign({}, CHAOS_DEFAULTS, {
+        playerSpeedMult: 1,               // kävelynopeuskerroin (❓1, vielä kiinteä 1)
+        avengerChance: 0.12, avengerSpeed: 1.0, avengerTelegraph: 21,
+        avengerStun: 600, avengerFreeze: 180, avengerCooldown: 1800,
+        robberStun: 900,
+        startBurgers: 5, startCoins: 2, hungerWakeGrace: 600, burgerInterval: 2400,
+        fogAlpha: 0,
+        cloudCount: 18, cloudOpacityMult: 1, cloudBandTop: 40, cloudBandH: 40,
+        cloudSizeMult: 1, cloudCirrusShare: 0.35,
+        starCount: 80, starSizeMult: 1,
+        sunColor: null, sunGlow: null,     // null = nykyinen piirto (ei kaaosakselia vielä)
+        animalSpeedMult: 1, animalDirBias: 0.5, animalTypeWeights: null,
+        batSpawnFrames: 1800, birdSpeedMult: 1, beetleCount: 1,
+        windowTargetMax: 5, windowDurMin: 10000, windowDurMax: 30000,
+        lampHueShift: 0, threatWarnMult: 1,
+        cloudDayAlpha: 5,                       // CLOUD_DAY_ALPHA (päivän pilvien peittävyys)
+        daySkyTop: '#3f7fc0', daySkyMid: '#78b4e0', daySkyHorizon: '#ffd9a0',
+        silhouetteChance: 0.5, winDayFill: '#151716',
+        lampRadius: 30, batCountMax: 5, buildingPalette: null
+    });
     let chaosLevel = 'normal';
-    let chaosCfg = Object.assign({}, CHAOS_DEFAULTS);
+    let chaosCfg = Object.assign({}, CHAOS_DEFAULTS2);
     let windSpeedMult = 1, windDirFlip = false;
     let trafficSpeedMult = 1, trafficSpawnMult = 1;
     let skyDir = 1;
+    /* Uudet kaaosakselimuuttujat (K1/K2/K3) – alustetaan NORMAL-arvoihin.
+       Kirjoitetaan applyChaosProfile():issa vasta vaiheissa v10.03/v10.04. */
+    let cloudCount = 18, cloudOpacityMult = 1, cloudBandTop = 40, cloudBandH = 40;
+    let cloudSizeMult = 1, cloudCirrusShare = 0.35, starCount = 80, starSizeMult = 1;
+    let sunColor = null, sunGlow = null;
+    let animalSpeedMult = 1, animalDirBias = 0.5, animalTypeWeights = null;
+    let batSpawnFrames = 1800, birdSpeedMult = 1, beetleCount = 1;
+    let windowTargetMax = 5, windowDurMin = 10000, windowDurMax = 30000;
+    let lampHueShift = 0, threatWarnMult = 1;
+    let buildingPalette = null;   // talojen väripaletti (null = BUILDING_PALETTE)
 
-    function rnd(a, b) { return a + Math.random() * (b - a); }
+    /* Deterministinen siemen + testikytkimet (v10.02, K0-infra).
+       ?seed=N → sama kaaos jokaisella latauksella · ?debug → konsolidumppi. */
+    function makeRng(seed) {               // mulberry32 – sama siemen = sama peli
+        let a = seed >>> 0;
+        return function () {
+            a = (a + 0x6D2B79F5) >>> 0;
+            let t = Math.imul(a ^ (a >>> 15), 1 | a);
+            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+    }
+    const CHAOS_PARAMS = (typeof location !== 'undefined' && typeof URLSearchParams !== 'undefined')
+        ? new URLSearchParams(location.search) : null;
+    const CHAOS_SEED_PARAM = (CHAOS_PARAMS ? CHAOS_PARAMS.get('seed') : null);
+    const CHAOS_SEED = (CHAOS_SEED_PARAM !== null && /^\d+$/.test(CHAOS_SEED_PARAM))
+        ? Number(CHAOS_SEED_PARAM) : null;
+    const CHAOS_DEBUG = !!(CHAOS_PARAMS && CHAOS_PARAMS.get('debug') !== null);
+    let chaosRng = (CHAOS_SEED !== null) ? makeRng(CHAOS_SEED) : Math.random;
+
+    function rnd(a, b) { return a + chaosRng() * (b - a); }
     function rndInt(a, b) { return Math.round(rnd(a, b)); }
 
+    /* Kaaos K1 – visuaaliset apurit (v10.03): talopaletit + auringon värit */
+    const WARM_PALETTE = [
+        '#2a1a14', '#2a1e16', '#241a12', '#2a1616', '#241822',
+        '#2a1c18', '#2a1a1c', '#221a20', '#2a1e14',
+        '#241a18', '#26201a', '#2a1818', '#261a1e', '#281c12',
+        '#2c1a16', '#221c1a', '#2a1a18', '#262016'
+    ];
+    const NEAR_BLACK_PALETTE = [
+        '#0a0a0c', '#0b0a0c', '#0a0b0a', '#0c0a0a', '#0a0a0e',
+        '#0a0c0c', '#0b0b0a', '#0a0a0e', '#0c0b0a',
+        '#0a0a0d', '#0a0b0b', '#0c0a0b', '#0a0a0f', '#0b0c0a',
+        '#0c0a0c', '#0a0c0b', '#0b0a0e', '#0a0b0a'
+    ];
+    const SUN_GLOW_DEFAULT = ['rgba(255,224,120,0.55)', 'rgba(255,210,100,0.20)', 'rgba(255,200,80,0)'];
+    function randomHuePalette() {
+        const arr = [];
+        for (let i = 0; i < 18; i++) {
+            const h = Math.floor(Math.random() * 360);
+            const l = 8 + Math.floor(Math.random() * 8);
+            arr.push('hsl(' + h + ',' + (20 + Math.floor(Math.random() * 30)) + '%,' + l + '%)');
+        }
+        return arr;
+    }
+    function randomDarkSky() {
+        const v = 40 + Math.floor(Math.random() * 120);
+        const b = Math.min(255, v + Math.floor(Math.random() * 30));
+        const hex = (x) => x.toString(16).padStart(2, '0');
+        return '#' + hex(v) + hex(v) + hex(b);
+    }
+    function randomAnimalTypes() {
+        const all = ['mouse', 'rat', 'rabbit'];
+        const arr = [];
+        for (let i = 0; i < 6; i++) arr.push(all[Math.floor(Math.random() * all.length)]);
+        return arr;
+    }
+    function randomSunColor() {
+        const pick = Math.floor(Math.random() * 3);
+        if (pick === 0) return { sunColor: '#7dff7d', sunGlow: ['rgba(120,255,120,0.55)', 'rgba(90,220,90,0.20)', 'rgba(70,180,70,0)'] };
+        if (pick === 1) return { sunColor: '#d37dff', sunGlow: ['rgba(200,140,255,0.55)', 'rgba(170,110,230,0.20)', 'rgba(140,90,190,0)'] };
+        return { sunColor: '#ff4d4d', sunGlow: ['rgba(255,100,100,0.55)', 'rgba(220,80,80,0.20)', 'rgba(180,60,60,0)'] };
+    }
+
+    /* ── Tähdenlento + satelliitti – apufunktiot (v10.03, ❓4) ──
+       Sama logiikka oli aiemmin kahtena kopiona (tainnutus-haara + kadun
+       update). Yhdistetty, jotta sama koodi pätee molemmissa paikoissa. */
+    function updateShootingStar(dt) {
+        if (!shootingStar || !shootingStar.active) {
+            if (shootingStar) { shootingStar.timer -= dt; }
+            if (!shootingStar || shootingStar.timer <= 0) {
+                const ang = -0.3 - Math.random() * 0.5;
+                const spd = 1.5 + Math.random() * 2.5;
+                shootingStar = {
+                    x: -10 + Math.random() * WORLD_W * 0.4,
+                    y: 15 + Math.random() * 100,
+                    vx: Math.cos(ang) * spd,
+                    vy: Math.sin(ang) * spd,
+                    active: true, life: 120 + Math.random() * 180,
+                    trail: [], timer: 600 + Math.random() * 2100
+                };
+            }
+        } else {
+            shootingStar.x += shootingStar.vx * dt;
+            shootingStar.y -= shootingStar.vy * dt;
+            shootingStar.trail.push({x: shootingStar.x, y: shootingStar.y});
+            if (shootingStar.trail.length > 18) shootingStar.trail.shift();
+            shootingStar.life -= dt;
+            if (shootingStar.life <= 0 || shootingStar.x > WORLD_W + 30 || shootingStar.y < -30 || shootingStar.y > GROUND_Y) {
+                shootingStar.active = false;
+            }
+        }
+    }
+
+    function updateSatellite(dt) {
+        if (!satellite || !satellite.active) {
+            if (satellite) { satellite.timer -= dt; }
+            if (!satellite || satellite.timer <= 0) {
+                const dir = Math.random() < 0.5 ? 1 : -1;
+                satellite = {
+                    x: dir > 0 ? -10 : WORLD_W + 10,
+                    y: 25 + Math.random() * 70,
+                    vx: dir * (0.25 + Math.random() * 0.5),
+                    active: true, blinkPhase: Math.random() * Math.PI * 2,
+                    timer: 400 + Math.random() * 900
+                };
+            }
+        } else {
+            satellite.x += satellite.vx * dt;
+            satellite.blinkPhase += 0.08 * dt;
+            if ((satellite.vx > 0 && satellite.x > WORLD_W + 15) || (satellite.vx < 0 && satellite.x < -15)) {
+                satellite.active = false;
+            }
+        }
+    }
+
     function generateFullChaosSeed() {
+        const sun = randomSunColor();
         return {
-            windSpeedMult: rnd(0.5, 2.5),
+            windSpeedMult: rnd(0.5, 3.5),
             windDirFlip: Math.random() < 0.5,
             trafficSpeedMult: rnd(0.6, 1.8),
             trafficSpawnMult: rnd(0.4, 1.8),
@@ -1479,7 +1626,31 @@ const Street = (() => {
             robberChance: rnd(0.05, 0.9),
             robberSpeed: rnd(0.7, 2.0),
             robberCooldown: rndInt(300, 3000),
-            robberTtl: rndInt(300, 2000)
+            robberTtl: rndInt(300, 2000),
+            // K1 (v10.03) – visuaalinen
+            cloudCount: rndInt(4, 34),
+            cloudOpacityMult: rnd(0.6, 2.5),
+            cloudSizeMult: rnd(0.6, 2.5),
+            cloudBandTop: rndInt(10, 100), cloudBandH: rndInt(10, 100),
+            cloudCirrusShare: rnd(0, 1),
+            cloudDayAlpha: rndInt(1, 10),
+            daySkyTop: randomDarkSky(), daySkyMid: randomDarkSky(), daySkyHorizon: randomDarkSky(),
+            starCount: rndInt(0, 140), starSizeMult: rnd(0.5, 2),
+            sunColor: sun.sunColor, sunGlow: sun.sunGlow,
+            silhouetteChance: rnd(0.05, 0.95),
+            winDayFill: randomDarkSky(),
+            lampRadius: rndInt(20, 60),
+            lampHueShift: rndInt(0, 360),
+            animalSpeedMult: rnd(0.4, 2.5),
+            animalDirBias: rnd(0.1, 0.9),
+            animalTypeWeights: randomAnimalTypes(),
+            batSpawnFrames: rndInt(600, 3600),
+            batCountMax: rndInt(0, 12),
+            birdSpeedMult: rnd(0.6, 1.8),
+            beetleCount: rndInt(0, 4),
+            windowTargetMax: rndInt(0, 12),
+            windowDurMin: rndInt(3000, 60000), windowDurMax: rndInt(60000, 300000),
+            buildingPalette: randomHuePalette()
         };
     }
 
@@ -1487,13 +1658,24 @@ const Street = (() => {
         switch (level) {
             case 'mild':
                 return {
-                    windSpeedMult: rnd(0.7, 1.4), windDirFlip: false,
+                    windSpeedMult: rnd(0.8, 1.3), windDirFlip: false,
                     trafficSpeedMult: rnd(0.85, 1.2), trafficSpawnMult: rnd(0.85, 1.2),
                     dayCycleFrames: rndInt(7000, 16000), skyDir: 1,
                     birdMin: rndInt(7, 13), birdMax: rndInt(13, 20),
                     coinRespawnFrames: rndInt(4800, 9600),
                     robberChance: rnd(0.25, 0.55), robberSpeed: rnd(0.9, 1.25),
-                    robberCooldown: rndInt(1000, 2000), robberTtl: rndInt(700, 1200)
+                    robberCooldown: rndInt(1000, 2000), robberTtl: rndInt(700, 1200),
+                    cloudCount: rndInt(18, 26), cloudOpacityMult: 1.2, cloudSizeMult: 1.2,
+                    cloudBandTop: 40, cloudBandH: 40, cloudCirrusShare: 0.35, cloudDayAlpha: 5,
+                    starCount: rndInt(60, 100), starSizeMult: 1,
+                    sunColor: null, sunGlow: null,
+                    silhouetteChance: 0.3, winDayFill: '#151716',
+                    lampRadius: 30, lampHueShift: 0,
+                    animalSpeedMult: 1, animalDirBias: 0.5, animalTypeWeights: null,
+                    batSpawnFrames: 1800, batCountMax: 5,
+                    birdSpeedMult: 1, beetleCount: 1,
+                    windowTargetMax: rndInt(3, 6), windowDurMin: 10000, windowDurMax: 30000,
+                    buildingPalette: null
                 };
             case 'good':
                 return {
@@ -1502,16 +1684,42 @@ const Street = (() => {
                     dayCycleFrames: 14400, skyDir: 1,
                     birdMin: 14, birdMax: 22,
                     coinRespawnFrames: 3600,
-                    robberChance: 0.12, robberSpeed: 0.8, robberCooldown: 2500, robberTtl: 600
+                    robberChance: 0.12, robberSpeed: 0.8, robberCooldown: 2500, robberTtl: 600,
+                    cloudCount: rndInt(8, 12), cloudOpacityMult: 0.8, cloudSizeMult: 0.8,
+                    cloudBandTop: 20, cloudBandH: 40, cloudCirrusShare: 0.5, cloudDayAlpha: 3,
+                    daySkyTop: '#4a90c8', daySkyMid: '#8ec4e8', daySkyHorizon: '#ffe9b8',
+                    starCount: rndInt(120, 140), starSizeMult: 1.2,
+                    sunColor: null, sunGlow: null,
+                    silhouetteChance: 0.05, winDayFill: '#2a2e2c',
+                    lampRadius: 34, lampHueShift: 35,
+                    animalSpeedMult: 1.2, animalDirBias: 0.5,
+                    animalTypeWeights: ['mouse', 'rabbit', 'rabbit', 'rabbit', 'rat'],
+                    batSpawnFrames: 1800, batCountMax: 3,
+                    birdSpeedMult: 1.2, beetleCount: 1,
+                    windowTargetMax: rndInt(5, 8), windowDurMin: 20000, windowDurMax: 60000,
+                    buildingPalette: WARM_PALETTE
                 };
             case 'bad':
                 return {
-                    windSpeedMult: 2.0, windDirFlip: true,
+                    windSpeedMult: rnd(2.0, 3.5), windDirFlip: true,
                     trafficSpeedMult: 1.45, trafficSpawnMult: 0.55,
                     dayCycleFrames: 5400, skyDir: -1,
                     birdMin: 0, birdMax: 4,
                     coinRespawnFrames: 14400,
-                    robberChance: 0.75, robberSpeed: 1.5, robberCooldown: 700, robberTtl: 1400
+                    robberChance: 0.75, robberSpeed: 1.5, robberCooldown: 700, robberTtl: 1400,
+                    cloudCount: rndInt(28, 34), cloudOpacityMult: 2.0, cloudSizeMult: 1.4,
+                    cloudBandTop: 10, cloudBandH: 70, cloudCirrusShare: 0.15, cloudDayAlpha: 9,
+                    daySkyTop: '#3a4044', daySkyMid: '#565e62', daySkyHorizon: '#6e6a5e',
+                    starCount: rndInt(15, 30), starSizeMult: 0.8,
+                    sunColor: '#c22f2f', sunGlow: ['rgba(200,60,60,0.45)', 'rgba(170,40,40,0.16)', 'rgba(140,30,30,0)'],
+                    silhouetteChance: 0.9, winDayFill: '#0c0d0c',
+                    lampRadius: 26, lampHueShift: 190,
+                    animalSpeedMult: 0.8, animalDirBias: 0.5,
+                    animalTypeWeights: ['rat', 'rat', 'rat'],
+                    batSpawnFrames: 600, batCountMax: 12,
+                    birdSpeedMult: 0.8, beetleCount: 1,
+                    windowTargetMax: rndInt(0, 2), windowDurMin: 3000, windowDurMax: 10000,
+                    buildingPalette: NEAR_BLACK_PALETTE
                 };
             case 'full':
                 return generateFullChaosSeed();
@@ -1522,7 +1730,7 @@ const Street = (() => {
 
     function applyChaosProfile(level) {
         chaosLevel = level || 'normal';
-        chaosCfg = chaosProfile(chaosLevel);
+        chaosCfg = Object.assign({}, CHAOS_DEFAULTS2, chaosProfile(chaosLevel));
         // Kirjoitetaan kertoimet olemassa oleviin muuttujiin
         DAY_CYCLE_FRAMES     = chaosCfg.dayCycleFrames;
         MOON_NIGHT_FRAMES    = chaosCfg.dayCycleFrames;
@@ -1539,17 +1747,124 @@ const Street = (() => {
         trafficSpeedMult     = chaosCfg.trafficSpeedMult;
         trafficSpawnMult     = chaosCfg.trafficSpawnMult;
         skyDir               = chaosCfg.skyDir;
+        // K1 – visuaaliset akselit (v10.03). HUOM: portti (clampChaosCfg/validateChaosCfg)
+        // otetaan tuotantokäyttöön vasta vaiheessa 3 (K3+K4, C-indeksi); K1-arvot ovat
+        // tässä jo valmiiksi turvallisissa haarukoissa (visuaalinen, ei voi rikkoa peliä).
+        cloudCount          = chaosCfg.cloudCount;
+        cloudOpacityMult    = chaosCfg.cloudOpacityMult;
+        cloudSizeMult       = chaosCfg.cloudSizeMult;
+        cloudBandTop        = chaosCfg.cloudBandTop;
+        cloudBandH          = chaosCfg.cloudBandH;
+        cloudCirrusShare    = chaosCfg.cloudCirrusShare;
+        starCount           = chaosCfg.starCount;
+        starSizeMult        = chaosCfg.starSizeMult;
+        sunColor            = chaosCfg.sunColor;
+        sunGlow             = chaosCfg.sunGlow;
+        animalSpeedMult     = chaosCfg.animalSpeedMult;
+        animalDirBias       = chaosCfg.animalDirBias;
+        animalTypeWeights   = chaosCfg.animalTypeWeights;
+        batSpawnFrames      = chaosCfg.batSpawnFrames;
+        birdSpeedMult       = chaosCfg.birdSpeedMult;
+        beetleCount         = chaosCfg.beetleCount;
+        windowTargetMax     = chaosCfg.windowTargetMax;
+        windowDurMin        = chaosCfg.windowDurMin;
+        windowDurMax        = chaosCfg.windowDurMax;
+        lampHueShift        = chaosCfg.lampHueShift;
+        buildingPalette     = chaosCfg.buildingPalette;
+        CLOUD_DAY_ALPHA     = chaosCfg.cloudDayAlpha;
+        DAY_SKY_TOP         = chaosCfg.daySkyTop;
+        DAY_SKY_MID         = chaosCfg.daySkyMid;
+        DAY_SKY_HORIZON     = chaosCfg.daySkyHorizon;
+        SILHOUETTE_CHANCE   = chaosCfg.silhouetteChance;
+        WIN_DAY_FILL        = chaosCfg.winDayFill;
+        LAMP_RADIUS         = chaosCfg.lampRadius;
+        BAT_COUNT_MAX       = chaosCfg.batCountMax;
         // Spawn-arpa turvalliselle jalkakäytävälle (ei ajokaistoille y 328/340)
         player.x = rnd(4, WORLD_W - player.w - 4);
         player.y = (Math.random() < 0.8)
             ? (280 + rnd(0, 8))          // talojen puoli (ylhäällä, turvassa autoilta)
             : (347 + rnd(0, 3));         // aidan puoli (alhaalla, turvassa autoilta)
         player.facing = Math.random() < 0.5 ? 1 : -1;
+        if (CHAOS_DEBUG) {
+            console.table(chaosCfg);
+            console.log('[chaos] level =', chaosLevel,
+                '· C =', chaosAbility(),
+                '· burgerIntervalMin =', burgerIntervalMin(chaosCfg, chaosAbility()),
+                '· validate =', validateChaosCfg(chaosCfg));
+        }
     }
 
     function setChaos(level) {
         applyChaosProfile(level);
         return chaosLevel;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       KAAOS v2 – portti (v10.02)
+       Kaikki kaaosarvot kulkevat clampChaosCfg() → validateChaosCfg()
+       -portin läpi (pääsääntö 2). NORMAL = nykyiset literaalit.
+       Kutsutaan tuotannossa vaiheissa v10.03/v10.04; tässä vaiheessa
+       toiminnot ovat valmiina ja ?debug raportoi ne.
+       ═══════════════════════════════════════════════════════════ */
+    function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+
+    // 1) Kyvykkyysindeksi C (luku 5.1)
+    function chaosSpeedMult() { return chaosCfg.playerSpeedMult || 1; }
+    function chaosAbility()   { return chaosSpeedMult() * hungerSpeedMult(); }
+    function stunMaxOf(cfg)   { return Math.max(cfg.avengerStun, cfg.robberStun); }
+
+    // 2) Selviytymisinvariantti (luku 5.2)
+    const BURGER_INTERVAL_FLOOR = 1200;                 // kova lattia
+    function burgerIntervalMin(cfg, C) {
+        return Math.max(BURGER_INTERVAL_FLOOR, Math.ceil(stunMaxOf(cfg) + 885 / (1.225 * C)));
+    }
+
+    // 3) Uhka (luku 5.3)
+    function threatSpeedMax(C)     { return 1.4 * C; }
+    function threatTelegraphMin(C) { return Math.max(12, Math.ceil(21 / C)); }
+    function threatBudget(cfg) {                        // montako uhka-akselia ääripäässä (max 3)
+        const ext = (v, lo, hi) => (v <= lo + (hi - lo) * 0.1 || v >= hi - (hi - lo) * 0.1) ? 1 : 0;
+        return ext(cfg.avengerChance, 0, 0.6) + ext(cfg.avengerSpeed, 0.5, 1.4)
+             + ext(cfg.robberChance, 0, 0.9) + ext(cfg.robberSpeed, 0.7, 2.0)
+             + ext(cfg.trafficSpeedMult, 0.6, 1.6) + ext(cfg.trafficSpawnMult, 0.5, 2.5);
+    }
+
+    // 4) Portti: klampit
+    function clampChaosCfg(cfg) {
+        const C = chaosAbility();
+        const c = Object.assign({}, cfg);
+        c.cloudCount       = clamp(c.cloudCount, 4, 34);
+        c.cloudOpacityMult = clamp(c.cloudOpacityMult, 0.4, 2.5);
+        c.windSpeedMult    = clamp(c.windSpeedMult, 0.4, 3.5);
+        c.starCount        = clamp(c.starCount, 0, 140);
+        c.avengerChance    = clamp(c.avengerChance, 0, 0.6);
+        c.avengerSpeed     = clamp(c.avengerSpeed, 0.5, threatSpeedMax(C));
+        c.avengerTelegraph = clamp(c.avengerTelegraph, threatTelegraphMin(C), 45);
+        c.avengerStun      = clamp(c.avengerStun, 150, 600);      // ei koskaan pidempi kuin nyt
+        c.robberStun       = clamp(c.robberStun, 150, 900);
+        c.robberSpeed      = clamp(c.robberSpeed, 0.7, threatSpeedMax(C));
+        c.trafficSpeedMult = clamp(c.trafficSpeedMult, 0.6, 1.6);
+        c.trafficSpawnMult = clamp(c.trafficSpawnMult, 0.5, 2.5);
+        c.startBurgers     = clamp(c.startBurgers, 2, 10);        // ehdoton
+        c.startCoins       = clamp(c.startCoins, 1, 100);
+        c.hungerWakeGrace  = clamp(c.hungerWakeGrace, 600, 1800);
+        c.burgerInterval   = Math.max(c.burgerInterval, burgerIntervalMin(c, C));  // 🍔-tahti
+        c.fogAlpha         = clamp(c.fogAlpha, 0, 0.5);
+        return c;
+    }
+
+    // 5) Portti: hyväksyntä – hylkää epäreilu arpa (pääsääntö 2)
+    function validateChaosCfg(cfg) {
+        const C = chaosAbility(), errs = [];
+        if (cfg.burgerInterval < burgerIntervalMin(cfg, C))     errs.push('burgerInterval < kaava');
+        if (cfg.avengerSpeed > threatSpeedMax(C))               errs.push('avenger liian nopea');
+        if (cfg.robberSpeed  > threatSpeedMax(C))               errs.push('robber liian nopea');
+        if (cfg.avengerTelegraph < threatTelegraphMin(C))       errs.push('varoitus liian lyhyt');
+        if (stunMaxOf(cfg) > 900)                               errs.push('tainnutus raja');
+        if (cfg.startBurgers < 2 || cfg.startBurgers > 10)      errs.push('aloitus🍔 raja');
+        if (threatBudget(cfg) > 3)                              errs.push('uhkabudjetti');
+        if (cfg.fogAlpha > 0.5)                                 errs.push('sumu liian sakea');
+        return errs;
     }
 
     function init(canvasEl) {
@@ -1573,8 +1888,9 @@ const Street = (() => {
             lamps[i].overheatTimer = lamps[i].overheatTimer || 0;
             if (!lamps[i].baseShade) {
                 const g = 35 + Math.random() * 30;  // 35–65 harmaan vaaleus
-                lamps[i].baseShade = 'hsl(0,0%,' + g + '%)';
-                lamps[i].hatShade  = 'hsl(0,0%,' + (g - 8) + '%)';
+                // Kaaos K1 (v10.03): lampHueShift värjää tolpan sävyn (0 = harmaa, kuten ennen)
+                lamps[i].baseShade = lampHueShift ? ('hsl(' + lampHueShift + ',22%,' + g + '%)') : ('hsl(0,0%,' + g + '%)');
+                lamps[i].hatShade  = lampHueShift ? ('hsl(' + lampHueShift + ',22%,' + (g - 8) + '%)') : ('hsl(0,0%,' + (g - 8) + '%)');
             }
         }
         // Siivoa vanha 6 lampun tila localStorageen jääneestä tallennuksesta (v4.96)
@@ -1624,11 +1940,11 @@ const Street = (() => {
             }
         }
         stars = [];
-        for (let i = 0; i < 80; i++) {
+        for (let i = 0; i < starCount; i++) {
             stars.push({
                 x: Math.random() * WORLD_W,
                 y: Math.random() * (GROUND_Y - 30),
-                r: Math.random() * 1.5 + 0.5,
+                r: (Math.random() * 1.5 + 0.5) * starSizeMult,
                 blink: Math.random() * Math.PI * 2
             });
         }
@@ -1749,7 +2065,7 @@ const Street = (() => {
         render();
         actionJustPressed = false;
     }
-    const LAMP_RADIUS = 30;
+    let LAMP_RADIUS = 30;   // kaaos K1 (v10.03)
 /* ═══════════════════════════════════════════════════
        PÄIVITYS
        ═══════════════════════════════════════════════════ */
@@ -2299,8 +2615,8 @@ const Street = (() => {
             for (const idx in smallHouseLights) { const sh = smallHouseLights[idx]; if (sh.lit && sh.timer > 0) { sh.timer -= dt; if (sh.timer <= 0) { sh.lit = false; sh.timer = 0; } } }
             updateAvenger(dt);   // oviukko: paluu ovelle jatkuu tainnutuksen aikana
             for (let i = 0; i < lamps.length; i++) { if (lamps[i].overheatTimer > 0) { lamps[i].overheatTimer -= dt; if (lamps[i].overheatTimer <= 0) { lamps[i].overheatTimer = 0; lamps[i].overheat = false; lamps[i].kickCount = 0; } } }
-            if (!shootingStar || !shootingStar.active) { if (shootingStar) { shootingStar.timer -= dt; } if (!shootingStar || shootingStar.timer <= 0) { const ang = -0.3 - Math.random() * 0.5; const spd = 1.5 + Math.random() * 2.5; shootingStar = { x: -10 + Math.random() * WORLD_W * 0.4, y: 15 + Math.random() * 100, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd, active: true, life: 120 + Math.random() * 180, trail: [], timer: 600 + Math.random() * 2100 }; } } else { shootingStar.x += shootingStar.vx * dt; shootingStar.y -= shootingStar.vy * dt; shootingStar.trail.push({x: shootingStar.x, y: shootingStar.y}); if (shootingStar.trail.length > 18) shootingStar.trail.shift(); shootingStar.life -= dt; if (shootingStar.life <= 0 || shootingStar.x > WORLD_W + 30 || shootingStar.y < -30 || shootingStar.y > GROUND_Y) { shootingStar.active = false; } }
-            if (!satellite || !satellite.active) { if (satellite) { satellite.timer -= dt; } if (!satellite || satellite.timer <= 0) { const dir2 = Math.random() < 0.5 ? 1 : -1; satellite = { x: dir2 > 0 ? -10 : WORLD_W + 10, y: 25 + Math.random() * 70, vx: dir2 * (0.25 + Math.random() * 0.5), active: true, blinkPhase: Math.random() * Math.PI * 2, timer: 400 + Math.random() * 900 }; } } else { satellite.x += satellite.vx * dt; satellite.blinkPhase += 0.08 * dt; if ((satellite.vx > 0 && satellite.x > WORLD_W + 15) || (satellite.vx < 0 && satellite.x < -15)) { satellite.active = false; } }
+            updateShootingStar(dt);
+            updateSatellite(dt);
             actionJustPressed = false;
             return;
         }
@@ -2596,14 +2912,14 @@ const Street = (() => {
         if (!groundAnimal) {
             animalSpawnTimer -= dt;
             if (animalSpawnTimer <= 0) {
-                const types = ['mouse','mouse','rat','rat','rabbit']; const type = types[Math.floor(Math.random()*types.length)];
-                const dir = Math.random()<0.5?1:-1;
+                const types = animalTypeWeights || ['mouse','mouse','rat','rat','rabbit']; const type = types[Math.floor(Math.random()*types.length)];
+                const dir = (Math.random() < animalDirBias) ? 1 : -1;
                 // Satunnainen juoksukorkeus: aidan juuresta (335) nykyiseen ylälaitaan (307, ei ihan seinään)
                 const baseY = GROUND_Y - 3 + Math.random() * (GROUND_Y + 25 - (GROUND_Y - 3));
                 let w,h,speed;
-                if (type==='mouse') { w=8; h=4; speed=1.8+Math.random()*1.2; }
-                else if (type==='rat') { w=14; h=6; speed=1.2+Math.random()*0.8; }
-                else { w=10; h=10; speed=1.5+Math.random()*0.8; }
+                if (type==='mouse') { w=8; h=4; speed=(1.8+Math.random()*1.2)*animalSpeedMult; }
+                else if (type==='rat') { w=14; h=6; speed=(1.2+Math.random()*0.8)*animalSpeedMult; }
+                else { w=10; h=10; speed=(1.5+Math.random()*0.8)*animalSpeedMult; }
                 groundAnimal = { type,w,h,x:dir>0?-w:WORLD_W+w,y:baseY-h,vx:dir*speed,direction:dir,hopY:0,hopVel:0,animTimer:0,pauseTimer:0 };
                 animalSpawnTimer = 900;
             }
@@ -2611,7 +2927,7 @@ const Street = (() => {
             const a = groundAnimal;
             if (!(a.type==='rabbit'&&a.pauseTimer>0)) { a.x += a.vx * dt; a.animTimer += dt; }
             if (a.type === 'rabbit') {
-                if (a.pauseTimer > 0) { a.pauseTimer -= dt; a.vx = 0; if (a.pauseTimer<=0) a.vx = a.direction*(1.5+Math.random()*0.8); }
+                if (a.pauseTimer > 0) { a.pauseTimer -= dt; a.vx = 0; if (a.pauseTimer<=0) a.vx = a.direction*(1.5+Math.random()*0.8)*animalSpeedMult; }
                 else {
                     if (a.hopY===0 && Math.random()<0.08*dt) a.hopVel = -0.9 - Math.random()*0.5;
                     if (a.hopVel!==0 || a.hopY<0) { a.hopY += a.hopVel*dt; a.hopVel += 0.15*dt; if (a.hopY>=0) { a.hopY=0; a.hopVel=0; } }
@@ -2630,55 +2946,13 @@ const Street = (() => {
         // Päivällä (dayT > 0) niitä ei enää spawnata; update() nollaa
         // kesken lennon olleet oliot päivän alkaessa.
         if (dayT <= 0) {
-            if (!shootingStar || !shootingStar.active) {
-                if (shootingStar) { shootingStar.timer -= dt; }
-                if (!shootingStar || shootingStar.timer <= 0) {
-                    const ang = -0.3 - Math.random() * 0.5;
-                    const spd = 1.5 + Math.random() * 2.5;
-                    shootingStar = {
-                        x: -10 + Math.random() * WORLD_W * 0.4,
-                        y: 15 + Math.random() * 100,
-                        vx: Math.cos(ang) * spd,
-                        vy: Math.sin(ang) * spd,
-                        active: true, life: 120 + Math.random() * 180,
-                        trail: [], timer: 600 + Math.random() * 2100
-                    };
-                }
-            } else {
-                shootingStar.x += shootingStar.vx * dt;
-                shootingStar.y -= shootingStar.vy * dt;
-                shootingStar.trail.push({x: shootingStar.x, y: shootingStar.y});
-                if (shootingStar.trail.length > 18) shootingStar.trail.shift();
-                shootingStar.life -= dt;
-                if (shootingStar.life <= 0 || shootingStar.x > WORLD_W + 30 || shootingStar.y < -30 || shootingStar.y > GROUND_Y) {
-                    shootingStar.active = false;
-                }
-            }
-
-            if (!satellite || !satellite.active) {
-                if (satellite) { satellite.timer -= dt; }
-                if (!satellite || satellite.timer <= 0) {
-                    const dir = Math.random() < 0.5 ? 1 : -1;
-                    satellite = {
-                        x: dir > 0 ? -10 : WORLD_W + 10,
-                        y: 25 + Math.random() * 70,
-                        vx: dir * (0.25 + Math.random() * 0.5),
-                        active: true, blinkPhase: Math.random() * Math.PI * 2,
-                        timer: 400 + Math.random() * 900
-                    };
-                }
-            } else {
-                satellite.x += satellite.vx * dt;
-                satellite.blinkPhase += 0.08 * dt;
-                if ((satellite.vx > 0 && satellite.x > WORLD_W + 15) || (satellite.vx < 0 && satellite.x < -15)) {
-                    satellite.active = false;
-                }
-            }
+            updateShootingStar(dt);
+            updateSatellite(dt);
 
             // ── Lepakot (vain yöllä) ────────────
             if (!bats.length) {
-                // Spawnaa 0–5 lepakkoa 30s välein
-                if (batSpawnTimer === undefined) batSpawnTimer = 1800;
+                // Spawnaa 0..BAT_COUNT_MAX lepakkoa batSpawnFrames-välein (kaaos K1)
+                if (batSpawnTimer === undefined) batSpawnTimer = batSpawnFrames;
                 batSpawnTimer -= dt;
                 if (batSpawnTimer <= 0) {
                     const count = Math.floor(Math.random() * (BAT_COUNT_MAX + 1)); // 0–5
@@ -2700,7 +2974,7 @@ const Street = (() => {
                             fadeDuration: 0
                         });
                     }
-                    batSpawnTimer = 1800;
+                    batSpawnTimer = batSpawnFrames;
                 }
             } else {
                 for (let i = bats.length - 1; i >= 0; i--) {
@@ -2841,7 +3115,7 @@ const Street = (() => {
                         b.perched = true;
                         b.perchTimer = 180 + Math.random() * 540;
                     } else {
-                        const step = (0.6 + Math.random() * 0.4) * dt;
+                        const step = (0.6 + Math.random() * 0.4) * birdSpeedMult * dt;
                         b.x += (dx / dist) * step;
                         b.y += (dy / dist) * step;
                     }
@@ -3467,19 +3741,19 @@ const Street = (() => {
         windDir = (Math.random() < 0.5 ? 1 : -1) * (windDirFlip ? -1 : 1);
         windSpeed = (2 + Math.random() * 3) * windSpeedMult; // px/s (2–5) × kaaoskerroin
 
-        // Pilvikaistale: y=40..80, noin 40px korkea
-        const bandTop = 40, bandH = 40;
-        for (let i = 0; i < 18; i++) {
+        // Pilvikaistale: cloudBandTop..cloudBandTop+cloudBandH (kaaos K1, v10.03)
+        const bandTop = cloudBandTop, bandH = cloudBandH;
+        for (let i = 0; i < cloudCount; i++) {
             const typeRoll = Math.random();
             let w, opacity, type;
-            if (typeRoll < 0.35) {
+            if (typeRoll < cloudCirrusShare) {
                 type = 'cirrus';
-                w = 60 + Math.random() * 180;
-                opacity = 0.005 + Math.random() * 0.015;
+                w = (60 + Math.random() * 180) * cloudSizeMult;
+                opacity = (0.005 + Math.random() * 0.015) * cloudOpacityMult;
             } else {
                 type = 'hazy';
-                w = 80 + Math.random() * 220;
-                opacity = 0.015 + Math.random() * 0.035;
+                w = (80 + Math.random() * 220) * cloudSizeMult;
+                opacity = (0.015 + Math.random() * 0.035) * cloudOpacityMult;
             }
             clouds.push({
                 x: Math.random() * WORLD_W,
@@ -3593,7 +3867,7 @@ const Street = (() => {
             grassTufts: [],
             treeGrassTufts: [],  // Pienet ruohotupsut puiden juurella (1/4 koko)
             manholes: [],
-            beetle: null,
+            beetles: [],
             newspaper: null,
             ironFence: null,     // Rauta-aita alalaidassa
             thresholds: [],      // Ovien kynnysviuhkat (esilaskettu geometria)
@@ -3680,14 +3954,17 @@ const Street = (() => {
             steamParticles: []
         });
 
-        // Kuoriainen
-        foreground.beetle = {
-            x: 100 + Math.random() * 600,
-            y: GROUND_Y + 62 + Math.random() * 20,
-            dir: Math.random() < 0.5 ? 1 : -1,
-            animTimer: Math.random() * Math.PI * 2,
-            speed: 0.3 + Math.random() * 0.3
-        };
+        // Kuoriaiset (beetleCount kpl; kaaos K1, v10.03)
+        foreground.beetles = [];
+        for (let i = 0; i < beetleCount; i++) {
+            foreground.beetles.push({
+                x: 100 + Math.random() * 600,
+                y: GROUND_Y + 62 + Math.random() * 20,
+                dir: Math.random() < 0.5 ? 1 : -1,
+                animTimer: Math.random() * Math.PI * 2,
+                speed: 0.3 + Math.random() * 0.3
+            });
+        }
 
         /* Sanomalehti (v4.53: poimittavissa) – rauta-aidan aukkoon kauas
            kaikista ovista (lähin ovi x 410), jotta poiminta ei varasta
@@ -3907,9 +4184,8 @@ const Street = (() => {
             }
         }
 
-        // Kuoriainen
-        if (fg.beetle) {
-            const b = fg.beetle;
+        // Kuoriaiset
+        for (const b of fg.beetles) {
             b.x += b.dir * b.speed * dt;
             b.animTimer += 0.08 * dt;
             // Käännös reunoilla
@@ -3970,16 +4246,21 @@ const Street = (() => {
         if (dayT > 0) {
             ctx.save();
             ctx.globalAlpha = dayT;
-            // Hehku
-            const sunGlow = ctx.createRadialGradient(sunX, SUN_Y, SUN_R * 0.4, sunX, SUN_Y, SUN_R * 3.4);
-            sunGlow.addColorStop(0, 'rgba(255,224,120,0.55)');
-            sunGlow.addColorStop(0.4, 'rgba(255,210,100,0.20)');
-            sunGlow.addColorStop(1, 'rgba(255,200,80,0)');
-            ctx.fillStyle = sunGlow;
+            // Hehku – sunGlow (kaaos) tai nykyinen lämmin (NORMAL bitti-identtinen)
+            const glowStops = sunGlow || SUN_GLOW_DEFAULT;
+            const discColor = sunColor || '#ffe066';
+            const rayRGB = sunColor
+                ? sunColor.slice(1).match(/../g).map(h => parseInt(h, 16)).join(',')
+                : '255,238,160';
+            const sunGlowGrad = ctx.createRadialGradient(sunX, SUN_Y, SUN_R * 0.4, sunX, SUN_Y, SUN_R * 3.4);
+            sunGlowGrad.addColorStop(0, glowStops[0]);
+            sunGlowGrad.addColorStop(0.4, glowStops[1]);
+            sunGlowGrad.addColorStop(1, glowStops[2]);
+            ctx.fillStyle = sunGlowGrad;
             ctx.beginPath(); ctx.arc(sunX, SUN_Y, SUN_R * 3.4, 0, Math.PI*2); ctx.fill();
             // Hitaasti pyörivä sädekehä
             const spin = Date.now() * 0.00012;
-            ctx.strokeStyle = 'rgba(255,238,160,0.35)';
+            ctx.strokeStyle = 'rgba(' + rayRGB + ',0.35)';
             ctx.lineWidth = 1;
             for (let i = 0; i < 8; i++) {
                 const ang = spin + i * Math.PI / 4;
@@ -3990,8 +4271,8 @@ const Street = (() => {
                 ctx.lineTo(sunX + Math.cos(ang) * r1, SUN_Y + Math.sin(ang) * r1);
                 ctx.stroke();
             }
-            // Kiekko: tasainen lämmin keltainen (ei valkoista palloa keskellä)
-            ctx.fillStyle = '#ffe066';
+            // Kiekko: sunColor (kaaos) tai lämmin keltainen (NORMAL bitti-identtinen)
+            ctx.fillStyle = discColor;
             ctx.beginPath(); ctx.arc(sunX, SUN_Y, SUN_R, 0, Math.PI*2); ctx.fill();
             ctx.restore();
         }
@@ -4344,8 +4625,8 @@ const Street = (() => {
         );
         if (avail.length === 0) return;
         const w = avail[Math.floor(Math.random() * avail.length)];
-        // 10-30 s (debug)
-        const duration = 10000 + Math.random() * 20000;
+        // Kesto: windowDurMin..windowDurMax (kaaos K1, v10.03; NORMAL 10–30 s)
+        const duration = windowDurMin + Math.random() * (windowDurMax - windowDurMin);
         litWindows.push({ wx: w.wx, wy: w.wy, bldgIdx: w.bldgIdx, offTime: Date.now() + duration, colorType: pickColorType() });
     }
 
@@ -4359,11 +4640,11 @@ const Street = (() => {
                 changed = true;
             }
         }
-        // Vain kun joku sammui: arvo uusi tavoite 0-5
+        // Vain kun joku sammui: arvo uusi tavoite 0..windowTargetMax
         if (changed) {
-            const target = Math.floor(Math.random() * 6); // 0..5
+            const target = Math.floor(Math.random() * (windowTargetMax + 1));
             while (litWindows.length < target) addRandomLitWindow();
-            while (litWindows.length > 5) litWindows.shift();
+            while (litWindows.length > windowTargetMax) litWindows.shift();
         }
     }
 
@@ -4392,11 +4673,11 @@ const Street = (() => {
     }
     // Päivällä tumma ikkunalasi vaalenee taivaan heijastukseksi: tavalliset talot
     // #151716, 3-riviset (kauempana) hiukan tummempaa syvyyden takia (v4.82).
-    const WIN_DAY_FILL      = '#151716';
+    let WIN_DAY_FILL      = '#151716';   // kaaos K1 (v10.03)
     const WIN_DAY_FILL_FLAT = '#101110';
 
     // Siluetin todennäköisyys keltaisessa ikkunassa (0.50 = testaus, myöhemmin 0.05)
-    const SILHOUETTE_CHANCE = 0.50;
+    let SILHOUETTE_CHANCE = 0.50;   // kaaos K1 (v10.03)
 
     function shouldShowSilhouette(wx, wy, bldgIdx, colorType) {
         if (colorType !== 'yellow') return false;
@@ -4425,8 +4706,8 @@ const Street = (() => {
         ctx.fill();
     }
 
-    // Alusta: 0-5 ikkunaa heti palamaan
-    for (let i = 0; i < Math.floor(Math.random() * 6); i++) addRandomLitWindow();
+    // Alusta: 0..windowTargetMax ikkunaa heti palamaan
+    for (let i = 0; i < Math.floor(Math.random() * (windowTargetMax + 1)); i++) addRandomLitWindow();
 
     // Palauttaa ikkunan värit tyypin perusteella: keltainen, sinertävä (TV), punertava (tunnelma)
     function getWindowColors(colorType, wx, wy) {
@@ -5113,8 +5394,8 @@ const Street = (() => {
         // Sanomalehti
         if (foreground && foreground.newspaper) { drawNewspaper(); }
 
-        // Kuoriainen
-        if (foreground && foreground.beetle) { drawBeetle(); }
+        // Kuoriaiset
+        if (foreground && foreground.beetles) { for (const b of foreground.beetles) drawBeetle(b); }
 
     }
 
@@ -5852,8 +6133,7 @@ const Street = (() => {
         ctx.restore();
     }
 
-    function drawBeetle() {
-        const b = foreground.beetle;
+    function drawBeetle(b) {
         const bx = b.x, by = b.y;
         const legPhase = Math.sin(b.animTimer) * 1.5;
         ctx.save();
@@ -6982,12 +7262,18 @@ const Street = (() => {
             ctx.arc(bx, smokeY - 4, 7, 0, Math.PI*2); ctx.fill();
         }
 
-        // Valokeila (jos palaa) – himmenee päivällä
+        // Valokeila (jos palaa) – himmenee päivällä; lampHueShift värjää (kaaos K1)
         if (lamp.lit && dayDim > 0.01) {
             const g = ctx.createRadialGradient(bx, bulbY + 10, 4, bx, bulbY + 10, 90);
-            g.addColorStop(0, 'rgba(255,240,150,' + (0.7 * dayDim).toFixed(3) + ')');
-            g.addColorStop(0.5, 'rgba(255,200,50,' + (0.15 * dayDim).toFixed(3) + ')');
-            g.addColorStop(1, 'rgba(255,200,50,0)');
+            if (lampHueShift) {
+                g.addColorStop(0, 'hsla(' + lampHueShift + ',80%,70%,' + (0.7 * dayDim).toFixed(3) + ')');
+                g.addColorStop(0.5, 'hsla(' + lampHueShift + ',85%,55%,' + (0.15 * dayDim).toFixed(3) + ')');
+                g.addColorStop(1, 'hsla(' + lampHueShift + ',85%,55%,0)');
+            } else {
+                g.addColorStop(0, 'rgba(255,240,150,' + (0.7 * dayDim).toFixed(3) + ')');
+                g.addColorStop(0.5, 'rgba(255,200,50,' + (0.15 * dayDim).toFixed(3) + ')');
+                g.addColorStop(1, 'rgba(255,200,50,0)');
+            }
             ctx.fillStyle = g;
             ctx.beginPath(); ctx.arc(bx, bulbY + 10, 90, 0, Math.PI*2); ctx.fill();
         }
@@ -8102,6 +8388,13 @@ window.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('game-canvas');
     const menu = document.getElementById('chaos-menu');
     if (!canvas) return;
+    const urlParams = new URLSearchParams(location.search);
+    const chaosParam = urlParams.get('chaos');   // testikytkin: ?chaos=normal|mild|good|bad|full
+    if (chaosParam) {
+        Street.setChaos(chaosParam);             // ohittaa hubin (testikäyttö, ei tallenna)
+        Street.init(canvas);
+        return;
+    }
     if (!menu) { Street.init(canvas); return; }   // ei hubia → käynnistä suoraan
     menu.classList.remove('hidden');
     const start = (level) => {

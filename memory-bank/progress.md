@@ -1,6 +1,6 @@
 # 📊 Projektin edistyminen
 
-> **v10.01 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026. Kompaktoitu 23.9.2026 (täysi historia git-historiassa: viimeisin täysi versio
+> **v10.03 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026. Kompaktoitu 23.9.2026 (täysi historia git-historiassa: viimeisin täysi versio
 > `ffb1dd9`, HEAD `44db9e7`)
 
 ## 🏮 Pääportaali – AI CHAOS STREET
@@ -8,6 +8,8 @@
 | Ominaisuus | Tila |
 |-----------|------|
 | 🌀 Alkuhubi + kaaostasot | ✅ v10.01 – `#chaos-menu` (NORMAL/MILD/GOOD/BAD/FULL); `street.js` `setChaos`/`chaosProfile`/`applyChaosProfile`/`generateFullChaosSeed`; säädettävät: tuuli/pilvet, liikenne, vuorokausi, linnut, kolikko, rosvo – vain arvoja/kertoimia, ei uutta mekaniikkaa |
+| 🛡️ Kaaosportti K0 | ✅ v10.02 – `clampChaosCfg`/`validateChaosCfg`/`chaosAbility`, `makeRng`-siemen, `?chaos=`/`?seed=`/`?debug`, `CHAOS_DEFAULTS2` + uudet `let`:t NORMAL-arvoilla; NORMAL bitti-identtinen, ei näkyvää muutosta |
+| 🌀 Kaaos K1 (visuaalinen) | ✅ **v10.03** – MUST-kohteet: kova tuuli (`windSpeedMult` BAD 2.0–3.5) · paksut pilvet + myrskytaivas (`cloudCount/cloudOpacityMult/cloudSizeMult`/`cloudBandTop/H`/`cloudCirrusShare`/`CLOUD_DAY_ALPHA`/`DAY_SKY_*`) · vihreä/violetti/verenpunainen aurinko (`sunColor`/`sunGlow`). Pääosa: tähdet, ikkunavalot, talopaletit (lämmin/lähes musta/sävykierros), eläimet, lepakot, linnut, kuoriaiset, lamppujen sävy/radius. ❓4 ratkaistu: tähdenlento/satelliitti yhdistetty `updateShootingStar`/`updateSatellite`-apufunktioiksi (ei meteoriittia). NORMAL bitti-identtinen |
 | Katunäkymä, hahmo, 9 lamppua, 9 ovea, ajoneuvot, eläimet, sää | ✅ |
 | Hahmon viilaus | ✅ v4.03–v4.05 – silmä + `lookY`, lipan/kasvojen/leuan varjot, maakosketusvarjo, hengitys, potkun ennakointi + nojaus, hit pause, dynaaminen lampunvalo |
 | Pelaajan syvyysskaalaus | ✅ v4.31 – `playerDepthScale()` ±10 % (0,90 kauas / 1,00 y=315 / 1,10 lähelle), ankkuri jalkojen kosketuspisteessä; visuaalinen vain – hitboxit, törmäykset ja kamera ennallaan |
@@ -80,6 +82,7 @@
 | 🚫 Ei ylimääräisiä dialogeja | ✅ v4.68 – sääntö 06 (`.clinerules/06-ei-dialogeja.md`); rosvon rahaviesti poistettu |
 | Tekijänoikeudet | ✅ 20.9.2026 – juuren `LICENSE` (Copyright (c) 2024–2026 Teppo Ålander, All rights reserved) + README-osio; 22.9.2026 LICENSE/README mainitsevat myös jukeboxin kolmannen osapuolen raidat (raidat 4–6) |
 | Pelinimien yhdenmukaistus | ✅ 20.9.2026 – näkyvät nimet "Dig Däsh" ja "Blue Mäx" kaikkialla; sisäiset tunnisteet ennallaan |
+| 📄 Kaaosparametrien suunnitelma | ✅ 27.9.2026 – `docs/chaos.md` v2: kategoriat **K0–K7**, tasomanifesti (NORMAL–FULL), C-kyvykkyysindeksi + 🍔-intervallin lattia (1200 f), kielletyt yhdistelmät, uhkabudjetti, MUST-kohteet (kova tuuli · paksut pilvet + myrskytaivas · vihreä aurinko), toteutusresepti portteineen, testaus/DoD, 4 vaihetta ja 7 avointa päätöstä (`❓`). **Ei koodimuutoksia** → versio pysyy `v10.01`; toteutus `v10.02`…`v10.05` käyttäjän rastien jälkeen |
 | Julkaisu | ✅ **ONLINE** – GitHub Pages `https://teppoaland.github.io/aistreet/` (27.9.2026) |
 
 ## 🧪 Testipenkit (ei repossa)

@@ -18,7 +18,7 @@
 
 - **Projekti:** **AI CHAOS STREET** – uusi itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages
   `teppoaland.github.io/aistreet/`), forkattu Pimeä Katu v5.02:sta. Alkuperäinen `D:\AI\Main`
-  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.01` (`index.html` → `#version-tag`).
+  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.03` (`index.html` → `#version-tag`).
 - **🌀 Alkuhubi + kaaostasot (v10.01):** `index.html` `#chaos-menu` (NORMAL / MILD / GOOD / BAD /
   FULL CHAOS). `street.js` `setChaos()` + `chaosProfile()` + `applyChaosProfile()` +
   `generateFullChaosSeed()`. Hub näytetään aina latauksessa → valinnan jälkeen spawn-arpa ja
@@ -27,6 +27,30 @@
   vuorokausi (`DAY_CYCLE_FRAMES`, `skyDir` = auringon/kuun suunta), linnut (`BIRD_COUNT_MIN/MAX`),
   kolikko (`COIN_RESPAWN_FRAMES`), rosvo (`ROBBER_APPEAR_CHANCE/SPEED/COOLDOWN/TTL`).
   NORMAL = nykyiset arvot bitti-identtisinä.
+- **📄 Kaaosparametrien suunnitelma v2 (27.9.2026):** `docs/chaos.md` – kategoriat K0–K7, tasomanifesti, C-kyvykkyysindeksi + 🍔-intervallin lattia (1200 f), kielletyt yhdistelmät, MUST-kohteet (kova tuuli · paksut pilvet + myrskytaivas · vihreä aurinko), toteutusresepti portteineen, testaus/DoD, 4 vaihetta ja avoimet päätökset (`❓`). Koodivaiheet `v10.02`…`v10.05` – **v10.02 (K0-infra) valmis.**
+- **🛡️ Kaaoksen kaksi pääsääntöä:** (1) **NORMAL ei saa koskaan hajota** – kaaosarvot ovat NORMALissa no-op ja peli on bitti-identtinen; (2) **koko peli pysyy pelattavana kaikissa moodeissa** – jokainen arpa kulkee `clampChaosCfg()` + `validateChaosCfg()` -portin läpi (ei epäreilua kuolemaa, uhkanopeus ≤ 1,4 × C).
+- **🛡️ Kaaosportti K0 (v10.02):** `street.js` – `makeRng` (mulberry32) + `chaosRng`, testikytkimet
+  `?chaos=`/`?seed=`/`?debug`, `CHAOS_DEFAULTS2` (täysi superset NORMAL-arvoilla) + uudet `let`:t
+  (`cloudCount`, `starCount`, `sunColor`, `animalSpeedMult`, …). Portti `clampChaosCfg()`/
+  `validateChaosCfg()`/`chaosAbility()` valmiina (tuotantokäyttö v10.03+). NORMAL bitti-identtinen.
+- **🧪 Sääntö 05 päivitetty (27.9.2026):** AI **saa** testata ja kirjoittaa/ajaa testiskriptejä oman
+  harkinnan mukaan (erityisesti kaaos-/rakennevalidointi); käyttäjän silmä jää lopulliseksi tuomariksi ulkoasussa.
+- **🌠 Meteoriitti-idea (vaihe 2, ❓4):** käyttäjän idea – tähdenlennosta voisi tulla iso, hitaasti ja
+  pahaenteisesti etenevä meteoriitti (yllätys). Liittyy `tähdenlento/satelliitti`-akseliin (K1) ja ❓4:ään
+  (meteor/satelliitti-logiikka on `street.js`:ssä kahtena kopiona: 2632–2676 ja 2302–2303).
+- **🌀 Kaaos Vaihe 2 (K1, → v10.03) VALMIS:** ❓4 = refaktoroi tähdenlento/satelliitti apufunktioiksi
+  (`updateShootingStar`/`updateSatellite`), **ei** meteoriittia. K1-akselit käyttöön: kova tuuli
+  (`windSpeedMult` BAD 2.0–3.5), paksut pilvet + myrskytaivas (`cloudCount/cloudOpacityMult/cloudSizeMult`/
+  `cloudBandTop/H`/`cloudCirrusShare`/`CLOUD_DAY_ALPHA`/`DAY_SKY_*`), **vihreä/violetti/verenpunainen aurinko**
+  (`sunColor`/`sunGlow`), tähdet (`starCount`/`starSizeMult`), ikkunavalot (`windowTargetMax`/`windowDurMin/Max`/
+  `SILHOUETTE_CHANCE`/`WIN_DAY_FILL`), talopaletit (`WARM/NEAR_BLACK/randomHuePalette`), eläimet
+  (`animalSpeedMult`/`animalDirBias`/`animalTypeWeights`), lepakot (`batSpawnFrames`/`BAT_COUNT_MAX`),
+  linnut (`birdSpeedMult`), kuoriaiset (`beetleCount`), lamput (`lampHueShift`/`LAMP_RADIUS`). NORMAL bitti-identtinen.
+- ✅ **NORMAL varmistettu puhtaaksi** (headless, 56 avainta / 0 eroa): kaaosarvoja ei valu NORMALiin.
+  Spawn-paikan arpa joka latauksella on **tarkoituksellinen** forkin ominaisuus (v10.01, ei korjata) –
+  sama kuin talovärien ja tuulen suunnan arvonta.
+- **📝 Nimeäminen/polut siivottu (27.9.2026):** `PROJECT.md` + `README.md` otsikoitu AI CHAOS STREET:ksi;
+  vanhentuneet `D:\AI\Main\` -polut korjattu (`.clinerules/01`, `hook.md`, `PROJECT.md`).
 - **🌳 Puiden lisähaara (v5.01):** `street.js` `drawBareTree()` – puiden 1 ja 2 oikean alaoksan (+0.7 rad) puolivälistä lähtee nyt +45° lisähaara (Math.PI/4, pituus 50 %, leveys 55 % emooksasta, syvyys 2).
 - **🐦 Päivälinnut (v5.00):** `street.js` – päivällä 10–15 mustaa lintua istuskelee puiden latvuksissa (Y 275–285, korjattu 1.10.2026: nostettu ylemmäs oksille, pois rungolta ja latvan yläpuolelta). Liikkuvat satunnaisesti paikasta toiseen 3–12 s välein. Lepakot ennallaan yöllä.
 - **🎵 Jukebox aina vapaa (v5.00):**ebox ei enää lukkiudu soiton ajaksi. Soivan kappaleen aikana voi valita lisää kappaleita, jotka lisätään jonon perään (numerojärjestyksessä 1→N). Tilateksti näyttää `Soittojonossa: X kappaletta` (`(i/n)`-parenteesi pois SOI NYT -riviltä).
@@ -222,6 +246,10 @@ mopo, puut, kolikko, mobiilikamera, potkukolikko).
 
 ## 🔜 Seuraavaksi (odottaa käyttäjän päätöstä)
 
+- **🌀 Kaaos Vaihe 3 (K3+K4, → v10.04):** C-indeksi käyttöön (portti `clampChaosCfg`/`validateChaosCfg`
+  otetaan tuotantokäyttöön): uhkien nopeus/varoitus/tn, rosvon nopeusarpa ≤ 1.4·C, liikenteen ylityssääntö,
+  kaappi, tainnutus, herätysrako. Rastilliset K4-akselit vasta käyttäjän luvalla. Kysy ❓1 (kävelynopeus)
+  ennen vaihetta. Muista 🌠-meteoriitti-idea (jäänyt v10.03:sta, ❓4).
 - **Blue Mäx:** TESTIMODE pois → vihollisten ammunta takaisin 60 % aggressiolle.
 - **Pääsiäismunat Dig Däshiin.**
 - **Hedelmäpeli:** RTP-presetit (A 74 % / **B 78,5 % oletus** / C 85 %), panosvalitsin 1/2/5,

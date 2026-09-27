@@ -37,7 +37,7 @@ Jokainen alipeli on **itsenäinen kokonaisuus** omassa kansiossaan:
 ## Hakemistorakenne
 
 ```
-D:\AI\Main\
+D:\AI\AI_street\
 ├── index.html              Pääportaali
 ├── gameState.js            Tilanhallinta (localStorage)
 ├── street.js               Päävalikkopeli

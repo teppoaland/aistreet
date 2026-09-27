@@ -42,10 +42,14 @@ Jatka: [tehtävän kuvaus lyhyesti]
 
 ## Hakemistorakenne
 ```
-D:\AI\Main\
+D:\AI\AI_street\
 ├── .clinerules/         ← Säännöt (luetaan automaattisesti)
 │   ├── 01-general-architecture.md
-│   └── 02-game-core.md
+│   ├── 02-game-core.md
+│   ├── 03-versioning.md
+│   ├── 04-economy-balance.md
+│   ├── 05-kevyt-polku.md
+│   └── 06-ei-dialogeja.md
 ├── memory-bank/         ← Istuntojen välinen muisti
 │   ├── activeContext.md  ← Mitä juuri nyt tehdään
 │   ├── systemPatterns.md ← Arkkitehtuuri, älä riko

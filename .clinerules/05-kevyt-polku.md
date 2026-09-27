@@ -7,12 +7,16 @@
 
 ---
 
-## 🧪 Testaus kuuluu käyttäjälle
+## 🧪 Testaus
 
-- **Oletus: käyttäjä testaa itse** (selain, silmä, oma maku).
-- Cline **ei** aja testejä, simulaatioita eikä regressioita **eikä kirjoita testiskriptejä**
-  ilman erillistä, nimenomaista pyyntöä (esim. "aja testit", "validoi tämä", "tee testi").
-- Olemassa olevia testiskriptejä (`%TEMP%\*.cjs`) ei ajeta varmuuden vuoksi.
+- **Oletus: käyttäjä testaa lopputuloksen silmällä ja omalla maulla** (selain, oma maku).
+- **AI saa testata ja validoida koodiaan oman harkintansa mukaan.** Erityisesti satunnaiset ja
+  rakenteelliset muutokset (kaaos, talous, invariantit, portit) voi ja kannattaa varmistaa
+  mekaanisesti ilman erillistä pyyntöä.
+- AI saa kirjoittaa ja ajaa testiskriptejä (`%TEMP%\*.cjs` tai vastaavat), kun se katsoo sen
+  tarpeelliseksi tai oikeellisuuden varmistuksen nopeuttavan asiaa. Ei tarvitse kysyä joka kerta.
+- **Käyttäjän silmä on silti lopullinen tuomari ulkoasussa ja pelituntumassa** – niitä AI ei voi
+  "testata läpi" yksin; ne jäävät käyttäjälle.
 
 ## 🎯 Milloin riittää yhden kohdan muutos (kevyt polku)
 
@@ -23,7 +27,7 @@ sijainti, kehykset, fontti, ääni), Cline:
 2. tekee muutoksen sinne – ei refaktoroi eikä siirrä koodia muualle,
 3. **ei** lue `docs/`- eikä muistipankkitiedostoja läpi,
 4. **ei** kartoita koodikantaa (grep/haut) "varmuuden vuoksi",
-5. **ei** aja testejä eikä tee testiskriptejä,
+5. **ei yleensä** aja testejä eikä tee testiskriptejä (ellei AI katso tarpeelliseksi – testaus on sallittua oman harkinnan mukaan),
 6. raportoi **1–3 riviä**: mitä muuttui ja missä tiedostossa.
 
 ## 📁 Muistipankki ja dokumentit

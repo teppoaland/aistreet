@@ -1,7 +1,12 @@
-# 🏮 Pimeä Katu – Pikaohje
+# 🌀 AI CHAOS STREET – Pikaohje
 
 ## Avaaminen
 Avaa `index.html` selaimessa. Ei palvelinta – toimii `file:///` -protokollalla.
+
+## 🌀 Kaaostasot
+Alkunäkymässä valitaan kaaostaso: **NORMAL / MILD / GOOD / BAD / FULL CHAOS**.
+NORMAL on alkuperäinen peli sellaisenaan; muut tasot arpovat sää-, liikenne-, vuorokausi- ym.
+asetukset valitun tason mukaan (FULL = täysi arpa).
 
 ## Ohjaimet
 
@@ -16,17 +21,22 @@ Avaa `index.html` selaimessa. Ei palvelinta – toimii `file:///` -protokollalla
 
 ```
 index.html          → avaa selaimessa testataksesi
-street.js           → päävalikon logiikka (muokkaus täällä)
+street.js           → päävalikon logiikka + kaaosjärjestelmä (muokkaus täällä)
 style.css           → ulkoasu (CRT-efekti, värit, fontit)
 gameState.js        → tallennus (localStorage-rakenne)
+audio.js            → taustamusiikki (syntikka)
 digGame1/           → ⛏️ Dig Game (kaivuripeli)
 digGame2/           → 💎 Dig Däsh (timanttipeli)
+fruitgame/          → 🍒 Hedelmäpeli
+sinkship/           → 🚢 Laivanupotus
 docs/               → dokumentaatio ja suunnitelmat
+.clinerules/        → Cline-säännöt
 ```
 
 ## Git
 
-Projekti käyttää **lokaalia git-versionhallintaa**. Ei etärepositoriota.
+Projekti käyttää git-versionhallintaa. Julkaisu: GitHub Pages
+https://teppoaland.github.io/aistreet/ (repo: `aistreet`).
 
 ```bash
 git init                  # alusta (jos ei vielä tehty)
