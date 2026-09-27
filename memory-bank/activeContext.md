@@ -18,7 +18,7 @@
 
 - **Projekti:** **AI CHAOS STREET** – uusi itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages
   `teppoaland.github.io/aistreet/`), forkattu Pimeä Katu v5.02:sta. Alkuperäinen `D:\AI\Main`
-  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.12` (`index.html` → `#version-tag`).
+  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.15` (`index.html` → `#version-tag`).
 - 🔓 **Sääntö 04 (talousbalanssi-lukko) EI PÄDE enää AI CHAOS STREET -versiossa** (käyttäjän linjaus
   27.9.2026): sääntö 04 kirjoitettiin **alkuperäistä Pimeä Katu -peliä** varten ja sen lukitut arvot
   ovat NORMAL-tason arvoja. Chaos-forkissa NORMAL on vain yksi kaaostaso → talousarvot
@@ -71,6 +71,16 @@
   **Rosvon elinikä kuluu nyt myös piilossa** (kaikki tasot): uusi blokki `trackHiddenStreet()`:n jälkeen tikittää
   `robber.ttl`:ää kun `iframeOpen || sleepRoom || barRoom || jukeboxRoom || newsRoom` → "piiloudu ja odota"
   -pakoreitti toimii. Renderöinti ennallaan (rosvo aina pylvään takana, kuten avenger). Nopeus yhä klampissa ≤ 1,4 × C.
+- **🌠 Meteoriitti + valikon vaakakuva (v10.15):** käyttäjän idea toteutettu – tähdenlennon tilalla voi olla
+  iso, hitaasti putoava meteoriitti (ei-NORMAL: MILD 12 % · GOOD 8 % · BAD 40 % · FULL 55 %; NORMAL 0 %).
+  `updateShootingStar()` sai `kind`-kentän ('star'|'meteorite') + `meteoriteChance()`; meteoriitin putoamisnopeus
+  (`vy` 0.4–0.8) määrää, milloin se on maassa → törmäys = `meteorShakeTimer` (tärinä molemmissa suunnissa) +
+  `meteorFlash`-välähdys + `spawnParticles`-kipinät (ei ääntä). Piirto `drawMeteorite()` (tulinen vana + sykkivä
+  hehku). Tärinä/välähdys vain katunäkymässä (huoneet return-varhain; meteoriitti päivittyy vain kadun yöpolussa).
+- **📱 Choose your -valikko vaakakuva (v10.15):** mobiilin landscape (≤ 500 px korkeus) – napit `flex-wrap: wrap`
+  -riveihin (3+2), pienempi otsikko/teksti, jotta koko valikko mahtuu matalaan näyttöön (ei aiemmin ollut
+  puhelinoptimoitu).
+
 
 
 

@@ -1,6 +1,6 @@
 # 📊 Projektin edistyminen
 
-> **v10.12 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026. Kompaktoitu 23.9.2026 (täysi historia git-historiassa: viimeisin täysi versio
+> **v10.15 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026. Kompaktoitu 23.9.2026 (täysi historia git-historiassa: viimeisin täysi versio
 > `ffb1dd9`, HEAD `44db9e7`)
 
 ## 🏮 Pääportaali – AI CHAOS STREET
@@ -19,6 +19,8 @@
 | ⏱️ Aloitusgaten 2 s viive | ✅ **v10.10** – korjaa mobiilin ghost-clickin: gaten napautus näytti valikon heti → sama napautus (touchend + synteettinen click) valitsi valikon alla olevan kaaostason ja eteni suoraan peliin. Nyt `unlock()` viivyttää `showMenu()`ta 2000 ms (`GATE_MENU_DELAY_MS`) + `unlocked`-lippu ja välitön kuuntelijoiden poisto → napautuksen jatkotapahtumat tapahtuvat valikon ollessa piilossa |
 | 🎵 Syntikka piiloon kunnes jukebox soi | ✅ **v10.11** – pelin oma syntikkatausta ("wave") ei soi ennen kuin jukeboxista on soitettu vähintään yksi kappale. `audio.js` `synthUnlocked` + `setSynthUnlocked()` + `playPhase()`-portti; `gameState.js` `defaultState.jukeboxPlayedOnce`; `street.js` `init()` lataa lipun ja `jukeboxExitAndPlay()` asettaa sen onnistuneen soiton jälkeen. Per run – nollautuu kuolemassa/✕-resetissä |
 | 🔪 Rosvo jahtaa BAD CHAOS:ssa | ✅ **v10.12** – uusi kaaosakseli `robberChasesY` (vain BAD = true): rosvo ohjaa vapaasti molemmilla akseleilla kuten avenger ja nappaa ilman kaistaehtoa → pakoon ei pääse kadulla. Rosvon elinikä (`robber.ttl`) kuluu nyt **myös piilossa** (huone/alapeli) kaikilla tasoilla, joten "piiloudu ja odota" toimii. Nopeus yhä klampissa ≤ 1,4 × C |
+| 🌠 Meteoriitti + 📱 valikko vaakakuva | ✅ **v10.15** – tähdenlennon tilalla iso hitaasti putoava meteoriitti (ei-NORMAL: MILD 12 % · GOOD 8 % · BAD 40 % · FULL 55 %, NORMAL 0 %); `shootingStar.kind` + `meteoriteChance()`; putoamisnopeus `vy` määrää laskeutumishetken → törmäys = ruudun tärinä (`meteorShakeTimer`) + välähdys (`meteorFlash`) + kipinät (ei ääntä), vain katunäkymässä. Choose your -valikko optimoitu puhelimen vaakakuvaan (napit riveihin `flex-wrap`, max-height 500 px) |
+
 
 
 

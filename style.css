@@ -442,6 +442,26 @@ body::after {
     opacity: 0;
 }
 
+/* v10.15: mobiilin vaakakuva – napit riviin, jotta koko valikko mahtuu matalaan näyttöön */
+@media (orientation: landscape) and (max-height: 500px) {
+    #chaos-menu { gap: 12px; }
+    #chaos-menu h1 { font-size: 1.1rem; }
+    #chaos-menu .chaos-sub { font-size: 0.45rem; }
+    #chaos-menu .chaos-buttons {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        width: min(560px, 94vw);
+    }
+    #chaos-menu .chaos-buttons button {
+        font-size: 0.55rem;
+        padding: 10px 8px;
+        flex: 0 1 auto;
+        min-width: 30%;
+    }
+}
+
 /* ═══ ALOITUSGATE (äänilukko auki ennen chaos-valikkoa) ═══ */
 #start-gate {
     position: fixed;
