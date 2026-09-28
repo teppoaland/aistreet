@@ -9385,7 +9385,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const m = /(HAVE\s+FUN!?)\s*$/i.exec(node.textContent);  // loppuhuuto rivin lopussa
         if (!m) return;
         const span = document.createElement('span');
-        span.className = 'ins-fun ins-blink';                   // .ins-blink = 3 vilkausta
+        span.className = 'ins-fun ins-blink';                   // .ins-blink = 1 vilkahdus (v10.30)
         span.textContent = m[1];
         node.textContent = node.textContent.slice(0, m.index);
         last.appendChild(span);

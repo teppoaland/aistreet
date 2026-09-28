@@ -18,7 +18,7 @@
 
 - **Projekti:** **AI CHAOS STREET** – uusi itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages
   `teppoaland.github.io/aistreet/`), forkattu Pimeä Katu v5.02:sta. Alkuperäinen `D:\AI\Main`
-  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.30` (`index.html` → `#version-tag`).
+  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.31` (`index.html` → `#version-tag`).
 - 🔓 **Sääntö 04 (talousbalanssi-lukko) EI PÄDE enää AI CHAOS STREET -versiossa** (käyttäjän linjaus
   27.9.2026): sääntö 04 kirjoitettiin **alkuperäistä Pimeä Katu -peliä** varten ja sen lukitut arvot
   ovat NORMAL-tason arvoja. Chaos-forkissa NORMAL on vain yksi kaaostaso → talousarvot

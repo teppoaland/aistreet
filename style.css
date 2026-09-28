@@ -524,9 +524,14 @@ body::after {
     color: #e03a3a;
     cursor: pointer;
     margin-top: -6px;
-    transition: color 0.15s, text-shadow 0.15s, opacity 1.6s ease-out;
+    /* HUOM (v10.31): opacity EI ole tässä transitionissa. Aktiivinen transitio
+       voittaa animaation CSS-kaskadissa → sama property saattoi jäädyttää
+       vilkunnan mobiiliselaimissa. Häivytys hoidetaan .faded-säännössä. */
+    transition: color 0.15s, text-shadow 0.15s;
     /* Rauhallinen vilkkuminen (v10.28): hidas, pehmeä hengitys */
     animation: ins-link-blink 2.4s ease-in-out infinite;
+    /* Oma compositing-taso: mobiili ei jätä vilkuntaa kesken (v10.31) */
+    will-change: opacity;
 }
 #chaos-menu .chaos-instructions:hover,
 #chaos-menu .chaos-instructions:active {
@@ -702,7 +707,13 @@ body::after {
     #chaos-menu .chaos-instructions { font-size: 0.44rem; }
 }
 
-/* Esteettömyys: liikkeen vähentäminen → teksti näkyy heti, ei efektejä */
+/* Esteettömyys: liikkeen vähentäminen → teksti näkyy heti, ei efektejä.
+   HUOM (v10.31): rauhallinen opacity-"hengitys" JÄÄ päälle myös tässä tilassa
+   sekä INSTRUCTIONS-linkissä että "HAVE FUN!" -tekstissä (ei siis listalla) –
+   pelkkä kirkkauden vaihtelu ei aiheuta liikeherkkyyttä, ja moni Android
+   raportoi reduce-motionin ollessa "poista animaatiot" -tilassa → vilkunta
+   katosi puhelimilla. Ikkunan CRT-efektit ja kirjoitusanimaatio sammuvat
+   edelleen. */
 @media (prefers-reduced-motion: reduce) {
     #instructions-overlay,
     #instructions-overlay.ins-closing,
@@ -711,8 +722,6 @@ body::after {
     #instructions-overlay.ins-closing #instructions-panel::before,
     #instructions-overlay.ins-closing .ins-line,
     .ins-caret,
-    .ins-fun,
-    #chaos-menu .chaos-instructions,
     #instructions-overlay::after {
         animation: none !important;
     }
@@ -730,7 +739,7 @@ body::after {
 }
 /* Kun kaaostaso on valittu, valikko himmenee (.faded → opacity 0).
    Animaatio ohittaisi sen, joten vilkunta sammutetaan silloin. */
-#chaos-menu.faded .chaos-instructions { animation: none; }
+#chaos-menu.faded .chaos-instructions { animation: none; transition: opacity 1.6s ease-out; }
 
 /* Ohjetekstin tyhjä rivi = riviväli (pari tyhjää riviä ennen loppuhuutoa):
    1.9em = täsmälleen yksi tekstirivi (line-height 1.9). */
