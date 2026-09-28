@@ -73,8 +73,8 @@ class Game {
         if (!skipIntro && !isDebug) {
             const lvl = LEVEL_DATA[0];
             this.showOverlay('💎 ' + lvl.name,
-                'Etsi avaimia 🔑 Kerää ' + lvl.diamondsNeeded + ' timanttia\nja etene uloskäynnille!\n⏱ Aikaa on vain 45 sekuntia, että pidä kiirettä!',
-                'Aloita');
+                'Find the keys 🔑 Collect ' + lvl.diamondsNeeded + ' diamonds\nand head for the exit!\n⏱ You only have 45 seconds, so hurry up!',
+                'Start');
         }
         this.renderer.render();
     }
@@ -82,9 +82,9 @@ class Game {
     loadLevel(index) {
         if (index >= LEVEL_DATA.length) {
             this.allLevelsComplete = true;
-            this.showOverlay('🎉 Kaikki tasot läpäisty!',
-                'Lopulliset pisteet: ' + this.score,
-                'JATKA');
+            this.showOverlay('🎉 All levels completed!',
+                'Final score: ' + this.score,
+                'CONTINUE');
             this.stopLoop();
             return;
         }
@@ -118,7 +118,7 @@ class Game {
         this.lastEnemyMove = performance.now();
 
         document.getElementById('level-display').textContent =
-            'Taso: ' + (index + 1) + ' - ' + data.name;
+            'Level: ' + (index + 1) + ' - ' + data.name;
 
         this.renderer.resize();
         this.updateHUD();
@@ -282,9 +282,9 @@ class Game {
         this.lives--;
         this.updateHUD();
         if (this.lives <= 0) {
-            this.showOverlay('💀 Kuolit!',
-                'Elämät loppuivat! Pisteet: ' + this.score,
-                'Pelaa uudelleen');
+            this.showOverlay('💀 You died!',
+                'Out of lives! Score: ' + this.score,
+                'Play again');
             this.gameOver = true;
             this.stopLoop();
         } else {
@@ -299,13 +299,13 @@ class Game {
         if (this.level === MAX_LEVELS - 1) {
             // Viimeinen taso: paluu kadulle
             this.allLevelsComplete = true;
-            this.showOverlay('🎉 Kaikki tasot läpäisty!',
-                'Keräsit ' + this.diamondsCollected + ' / ' + this.diamondsNeeded + ' timanttia\nBonus: +' + SCORE_LEVEL_BONUS + '\nLopulliset pisteet: ' + this.score,
+            this.showOverlay('🎉 All levels completed!',
+                'You collected ' + this.diamondsCollected + ' / ' + this.diamondsNeeded + ' diamonds\nBonus: +' + SCORE_LEVEL_BONUS + '\nFinal score: ' + this.score,
                 'OK');
         } else {
-            this.showOverlay('✅ Taso läpäisty!',
-                'Keräsit ' + this.diamondsCollected + ' / ' + this.diamondsNeeded + ' timanttia\nBonus: +' + SCORE_LEVEL_BONUS,
-                'Seuraava taso');
+            this.showOverlay('✅ Level complete!',
+                'You collected ' + this.diamondsCollected + ' / ' + this.diamondsNeeded + ' diamonds\nBonus: +' + SCORE_LEVEL_BONUS,
+                'Next level');
         }
         this.updateHUD();
         this.renderer.render();
@@ -333,7 +333,7 @@ class Game {
         this.paused = !this.paused;
         if (this.paused) {
             this.timeRemaining = this.timerEnd > 0 ? this.timerEnd - performance.now() : 0;
-            this.showOverlay('⏸️ Tauko', 'Paina P tai Enter jatkaaksesi', 'Jatka');
+            this.showOverlay('⏸️ Paused', 'Press P or Enter to continue', 'Continue');
         } else {
             if (this.timerEnd > 0 && this.timeRemaining > 0) {
                 this.timerEnd = performance.now() + this.timeRemaining;
@@ -350,7 +350,7 @@ class Game {
         document.getElementById('diamond-display').textContent =
             '💎 ' + this.diamondsCollected;
         document.getElementById('diamond-goal-display').textContent =
-            'Tavoite: ' + this.diamondsNeeded;
+            'Target: ' + this.diamondsNeeded;
         // Avaimen tila
         const keyEl = document.getElementById('key-display');
         if (keyEl) {
@@ -358,7 +358,7 @@ class Game {
             keyEl.style.color = this.keyCollected ? '#ffd700' : '#ff4444';
         }
         document.getElementById('score-display').textContent =
-            'Pisteet: ' + this.score;
+            'Score: ' + this.score;
         document.getElementById('lives-display').textContent =
             '❤️ ' + this.lives;
         // Ajastin

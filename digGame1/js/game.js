@@ -65,11 +65,11 @@ class Game {
 
         if (!skipIntro) {
             this.showOverlay('⛏️ Dig Game',
-                'Kulje maailman halki!\n' +
-                'Kävele maan pinnalla tai kaivaudu maahan.\n\n' +
-                'Puhelimella pelatessa käännä 📱 puhelin pystyasentoon.\n\n' +
-                'Etsi avain maailman itäpäästä. GO!',
-                'Aloita');
+                'Travel across the world!\n' +
+                'Walk on the ground or dig your way underground.\n\n' +
+                'When playing on a phone, turn 📱 the phone upright.\n\n' +
+                'Find the key at the eastern end of the world. GO!',
+                'Start');
         }
         this.renderer.render();
     }
@@ -244,7 +244,7 @@ class Game {
         this.paused = !this.paused;
         if (this.paused) {
             this.timeRemaining = this.timerEnd > 0 ? this.timerEnd - performance.now() : 0;
-            this.showOverlay('⏸️ Tauko', 'Paina P tai Enter jatkaaksesi', 'Jatka');
+            this.showOverlay('⏸️ Paused', 'Press P or Enter to continue', 'Continue');
         } else {
             if (this.timerEnd > 0 && this.timeRemaining > 0) {
                 this.timerEnd = performance.now() + this.timeRemaining;
@@ -282,9 +282,9 @@ class Game {
         this.lives--;
         this.updateHUD();
         if (this.lives <= 0) {
-            this.showOverlay('💀 Kuolit!',
-                'Elämät loppuivat! Pisteet: ' + this.score,
-                'Pelaa uudelleen');
+            this.showOverlay('💀 You died!',
+                'Out of lives! Score: ' + this.score,
+                'Play again');
             this.gameOver = true;
             this.stopLoop();
         } else {
@@ -296,11 +296,11 @@ class Game {
     completeWorld() {
         this.score += SCORE_WORLD_BONUS;
         this.worldComplete = true;
-        this.showOverlay('🎉 Maailma läpäisty!',
-            'Löysit tien maailman itäpäähän!\n\n' +
-            'Kerätyt timantit: ' + this.diamondsCollected +
-            '\nPisteet: ' + this.score,
-            'Pelaa uudelleen');
+        this.showOverlay('🎉 World completed!',
+            'You found your way to the eastern end of the world!\n\n' +
+            'Diamonds collected: ' + this.diamondsCollected +
+            '\nScore: ' + this.score,
+            'Play again');
         this.updateHUD();
         this.renderer.render();
     }
@@ -308,10 +308,10 @@ class Game {
     collectKey() {
         this.score += SCORE_WORLD_BONUS;
         this.worldComplete = true;
-        this.showOverlay('🔑 Avain löydetty!',
-            'Nyt pääset seuraavaan\ntaloon pääkadulla!\n\n' +
-            'Kerätyt timantit: ' + this.diamondsCollected +
-            '\nPisteet: ' + this.score,
+        this.showOverlay('🔑 Key found!',
+            'Now you can get into the next\nhouse on the main street!\n\n' +
+            'Diamonds collected: ' + this.diamondsCollected +
+            '\nScore: ' + this.score,
             'OK');
         // Ilmoita pääsivulle että avain on kerätty
         try { window.parent.postMessage('KEY_COLLECTED', '*'); } catch(e) {}
@@ -327,11 +327,11 @@ class Game {
         const progress = Math.max(0, Math.min(100,
             Math.round((this.player.x / Math.max(1, this.cols - 1)) * 100)));
         const progEl = document.getElementById('progress-display');
-        if (progEl) progEl.textContent = 'Matka: ' + progress + '%';
+        if (progEl) progEl.textContent = 'Journey: ' + progress + '%';
         document.getElementById('diamond-display').textContent =
             '💎 ' + this.diamondsCollected;
         document.getElementById('score-display').textContent =
-            'Pisteet: ' + this.score;
+            'Score: ' + this.score;
         document.getElementById('lives-display').textContent =
             '❤️ ' + this.lives;
         // Ajastin

@@ -166,5 +166,8 @@ peli/
 
 - Tiedostot: camelCase (JS), kebab-case (HTML/CSS) · Vakiot: UPPER_SNAKE_CASE · Funktiot: camelCase ·
   Luokat: PascalCase · **kommentit: suomi, koodi: englanti**.
+- **Pelaajalle näkyvät tekstit: englanti** (v11.00 alkaen, kaikissa peleissä) – kommentit ja dokumentit
+  pysyvät suomeksi. Sisäiset tunnisteet, `postMessage`-viestit (`RETURN_TO_STREET`, `KEY_COLLECTED`, …) ja
+  localStorage-avaimet (`pimeakatu_gamestate`, `pimeakatu_fruit_free`) **eivät ole käännettävää tekstiä**.
 - Näkyvät pelinimet: **Dig Däsh**, **Blue Mäx**. Sisäiset tunnisteet (`boulder*`, `const BlueMax`, `bm/`)
   säilyvät ennallaan – ne ovat rajapintaa (sääntö 02).

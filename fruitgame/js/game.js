@@ -58,8 +58,8 @@ class FruitGame {
         // Saldo kadulta (street lähettää fruitSync-viestin kun peli avataan)
         window.addEventListener('message', (e) => this.onMessage(e));
 
-        this.setMessage(this.debug ? 'DEBUG: kassa ' + this.coins : 'Tervetuloa! Paina PYÖRÄYTÄ.', 'info');
-        if (this.freeSpinAvailable) this.setMessage('Talo tarjoaa 1 ilmaisen pyöräytyksen!', 'good');
+        this.setMessage(this.debug ? 'DEBUG: bank ' + this.coins : 'Welcome! Press SPIN.', 'info');
+        if (this.freeSpinAvailable) this.setMessage('The house offers 1 free spin!', 'good');
         this.updateHUD();
 
         this.loop = this.loop.bind(this);
@@ -121,14 +121,14 @@ class FruitGame {
             this.writeFreeSpinStamp(this.lastFreeSpinAt);
             this.applyFreeSpin();
             this.updateHUD();
-            this.setMessage('Talo tarjoaa: ilmainen pyöräytys!', 'good');
+            this.setMessage('The house offers: a free spin!', 'good');
             AudioFX.playFreeSpin();
         } else {
             // 2) Maksullinen pyöräytys: 1 kolikko = 1 pyöräytys
             if (this.coins < BET) {
                 this.setMessage(this.freeSpinIn > 0
-                    ? 'Ei kolikoita! Ilmainen pyöräytys ' + this.formatFreeSpinIn() + ' kuluttua.'
-                    : 'Ei kolikoita! Hanki lisää kadulta.', 'bad');
+                    ? 'No coins! Free spin in ' + this.formatFreeSpinIn() + '.'
+                    : 'No coins! Get more from the street.', 'bad');
                 AudioFX.playNoCoin();
                 return;
             }
@@ -158,7 +158,7 @@ class FruitGame {
         this.spinning = true;
         this.spinT = 0;
         this.lastWin = 0;
-        if (!this.spinWasFree) this.setMessage('Onnea matkaan…', 'info');
+        if (!this.spinWasFree) this.setMessage('Good luck…', 'info');
         this.updateHUD();
     }
 
@@ -216,11 +216,11 @@ class FruitGame {
             ];
             this.flash = 1;
             if (triple && ids[0] === 'diamond') {
-                this.bigWin = 'JÄTTIPOTTI! +' + win;
+                this.bigWin = 'JACKPOT! +' + win;
                 this.bigWinT = 2.4;
                 AudioFX.playWin(3);
             } else if (triple) {
-                this.bigWin = 'SUURI VOITTO! +' + win;
+                this.bigWin = 'BIG WIN! +' + win;
                 this.bigWinT = 2.0;
                 AudioFX.playWin(2);
             } else {
@@ -228,13 +228,13 @@ class FruitGame {
                 AudioFX.playWin(1);
             }
             this.setMessage(this.spinWasFree
-                ? 'Ilmaisen voitto: +' + win + ' kolikkoa!'
-                : 'Voitit +' + win + ' kolikkoa!', 'good');
+                ? 'Free spin win: +' + win + ' coins!'
+                : 'You won +' + win + ' coins!', 'good');
             this.spawnSparkles(triple);
         } else {
             this.winRows = [false, false, false];
             this.bigWin = null;
-            this.setMessage('Ei voittoa – yritä uudelleen!', 'bad');
+            this.setMessage('No win – try again!', 'bad');
             AudioFX.playLose();
         }
         this.updateHUD();
@@ -262,7 +262,7 @@ class FruitGame {
     /* ═══ POISTUMINEN ════════════════════════════════ */
     exitToStreet() {
         if (this.spinning) {
-            this.setMessage('Odota että rullat pysähtyvät!', 'bad');
+            this.setMessage('Wait for the reels to stop!', 'bad');
             return;
         }
         this.sendToParent('RETURN_TO_STREET');
@@ -321,9 +321,9 @@ class FruitGame {
         const c = document.getElementById('coin-display');
         if (c) c.textContent = '💰 ' + this.coins;
         const b = document.getElementById('bet-display');
-        if (b) b.textContent = 'PANOS ' + BET;
+        if (b) b.textContent = 'BET ' + BET;
         const w = document.getElementById('win-display');
-        if (w) w.textContent = 'VOITTO ' + (this.lastWin > 0 ? '+' + this.lastWin : '–');
+        if (w) w.textContent = 'WIN ' + (this.lastWin > 0 ? '+' + this.lastWin : '–');
         const st = document.getElementById('stat-display');
         if (st) st.textContent = '🎰 ' + this.spins + ' / ' + this.wins;
         const btn = document.getElementById('spin-btn');

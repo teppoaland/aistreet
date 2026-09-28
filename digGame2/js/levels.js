@@ -6,7 +6,7 @@ const LEVEL_DATA = [];
 
 // === Taso 1: Aloittelijan luola ===
 LEVEL_DATA.push({
-    name: 'Aloittelijan luola',
+    name: 'Beginner\'s Cave',
     diamondsNeeded: 7,    // kaikki kentän timantit (7 kpl)
     width: 20,
     height: 15,
@@ -31,7 +31,7 @@ LEVEL_DATA.push({
 
 // === Taso 2: Kivivyöry ===
 LEVEL_DATA.push({
-    name: 'Kivivyöry',
+    name: 'Rockfall',
     diamondsNeeded: 8,
     width: 20,
     height: 15,
@@ -56,7 +56,7 @@ LEVEL_DATA.push({
 
 // === Taso 3: Tulikärpästen pesä ===
 LEVEL_DATA.push({
-    name: 'Tulikärpästen pesä',
+    name: 'Firefly Nest',
     diamondsNeeded: 6,
     width: 20,
     height: 15,
@@ -81,7 +81,7 @@ LEVEL_DATA.push({
 
 // === Taso 4: Timanttikaivos ===
 LEVEL_DATA.push({
-    name: 'Timanttikaivos',
+    name: 'Diamond Mine',
     diamondsNeeded: 9,
     width: 20,
     height: 15,

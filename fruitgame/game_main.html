@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="fi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🍒 Hedelmäpeli</title>
+    <title>🍒 Fruit Machine</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -12,11 +12,11 @@
 <body>
     <div id="game-container">
         <header id="game-header">
-            <h1>🍒 Hedelmäpeli</h1>
+            <h1>🍒 Fruit Machine</h1>
             <div id="game-info">
                 <span id="coin-display">💰 0</span>
-                <span id="bet-display">PANOS 1</span>
-                <span id="win-display">VOITTO –</span>
+                <span id="bet-display">BET 1</span>
+                <span id="win-display">WIN –</span>
                 <span id="stat-display">🎰 0 / 0</span>
             </div>
         </header>
@@ -30,12 +30,12 @@
 
         <div id="controls">
             <div id="keyboard-hints">
-                <span>VÄLILYÖNTI / ENTER = PYÖRÄYTÄ</span>
-                <span>ESC = POISTU KADULLE</span>
+                <span>SPACE / ENTER = SPIN</span>
+                <span>ESC = BACK TO THE STREET</span>
             </div>
             <div id="touch-controls">
-                <button class="fruit-btn exit" id="exit-btn" title="Poistu kadulle (Esc)">✕ POISTU</button>
-                <button class="fruit-btn spin" id="spin-btn" title="Pyöräytä (välilyönti)">🍒 PYÖRÄYTÄ</button>
+                <button class="fruit-btn exit" id="exit-btn" title="Back to the street (Esc)">✕ EXIT</button>
+                <button class="fruit-btn spin" id="spin-btn" title="Spin (space)">🍒 SPIN</button>
             </div>
         </div>
     </div>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -7,9 +7,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <!-- v10.32: ?v= -versioleima – mobiiliselaimet eivät jää jumiin vanhaan
+    <!-- v11.00: ?v= -versioleima – mobiiliselaimet eivät jää jumiin vanhaan
          CSS:ään/JS:ään. Nosta sama numero kuin #version-tag. -->
-    <link rel="stylesheet" href="style.css?v=10.32">
+    <link rel="stylesheet" href="style.css?v=11.00">
 </head>
 <body>
     <!-- ═══ ALOITUSGATE (äänilukko auki ennen chaos-valikkoa) ═══ -->
@@ -56,12 +56,12 @@
     </div>
 
     <!-- Versionumero (aina näkyvissä – myös alkunäkymässä) -->
-    <div id="version-tag">v10.32</div>
+    <div id="version-tag">v11.00</div>
 
     <!-- ═══ PÄÄNÄKYMÄ ═══════════════════════════════════ -->
     <div id="game-wrapper">
         <!-- ✕-nappi: sulkee huoneen/alapelin, resetoi vain kadulla -->
-        <button id="reset-btn" title="Sulje / Aloita alusta">✕</button>
+        <button id="reset-btn" title="Close / Start over">✕</button>
 
         <!-- HUD-palkki -->
         <div id="hud-bar"></div>
@@ -71,7 +71,7 @@
             <canvas id="game-canvas" tabindex="0"></canvas>
             <div id="touch-row">
                 <div id="touch-left">
-                    <button class="touch-btn action" id="action-btn" title="Potku"></button>
+                    <button class="touch-btn action" id="action-btn" title="Kick"></button>
                 </div>
                 <div id="touch-right">
                     <div class="touch-dpad">
@@ -90,14 +90,14 @@
 
     <!-- ═══ PELI-IFRAME (alapelit) ═══════════════════════ -->
     <div id="game-iframe-overlay">
-        <button id="iframe-close-btn" title="Takaisin kadulle">✕</button>
+        <button id="iframe-close-btn" title="Back to the street">✕</button>
         <iframe src="" allow="autoplay"></iframe>
     </div>
 
     <!-- ═══ SKRIPTIT ═════════════════════════════════════ -->
-    <script src="gameState.js?v=10.32"></script>
-    <script src="audio.js?v=10.32"></script>
-    <script src="street.js?v=10.32"></script>
+    <script src="gameState.js?v=11.00"></script>
+    <script src="audio.js?v=11.00"></script>
+    <script src="street.js?v=11.00"></script>
 
     <!-- ✕-napit (alapeli + huone + reset) – yksi yhteinen toiminto -->
     <script>
@@ -131,7 +131,7 @@
             if (Street.closeRoom && Street.closeRoom()) return;
 
             // 3. Kadulla → kysy vahvistus ja aloita alusta
-            if (confirm('Haluatko varmasti aloittaa alusta?\nKaikki edistyminen katoaa.')) {
+            if (confirm('Are you sure you want to start over?\nAll progress will be lost.')) {
                 try { localStorage.removeItem(GameState.STORAGE_KEY); } catch (e) {}
                 if (typeof Street !== 'undefined' && Street.clearChaosSession) Street.clearChaosSession();
                 location.reload();

@@ -18,7 +18,7 @@
 
 - **Projekti:** **AI CHAOS STREET** – uusi itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages
   `teppoaland.github.io/aistreet/`), forkattu Pimeä Katu v5.02:sta. Alkuperäinen `D:\AI\Main`
-  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.32` (`index.html` → `#version-tag`).
+  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v11.00` (`index.html` → `#version-tag`).
 - 🔓 **Sääntö 04 (talousbalanssi-lukko) EI PÄDE enää AI CHAOS STREET -versiossa** (käyttäjän linjaus
   27.9.2026): sääntö 04 kirjoitettiin **alkuperäistä Pimeä Katu -peliä** varten ja sen lukitut arvot
   ovat NORMAL-tason arvoja. Chaos-forkissa NORMAL on vain yksi kaaostaso → talousarvot
@@ -143,6 +143,15 @@
   kolikon syntymäväli (1800–18000 f), muut kaaosakselit ja NORMAL bitti-identtinen. Validoitu
   `%TEMP%\street-meteor-coin-test.cjs` (23/23) + `chaos-normal-check.cjs` (0 diffs) + `chaos-phase3-test.cjs`
   (20 000 FULL-arpaa, 0 hylättyä).
+
+- **🌐 Koko UI englanniksi – v11.00 (28.9.2026):** kaikki **pelaajalle näkyvä** teksti on englanniksi
+  (pääpeli `street.js` + `index.html`, `bm`, `digGame1`, `digGame2`, `fruitgame`, `sinkship`). Käännös
+  tehtiin **tarkoituksella kaikelle UI-materiaalille**. Suomeksi jäivät **kommentit ja dokumentit** sekä
+  sanomalehden ASCII-manuaalisivu (`street.js`). **Rajapinnat ennallaan:** `postMessage`-protokolla
+  (`RETURN_TO_STREET`, `KEY_COLLECTED`, …), localStorage-avaimet (`pimeakatu_gamestate`,
+  `pimeakatu_fruit_free`), talousarvot ja kaaoslogiikka. Versio **v10.32 → v11.00** (`#version-tag` +
+  `?v=` style/gameState/audio/street) ja `index.html` `lang="en"`; alapelien omat versiotagit
+  (Dig Game `v1.2`, Battleship `v0.11`, Blue Mäx `dev`) jäivät ennalleen.
 
 
 - **⏱️ Grace-jakso (v10.09):** menun heavy metal → pelin syntikka -pudotus pehmennetty: pelin alkaessa
@@ -387,9 +396,11 @@ mopo, puut, kolikko, mobiilikamera, potkukolikko).
 
 ## 🔜 Seuraavaksi (odottaa käyttäjän päätöstä)
 
-- **🌐 Koko pelin tekstit englanniksi (kirjattu 28.9.2026):** HUD, notifikaatiot, popupit,
-  canvas-huoneet (`street.js`), `fruitgame`, `digGame1`, `digGame2`, `bm`, `sinkship` ovat vielä
-  suomeksi – tällä hetkellä vain uusi ohjeikkuna (v10.27–v10.30) on englanniksi. Odottaa käyttäjän päätöstä.
+- **🌐 Koko pelin tekstit englanniksi – ✅ TEHTY 28.9.2026 (käyttäjän pyyntö):** HUD, notifikaatiot, popupit,
+  canvas-huoneet (`street.js`), `fruitgame`, `digGame1`, `digGame2`, `bm`, `sinkship` on käännetty;
+  kommentit/dokumentit jäivät suomeksi, pelilogiikka ja protokollat (`postMessage`, localStorage) sekä
+  talousarvot ennallaan. **Versio nostettu v11.00:aan** (käyttäjän päätös 28.9.2026 – käännös tehtiin
+  tarkoituksella kaikelle UI-materiaalille, joten `#version-tag` + `?v=` = 11.00). Ks. `progress.md`.
 
 - **Blue Mäx:** TESTIMODE pois → vihollisten ammunta takaisin 60 % aggressiolle.
 - **Pääsiäismunat Dig Däshiin.**

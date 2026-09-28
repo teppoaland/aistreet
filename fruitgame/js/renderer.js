@@ -541,7 +541,7 @@ class Renderer {
         // Parin sääntö
         ctx.fillStyle = COL.dim;
         ctx.font = '8px "Press Start 2P", monospace';
-        ctx.fillText('KAKSI SAMAA = PANOS TAKAISIN', CANVAS_W / 2, 292);
+        ctx.fillText('TWO OF A KIND = BET BACK', CANVAS_W / 2, 292);
         ctx.textAlign = 'start';
         ctx.textBaseline = 'alphabetic';
     }
@@ -630,10 +630,10 @@ class Renderer {
         ctx.font = '7px "Press Start 2P", monospace';
         if (ready) {
             ctx.fillStyle = COL.good;
-            ctx.fillText('ILMAINEN', x + w / 2, y + h / 2 + 1);
+            ctx.fillText('FREE', x + w / 2, y + h / 2 + 1);
         } else {
             ctx.fillStyle = COL.dim;
-            ctx.fillText('ILMAINEN', x + w / 2, y + 11);
+            ctx.fillText('FREE', x + w / 2, y + 11);
             ctx.fillStyle = '#6a5f8a';
             ctx.fillText(g.formatFreeSpinIn(), x + w / 2, y + 24);
         }

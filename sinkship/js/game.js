@@ -29,11 +29,11 @@ let waves = [];                   // ruutujen satunnaisvaiheet (aaltoilu)
 /* ── Pelivakiot ── */
 const N = 10;
 const SHIP_DEFS = [
-    { n: 'Lentotukialus', l: 5 },
-    { n: 'Taistelulaiva', l: 4 },
-    { n: 'Risteilijä',    l: 3 },
-    { n: 'Sukellusvene',  l: 3 },
-    { n: 'Hävittäjä',     l: 2 },
+    { n: 'Carrier',    l: 5 },
+    { n: 'Battleship', l: 4 },
+    { n: 'Cruiser',    l: 3 },
+    { n: 'Submarine',  l: 3 },
+    { n: 'Destroyer',  l: 2 },
 ];
 
 /* ═══ Pelitila ═══════════════════════════════════ */
@@ -127,7 +127,7 @@ function playerFire(r, c) {
     cur.r = r; cur.c = c;
     const L = layout();
     boomAt(cellCx(L.px, c), cellCy(L.py, r), res === 'sunk' ? 26 : 16, res === 'sunk' ? 34 : 22);
-    if (res === 'sunk') { SoundFX.playSink(); ntf(SHIP_DEFS[state.enemy.grid[r][c]].n + ' upposi!'); }
+    if (res === 'sunk') { SoundFX.playSink(); ntf(SHIP_DEFS[state.enemy.grid[r][c]].n + ' was sunk!'); }
     else if (res === 'hit') { SoundFX.playHit(); hitFlash = 14; }
     else { SoundFX.playSplash(); }
     updateHUD();
@@ -178,7 +178,7 @@ function resetGame() {
     cur = { r: 5, c: 5 };
     booms = []; badFlash = 0; hitFlash = 0;
     st = 'place';
-    ntf('Aseta laivastosi: ' + SHIP_DEFS[0].n + ' (' + SHIP_DEFS[0].l + ' ruutua)');
+    ntf('Place your fleet: ' + SHIP_DEFS[0].n + ' (' + SHIP_DEFS[0].l + ' squares)');
     updateHUD();
 }
 
@@ -192,29 +192,29 @@ function allShipsPlaced(s) {
 
 function startBattle() {
     if (!allShipsPlaced(state.player)) {   // varmistus: taistelu vasta kun kaikki laivat asetettu
-        ntf('Aseta kaikki laivat ensin!', 90);
+        ntf('Place all the ships first!', 90);
         return;
     }
     autoPlace(state.enemy, 0);
     state.turn = 'player';
     st = 'battle';
-    ntf('Taistelu alkaa! Ammu vihollisen ruudukkoa.');
+    ntf('The battle begins! Fire at the enemy grid.');
     updateHUD();
 }
 
 function endGame(won) {
     st = 'over';
     g('overlay').classList.remove('hidden');
-    g('overlay-title').textContent = won ? '🏆 Voitit!' : '💀 Hävisit';
-    const stats = '<br>Iskujasi: <b>' + state.shots + '</b> – ' +
-        'upotettuja: <b>' + state.enemy.sunk + ' / 5</b>.';
-    const reward = won ? '<br>Ansaitsit yhden 💰!' : '';
+    g('overlay-title').textContent = won ? '🏆 You won!' : '💀 You lost';
+    const stats = '<br>Your shots: <b>' + state.shots + '</b> – ' +
+        'sunk: <b>' + state.enemy.sunk + ' / 5</b>.';
+    const reward = won ? '<br>You earned one 💰!' : '';
     g('overlay-message').innerHTML =
-        (won ? 'Koko vihollisen laivasto on pohjassa!' : 'Vihollinen upotti koko laivastosi.') +
+        (won ? 'The whole enemy fleet is at the bottom!' : 'The enemy sank your whole fleet.') +
         stats + reward +
-        '<br><br>Pelaatko uudelleen?';
-    g('overlay-action-btn').textContent = 'Pelaa';
-    g('overlay-exit-btn').textContent = 'Poistu';
+        '<br><br>Play again?';
+    g('overlay-action-btn').textContent = 'Play';
+    g('overlay-exit-btn').textContent = 'Exit';
     g('overlay-exit-btn').style.display = '';
     if (won) {
         SoundFX.playWin();
@@ -268,14 +268,14 @@ function ntf(m, frames) { msg = m; msgT = frames || 120; }
 function updateHUD() {
     const S = state;
     if (g('turn-display')) {
-        if (st === 'title')       g('turn-display').textContent = '🎯 Valmis aloitukseen';
-        else if (st === 'place')  g('turn-display').textContent = ready ? '🎯 Taistelu alkaa…' : '🎯 Aseta laivastosi';
-        else if (st === 'over')   g('turn-display').textContent = S.win === 'win' ? '🏆 Voitit!' : '💀 Hävisit';
-        else                      g('turn-display').textContent = S.turn === 'player' ? '🎯 Sinun vuorosi' : '🤖 Vihollisen vuoro…';
+        if (st === 'title')       g('turn-display').textContent = '🎯 Ready to start';
+        else if (st === 'place')  g('turn-display').textContent = ready ? '🎯 Battle starting…' : '🎯 Place your fleet';
+        else if (st === 'over')   g('turn-display').textContent = S.win === 'win' ? '🏆 You won!' : '💀 You lost';
+        else                      g('turn-display').textContent = S.turn === 'player' ? '🎯 Your turn' : '🤖 Enemy turn…';
     }
-    if (g('enemy-ships'))  g('enemy-ships').textContent  = '👁 Upotettu: ' + S.enemy.sunk + '/5';
-    if (g('player-ships')) g('player-ships').textContent = '🛡 Sinä: ' + (SHIP_DEFS.length - S.player.sunk) + '/5';
-    if (g('shots-display')) g('shots-display').textContent = '🎯 Iskut: ' + S.shots;
+    if (g('enemy-ships'))  g('enemy-ships').textContent  = '👁 Sunk: ' + S.enemy.sunk + '/5';
+    if (g('player-ships')) g('player-ships').textContent = '🛡 You: ' + (SHIP_DEFS.length - S.player.sunk) + '/5';
+    if (g('shots-display')) g('shots-display').textContent = '🎯 Shots: ' + S.shots;
 }
 
 /* ═══ Ohjaus: näppäimistö ═══ */
@@ -343,12 +343,12 @@ function tryPlace() {
             battleStartAt = performance.now() + BATTLE_START_DELAY;
             updateHUD();
         } else {
-            ntf('Seuraava: ' + SHIP_DEFS[S.placeIdx].n + ' (' + SHIP_DEFS[S.placeIdx].l + ' ruutua)' +
-                ' – ' + (S.orient ? 'pysty' : 'vaaka'), 100);
+            ntf('Next: ' + SHIP_DEFS[S.placeIdx].n + ' (' + SHIP_DEFS[S.placeIdx].l + ' squares)' +
+                ' – ' + (S.orient ? 'vertical' : 'horizontal'), 100);
         }
     } else {
         badFlash = 16;
-        ntf('Ei mahdu tai menee päällekkäin!', 70);
+        ntf('Does not fit or overlaps!', 70);
     }
 }
 
@@ -356,7 +356,7 @@ function doAuto() {
     if (st !== 'place' || ready) return;
     if (autoPlace(state.player, state.placeIdx)) {
         ready = true;
-        ntf('Automaatti: laivat asetettu!', 240);
+        ntf('Auto: ships placed!', 240);
         battleStartAt = performance.now() + BATTLE_START_DELAY;
         updateHUD();
     }
@@ -372,7 +372,7 @@ function undoPlace() {
             if (S.player.grid[r][c] === S.placeIdx) S.player.grid[r][c] = -1;
     ready = false;
     battleStartAt = 0;
-    ntf('Peruutettu: ' + SHIP_DEFS[S.placeIdx].n);
+    ntf('Undone: ' + SHIP_DEFS[S.placeIdx].n);
     SoundFX.playRotate();
 }
 
@@ -967,18 +967,18 @@ function drawBattleDialog(L) {
     // Ylärivi
     font(13, true);
     ctx.fillStyle = '#b8c8e0';
-    ctx.fillText('⚓ LAIVASTO VALMIS', W / 2, by + 34);
+    ctx.fillText('⚓ FLEET READY', W / 2, by + 34);
 
     // Vilkkuva "TAISTELU ALKAA!!!"
     let fs = 30;
     font(fs, true);
-    while (fs > 16 && ctx.measureText('TAISTELU ALKAA!!!').width > bw - 24) {
+    while (fs > 16 && ctx.measureText('BATTLE STARTS!!!').width > bw - 24) {
         fs -= 2;
         font(fs, true);
     }
     const blinkOn = Math.floor(performance.now() / 130) % 2 === 0;
     ctx.fillStyle = blinkOn ? '#ffd700' : '#ff6a3d';
-    ctx.fillText('TAISTELU ALKAA!!!', W / 2, by + 84);
+    ctx.fillText('BATTLE STARTS!!!', W / 2, by + 84);
 
     // Lähtölaskenta
     const sec = Math.max(1, Math.ceil(remain / 1000));
@@ -1023,12 +1023,12 @@ function drawTurnArrow(L) {
         px2 = Math.max(6, Math.round(W * 0.06));
         py2 = Math.round((L.ey + L.board + L.py) / 2);
         ch = S.turn === 'player' ? '▲' : '▼';
-        tw = 'AMMU';
+        tw = 'FIRE';
     } else {
         px2 = Math.round(((L.ex + L.board) + L.px) / 2) - 40;
         py2 = L.ey + Math.round(L.board / 2);
         ch = S.turn === 'player' ? '◀' : '▶';
-        tw = S.turn === 'player' ? 'AMMU' : 'ODOTA';
+        tw = S.turn === 'player' ? 'FIRE' : 'WAIT';
     }
     const bw2 = 80, bh2 = 38;
     const blink = 0.55 + 0.45 * Math.sin(t * 0.14);

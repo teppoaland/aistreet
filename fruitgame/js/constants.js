@@ -34,11 +34,11 @@ const FREE_SPIN_KEY = 'pimeakatu_fruit_free';   // pelin oma avain (kadun invent
 
 /* ── Symbolit: weight = yleisyys rullassa, pay = kolmikon kerroin ── */
 const SYMBOLS = [
-    { id: 'cherry',  name: 'Kirsikka',      weight: 7, pay: 4  },
-    { id: 'lemon',   name: 'Sitruuna',      weight: 5, pay: 7  },
-    { id: 'bell',    name: 'Kello',         weight: 4, pay: 12 },
-    { id: 'burger',  name: 'Hampurilainen', weight: 2, pay: 20 },
-    { id: 'diamond', name: 'Timantti',      weight: 2, pay: 35 }
+    { id: 'cherry',  name: 'Cherry',      weight: 7, pay: 4  },
+    { id: 'lemon',   name: 'Lemon',      weight: 5, pay: 7  },
+    { id: 'bell',    name: 'Bell',         weight: 4, pay: 12 },
+    { id: 'burger',  name: 'Burger', weight: 2, pay: 20 },
+    { id: 'diamond', name: 'Diamond',      weight: 2, pay: 35 }
 ];
 const PAY_PAIR = 1;         // kaksi samaa vierekkäin → panos takaisin
 const REEL_COUNT = 3;

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -18,7 +18,7 @@
                 <span id="score-display">⭐ 0</span>
                 <span id="bomb-display">💣 30</span>
                 <span id="damage-display">❤️ 5</span>
-                <span id="altitude-display">📏 KESKI</span>
+                <span id="altitude-display">📏 MID</span>
             </div>
         </header>
 
@@ -28,11 +28,11 @@
 
         <div id="controls">
             <div id="keyboard-hints">
-                <span>⬆️⬇️⬅️➡️ / WASD = Lennä</span>
-                <span>B = Pommi</span>
-                <span>G = Konekivääri</span>
-                <span>L = Laskeudu</span>
-                <span>Enter = Aloita</span>
+                <span>⬆️⬇️⬅️➡️ / WASD = Fly</span>
+                <span>B = Bomb</span>
+                <span>G = Machine Gun</span>
+                <span>L = Land</span>
+                <span>Enter = Start</span>
             </div>
             <div id="touch-controls">
                 <div class="touch-dpad">
@@ -42,9 +42,9 @@
                     <button class="touch-btn down" data-dir="down">▼</button>
                 </div>
                 <div class="touch-actions">
-                    <button class="touch-btn" id="land-btn" title="Laskeudu (L)">🛬</button>
-                    <button class="touch-btn" id="gun-btn" title="Konekivääri (G)">🔫</button>
-                    <button class="touch-btn" id="bomb-btn" title="Pommi (B)">💣</button>
+                    <button class="touch-btn" id="land-btn" title="Land (L)">🛬</button>
+                    <button class="touch-btn" id="gun-btn" title="Machine Gun (G)">🔫</button>
+                    <button class="touch-btn" id="bomb-btn" title="Bomb (B)">💣</button>
                 </div>
             </div>
         </div>
@@ -56,7 +56,7 @@
         <div id="overlay-content">
             <h2 id="overlay-title"></h2>
             <p id="overlay-message"></p>
-            <button id="overlay-button">Pelaa</button>
+            <button id="overlay-button">Play</button>
         </div>
     </div>
 

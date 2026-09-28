@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -11,9 +11,9 @@
         <header id="game-header">
             <h1>⛏️ Dig Game <span class="version-tag">v1.2</span></h1>
             <div id="game-info">
-                <span id="progress-display">Matka: 0%</span>
+                <span id="progress-display">Journey: 0%</span>
                 <span id="diamond-display">💎 0</span>
-                <span id="score-display">Pisteet: 0</span>
+                <span id="score-display">Score: 0</span>
                 <span id="lives-display">❤️ 3</span>
                 <span id="timer-display">⏱ 45</span>
             </div>
@@ -25,15 +25,15 @@
         
         <div id="controls">
             <div id="keyboard-hints">
-                <span>⬆️⬇️⬅️➡️ / WASD = Liiku</span>
-                <span>Välilyönti + suunta = Kaiva / tartu</span>
-                <span>Enter = Jatka</span>
-                <span>P = Tauko</span>
-                <span>R = Aloita alusta</span>
+                <span>⬆️⬇️⬅️➡️ / WASD = Move</span>
+                <span>Space + direction = Dig / grab</span>
+                <span>Enter = Continue</span>
+                <span>P = Pause</span>
+                <span>R = Restart</span>
             </div>
             <div id="touch-controls">
                 <div class="touch-pad-row">
-                    <button class="touch-btn space-btn" id="space-btn" title="Kaiva / tartu (Space)">⛏️</button>
+                    <button class="touch-btn space-btn" id="space-btn" title="Dig / grab (Space)">⛏️</button>
                     <div class="touch-dpad">
                         <div class="touch-row">
                             <button class="touch-btn" data-dir="up">⬆️</button>
@@ -53,7 +53,7 @@
         <div id="overlay-content">
             <h2 id="overlay-title"></h2>
             <p id="overlay-message"></p>
-            <button id="overlay-button">Pelaa</button>
+            <button id="overlay-button">Play</button>
         </div>
     </div>
 

@@ -640,7 +640,7 @@ const Street = (() => {
        Päivällä ovesta tulee sama teksti-popup kuin lukitusta ovesta.
        Talousarvot eivät muutu – vain aukioloaika. Nuppi: CLOSED_AT_DAYT
        (sama raja kuin makuuhuoneen tilanvaihdossa: dayT >= 0.5 = päivä). */
-    const CLOSED_SIGN    = 'Avoinna\nKlo 20-06';
+    const CLOSED_SIGN    = 'Open\n8pm-6am';
     const CLOSED_AT_DAYT = 0.5;   // tämän yli = päivä = ovet kiinni
     function nightOnlyClosed() { return dayT >= CLOSED_AT_DAYT; }
 
@@ -3379,7 +3379,7 @@ const Street = (() => {
                 GameState.save(state);
                 spawnParticles(beamPickup.x, beamPickup.y, '#bcd7ff', 14);
                 playCoin();
-                showNotification('Sädease. Ammu meteoriitit!');
+                showNotification('Ray gun. Shoot the meteorites!');
                 beamPickup = null;
                 updateHUD();
             }
@@ -3889,18 +3889,18 @@ const Street = (() => {
                 if (lamp.lit || lampFreeOpen()) {
                     // Dig Däsh vaatii Dig Gamesta kerätyn avaimen
                     if (lamp.gameUrl && lamp.gameUrl.includes('digGame2') && !digKeyCollected) {
-                        showNotification('🔑 Avain puuttuu! Saat avaimen kun läpäiset ensin pelin ensimmäisessä talossa!');
+                        showNotification('🔑 Key missing! Beat the game in the first house to get it!');
                         return;
                     }
                     // Blue Mäx vaatii Dig Däshistä kerätyn avaimen
                     if (lamp.gameUrl && lamp.gameUrl.includes('bm/') && !boulderKeyCollected) {
-                        showNotification('🔑 Avain puuttuu tonttu! Hae se edellisestä talosta!');
+                        showNotification('🔑 Key missing, pal! Get it from the previous house!');
                         return;
                     }
                     if (lamp.gameUrl) { enterGame(lamp.gameUrl); }
-                    else { showNotification('🚧 Ei tänne pääse ilman avainta! Hanki avaimet tai keksi jotain muuta.'); }
+                    else { showNotification('🚧 No entry without a key! Get the keys or figure something else out.'); }
                 } else {
-                    showNotification('Pimeää\nOvi on lukossa\nSytytä lamppu!');
+                    showNotification('Dark\nDoor is locked\nLight the lamp!');
                 }
                 return;
             }
@@ -3919,7 +3919,7 @@ const Street = (() => {
             }
             firstHouseKickCount++;
             if (firstHouseKickCount === 3) {
-                showNotification('Varo! Kohta saattaa käydä heikosti. Kokeile seuraavaa ovea.');
+                showNotification('Careful! This may end badly. Try the next door.');
             }
             firstHouseWindowTimer = 1200; // 20s
             if (firstHouseKickCount >= firstHouseKickTarget && !firstHouseWindowsLit) {
@@ -4140,7 +4140,7 @@ const Street = (() => {
             play.push(picks[i]);
         }
         if (play.length === 0) {
-            showNotification('💰 Ei kolikoita!');
+            showNotification('💰 No coins!');
             resetJukeboxRoom();
             return;
         }
@@ -4168,7 +4168,7 @@ const Street = (() => {
                 GameState.save(state);
                 playCoin();
                 if (play.length < picks.length) {
-                    showNotification('💰 Ei kolikoita kaikkiin – soitetaan ' +
+                    showNotification('💰 Not enough coins for all – playing ' +
                                      play.length + '/' + picks.length);
                 }
             } else {
@@ -4177,7 +4177,7 @@ const Street = (() => {
                 state.inventory.coinCount = coinCount;
                 GameState.save(state);
                 updateHUD();
-                showNotification('🔇 Ääntä ei saatu – kolikot palautettiin.');
+                showNotification('🔇 No audio – coins refunded.');
             }
         } else {
             // Uusi soitto
@@ -4191,7 +4191,7 @@ const Street = (() => {
                 jukeSavedPos = 0;
                 playCoin();
                 if (play.length < picks.length) {
-                    showNotification('💰 Ei kolikoita kaikkiin – soitetaan ' +
+                    showNotification('💰 Not enough coins for all – playing ' +
                                      play.length + '/' + picks.length);
                 }
             } else {
@@ -4199,7 +4199,7 @@ const Street = (() => {
                 state.inventory.coinCount = coinCount;
                 GameState.save(state);
                 updateHUD();
-                showNotification('🔇 Ääntä ei saatu – kolikot palautettiin.');
+                showNotification('🔇 No audio – coins refunded.');
             }
         }
         resetJukeboxRoom();
@@ -4380,7 +4380,7 @@ const Street = (() => {
 
     function showSpawnHint() {
         // Aloitusohje: pitempi lukuaika (+2s) kuin muilla popupeilla
-        showNotification('Vinkki: Potki kaikkea, mutta omalla vastuulla!', 4500);
+        showNotification('Tip: Kick everything – at your own risk!', 4500);
     }
 
     function spawnParticles(x, y, color, count) {
@@ -4401,12 +4401,12 @@ const Street = (() => {
         const hudBar = document.getElementById('hud-bar');
         const allKeys = allKeysCollected();
         let status = '';
-        if (allKeys) status = ' 🗝️ Kaikki avaimet!';
+        if (allKeys) status = ' 🗝️ All keys!';
         else {
             const keys = (digKeyCollected?1:0) + (boulderKeyCollected?1:0) + (bmKeyCollected?1:0);
-            status = ' 🔑 Avaimia: ' + keys + '/3';
+            status = ' 🔑 Keys: ' + keys + '/3';
         }
-        status += ' | 💰 Kolikoita: ' + coinCount;
+        status += ' | 💰 Coins: ' + coinCount;
         if (beamWeaponCollected) status += ' 🔫';   // sädease ansaittu (v10.20)
         // Hampurilaiset (lives) – vilkkuva varoitus kun jäljellä <= HUNGER_WARN (3)
         var burgerStr = '';
@@ -6474,73 +6474,73 @@ const Street = (() => {
         {
             title: 'AI CHAOS STREET',
             lines: [
-                'Liiku nuolilla tai WASD. Puhelimessa ristikko ja ⚡-nappi.',
-                'Toiminto ⚡ (Space / Enter): ovella astut sisään, muualla potkaiset.',
-                'Potkaise katuvalo, niin valo syttyy ja ovi aukeaa. Päivällä ovet ovat auki ilman valoja.',
-                '🪙 Kolikoita on kadulla yksi kerrallaan – kävele päältä. Potkusta voi tipahtaa lisää.',
-                '🍔 Hampurilainen on elämäsi: nälkä vie yhden 40 sekunnissa. Kun 🍔 loppuu, henki lähtee!',
-                'Ilmaisin vilkkuu punaisena, kun 🍔 on kolme tai vähemmän.',
-                'Varo autoja, mopoa, kukkaruukkua, sähkökaappia ja oviukkoa – osuma vie 1 🍔.',
-                'Avoin viemärinkansi nielaisee sinut: kukkarosta katoaa enintään 2 🪙.',
-                '✕ = koko peli alusta – kaikki edistyminen katoaa.'
+                'Move with the arrows or WASD. On the phone: the D-pad and the ⚡ button.',
+                'Action ⚡ (Space / Enter): at a door you step in, elsewhere you kick.',
+                'Kick a street lamp and the light turns on and the door opens. In daylight the doors are open without lights.',
+                '🪙 There is one coin on the street at a time – walk over it. A kick can drop more.',
+                '🍔 A burger is your life: hunger takes one every 40 seconds. When 🍔 runs out, you die!',
+                'The gauge blinks red when 🍔 is three or less.',
+                'Beware the cars, the moped, the flower pot, the fuse box and the door knocker – a hit takes 1 🍔.',
+                'An open manhole swallows you: at most 2 🪙 vanish from your wallet.',
+                '✕ = restart the whole game – all progress is lost.'
             ]
         },
         {
-            title: 'UNI JA VALO',
+            title: 'SLEEP & LIGHT',
             lines: [
-                '🛏️ Makuuhuoneeseen pääsee aina (kadun oikea puoli):',
-                '   Nuku = nälkä on jäissä, heräät +1 🍔:n kanssa ja päivä vaihtuu yöksi (tai yö päiväksi).',
-                '   Poistu = ei muuta mitään, eikä maksa mitään.',
-                'Kun kolme avainta on koossa, kadulle nousee kerran aamu – sen jälkeen vuorokauden vaihtaa makuuhuone.',
-                '🎵 Jukebox ja 🍒 Hedelmäpeli ovat auki vain öisin klo 20–06.',
-                'Päivällä ovesta kertoo kyltti: Avoinna, klo 20 - 06.'
+                '🛏️ The bedroom is always open (right side of the street):',
+                '   Sleep = hunger is on hold, you wake with +1 🍔 and the day turns to night (or night to day).',
+                '   Exit = changes nothing and costs nothing.',
+                'When the three keys are collected, one morning dawns on the street – after that the bedroom changes the time of day.',
+                '🎵 The jukebox and the 🍒 fruit machine are open only at night, 8pm–6am.',
+                'In daylight the door shows a sign: Open, 8pm - 6am.'
             ]
         },
         {
-            title: 'TALOJEN PELIT',
+            title: 'HOUSE GAMES',
             lines: [
-                '⛏️ DIG GAME – kaiva mullan läpi, kerää timantit ja löydä avain.',
-                '   Nuolet liikuttavat, Space kaivaa. Pidä Space pohjassa ja paina suuntaa = etäkaivu.',
-                '💎 DIG DÄSH – neljä tasoa ja aikaraja. Kerää tarpeeksi timantteja ja avain, niin uloskäynti aukeaa.',
-                '   Kivi putoaa päälle = elämä pois. Kolme elämää.',
-                '✈️ BLUE MÄX – lennä nuolilla ja tuhoa rakennukset.',
-                '   Space tai G = konekivääri, B = pommi, L = laskeudu. Enter = aloita.',
-                'Avaimet kulkevat talosta taloon: Dig Gamen avain avaa Dig Däshin ja sen avain Blue Mäxin.'
+                '⛏️ DIG GAME – dig through the dirt, collect the diamonds and find the key.',
+                '   The arrows move, Space digs. Hold Space down and press a direction = remote digging.',
+                '💎 DIG DÄSH – four levels and a time limit. Collect enough diamonds and the key and the exit opens.',
+                '   A falling rock on you = one life gone. Three lives.',
+                '✈️ BLUE MÄX – fly with the arrows and destroy the buildings.',
+                '   Space or G = machine gun, B = bomb, L = land. Enter = start.',
+                'Keys travel from house to house: the Dig Game key opens Dig Däsh, and its key opens Blue Mäx.'
             ]
         },
         {
-            title: 'RAHAPELI',
+            title: 'SLOTS',
             lines: [
-                '🍒 Hedelmäpeli: panos 1 🪙 / pyöräytys. Space, Enter tai napautus pyöräyttää.',
-                'Ilmainen pyöräytys joka toinen minuutti.',
-                'Voitot: 💎 35 · 🍔 20 · 🔔 12 · 🍋 7 · 🍒 4. Kaksi samaa = panos takaisin.',
-                'Palautus noin 78,5 % – talo voittaa pitkässä juoksussa.',
-                '🎵 Jukebox: potkaise ikkunat valaistuiksi, niin ovi aukeaa. 1 🪙 = 1 kappale.',
-                'Valitse vaikka kolme kappaletta – ne soivat peräkkäin, kun poistut huoneesta.',
-                '🍔 BAR: yksi kolikko = yksi hampurilainen. ▼ peruu tämän vierailun ostot.'
+                '🍒 Fruit machine: bet 1 🪙 / spin. Space, Enter or a tap spins.',
+                'A free spin every other minute.',
+                'Wins: 💎 35 · 🍔 20 · 🔔 12 · 🍋 7 · 🍒 4. Two of a kind = bet back.',
+                'Payout about 78.5 % – the house wins in the long run.',
+                '🎵 Jukebox: kick the windows lit and the door opens. 1 🪙 = 1 track.',
+                'Pick even three tracks – they play one after another when you leave the room.',
+                '🍔 BAR: one coin = one burger. ▼ undoes the purchases of this visit.'
             ]
         },
         {
             /* Manuaali (5. sivu, v4.55) – rahavirta piirroksena.
                `art` = leveä, `artNarrow` = kapea; newsLayout valitsee. */
-            title: 'MANUAALI',
+            title: 'MANUAL',
             art: NEWS_MANUAL_WIDE,
             artNarrow: NEWS_MANUAL_NARROW
         },
         {
             /* 6. sivu – vinkkejä (30.9.2026, käyttäjän teksti) */
-            title: 'VINKKEJÄ',
+            title: 'TIPS',
             lines: [
-                'Muutamia vinkkejä pelaamiseen',
+                'A few tips for playing',
                 '',
-                'Työllä voi ansaita rahaa: peleissä pelaa alku aina uudelleen ja nappaa vain kolikko.',
-                'Nukkuminen antaa 1 hampurilaisen.',
-                'Hedelmäpeliä voi pelata 1 kierroksen ilmaiseksi joka 120s.',
+                'You can earn money by working: in the games keep replaying the start and just grab the coin.',
+                'Sleeping gives you 1 burger.',
+                'You can play 1 free round of the fruit machine every 120s.',
                 '',
-                '💡 6. lampun 5 potkua putkeen:',
-                '   kaikki lamput syttyvät + kaikki avaimet.',
-                '   Jos jatkat 20 potkuun = +20 🪙. Putki katkeaa',
-                '   jos potkaiset toista lamppua tai odotat yli 2 s.'
+                '💡 5 kicks in a row on the 6th lamp:',
+                '   all the lamps light up + all the keys.',
+                '   If you go on to 20 kicks = +20 🪙. The streak breaks',
+                '   if you kick another lamp or wait over 2 s.'
             ]
         }
     ];
@@ -6582,7 +6582,7 @@ const Street = (() => {
         if (newsRoom || iframeOpen) return;
         const n = (foreground && foreground.newspaper) ? foreground.newspaper : null;
         if (!n || !nearNewspaper()) return;
-        const label = 'Lue';
+        const label = 'Read';
         const cx = n.x + 11;
         const cy = n.y - 16;
         ctx.save();
@@ -6799,9 +6799,9 @@ const Street = (() => {
         const page = NEWSPAPER_PAGES[scr.page];
         const pageScreens = L.screens.filter(s => s.page === scr.page).length;
         const onPage = L.screens.slice(0, idx + 1).filter(s => s.page === scr.page).length;
-        const pageTxt = 'SIVU ' + (scr.page + 1) + '/' + pageCount +
+        const pageTxt = 'PAGE ' + (scr.page + 1) + '/' + pageCount +
                         (pageScreens > 1 ? '  (' + onPage + '/' + pageScreens + ')' : '');
-        const hint = '▲/▼ = sivu   Space = seuraava   (o)/Enter = poistu';
+        const hint = '▲/▼ = page   Space = next   (o)/Enter = exit';
 
         ctx.save();
         ctx.shadowBlur = 0;
@@ -6825,8 +6825,8 @@ const Street = (() => {
         //    Jos kadulla on ajoneuvo liikkeellä, vasen teksti vaihtuu
         //    vilkkuvaksi varoitukseksi (v4.54) – lukija ehtii sulkea lehden.
         const trafficComing = !!(vehicles[0] || vehicles[1]);
-        const topTxt = trafficComing ? '⚠ VARO AUTOA – liikenne ei pysähdy!'
-                                     : 'SANOMAT · PELIOHJEET';
+        const topTxt = trafficComing ? '⚠ WATCH OUT – TRAFFIC NEVER STOPS!'
+                                     : 'NEWS · GAME GUIDE';
         ctx.fillStyle = '#6a6250';
         ctx.textAlign = 'left';
         ctx.font = 'bold ' + L.smallFs + 'px "Courier New", monospace';
@@ -7114,17 +7114,17 @@ const Street = (() => {
         ctx.textAlign = 'center';
         ctx.font = needPx(16, 12, 16) + 'px "Press Start 2P", monospace';
         ctx.fillStyle = '#eae4f2';
-        ctx.fillText('MAKUUHUONE', 400, titleY);
+        ctx.fillText('BEDROOM', 400, titleY);
 
         ctx.font = 'bold ' + nameFs + 'px "Courier New", monospace';
         ctx.fillStyle = isDay ? '#ffdd88' : '#c8d8ff';
-        ctx.fillText('Nyt: ' + (isDay ? '☀️ Päivä' : '🌙 Yö'), 400, stateY);
+        ctx.fillText('Now: ' + (isDay ? '☀️ Day' : '🌙 Night'), 400, stateY);
 
         /* 3) Valinnat: 0 = Nuku, 1 = Poistu
               ▲/▼ liikuttaa valintaa, ⚡ / Space / (o) vahvistaa */
         const rows = [
-            { label: 'Nuku',   note: isDay ? '→ yö' : '→ päivä' },
-            { label: 'Poistu', note: 'ei muuta tilaa' }
+            { label: 'Sleep',  note: isDay ? '→ night' : '→ day' },
+            { label: 'Exit',   note: 'no change' }
         ];
         for (let i = 0; i < rows.length; i++) {
             const y = listTop + i * (rowH + rowGap);
@@ -7154,7 +7154,7 @@ const Street = (() => {
         ctx.textAlign = 'center';
         ctx.font = Math.max(10, Math.min(nameFs - 1, 13)) + 'px Arial, sans-serif';
         ctx.fillStyle = '#e9e9ef';
-        ctx.fillText('▲/▼ = valitse   ⚡/Space = vahvista', 400, hintY);
+        ctx.fillText('▲/▼ = select   ⚡/Space = confirm', 400, hintY);
         ctx.textAlign = 'left';
 
         // 4) Sänky sivusta: pääty, paksu patja, tyyny, peitto ja jalat
@@ -7387,25 +7387,25 @@ const Street = (() => {
         if (playing) {
             const tr = (curTrack > 0) ? JUKEBOX_TRACKS[curTrack - 1] : null;
             const t = tr ? tr.title : '';
-            info.push({ text: '🔊 SOI NYT: ' + t, color: '#ffdd88' });
+            info.push({ text: '🔊 NOW PLAYING: ' + t, color: '#ffdd88' });
             if (jukeQueue.length > 1) {
-                info.push({ text: '📋 Soittojonossa: ' + jukeQueue.length + ' kappaletta',
+                info.push({ text: '📋 In queue: ' + jukeQueue.length + ' track(s)',
                             color: '#8ce88c' });
             }
-            info.push({ text: 'Valitse lisää => poistu = lisää jonoon', color: '#8ce88c' });
+            info.push({ text: 'Pick more => exit = add to queue', color: '#8ce88c' });
         } else if (pickCount > 0) {
-            info.push({ text: 'Valittu: ' + pickCount + ' kpl – ' + pickCount + ' 🪙',
+            info.push({ text: 'Selected: ' + pickCount + ' – ' + pickCount + ' 🪙',
                         color: '#ffffff' });
             if (coinCount >= pickCount) {
-                info.push({ text: 'Poistu (⚡/Space/Enter) = soita valitut', color: '#8ce88c' });
+                info.push({ text: 'Exit (⚡/Space/Enter) = play selected', color: '#8ce88c' });
             } else if (coinCount > 0) {
-                info.push({ text: '💰 Ei kolikoita kaikkiin – soitetaan ' + coinCount + '/' + pickCount,
+                info.push({ text: '💰 Not enough coins for all – playing ' + coinCount + '/' + pickCount,
                             color: '#ffcc66' });
             } else {
-                info.push({ text: '💰 Ei kolikoita!', color: '#ff8080' });
+                info.push({ text: '💰 No coins!', color: '#ff8080' });
             }
         } else {
-            info.push({ text: 'Ei valintaa – poistuminen ei maksa mitään', color: '#d8d2e2' });
+            info.push({ text: 'No selection – leaving costs nothing', color: '#d8d2e2' });
         }
         const infoFs     = Math.max(9, Math.min(nameFs - 2, 15));
         const infoLineH  = infoFs + 4;
@@ -7469,7 +7469,7 @@ const Street = (() => {
         ctx.fillStyle = '#ff4f96';
         ctx.fillText('♪ JUKEBOX', rowX, titleY);
 
-        const balText = '💰 Kolikoita: ' + coinCount;
+        const balText = '💰 Coins: ' + coinCount;
         setFitFont(balText, rowW * (stacked ? 1 : 0.5),
                    Math.max(11, Math.min(nameFs, 14)), 10, '"Courier New", monospace');
         ctx.fillStyle = '#ffd700';
@@ -7507,7 +7507,7 @@ const Street = (() => {
             ctx.fillText(String(i), rowX + 10, cy);
 
             // Kappaleen nimi + kesto (leikataan nimi, jos ei mahdu)
-            let trackName = (i === 0) ? 'Poistu' : JUKEBOX_TRACKS[i - 1].title;
+            let trackName = (i === 0) ? 'Exit' : JUKEBOX_TRACKS[i - 1].title;
             const durStr = (i > 0) ? ' (' + JUKEBOX_TRACKS[i - 1].duration + ')' : '';
             ctx.font = nameFs + 'px "Courier New", monospace';
             const durW = ctx.measureText(durStr).width;
@@ -7525,7 +7525,7 @@ const Street = (() => {
             if (playingRow) {
                 ctx.font = 'bold ' + sideFs + 'px "Courier New", monospace';
                 ctx.fillStyle = selected ? fg : '#ffdd88';
-                ctx.fillText('♪ SOI', rowX + rowW - 10, cy);
+                ctx.fillText('♪ PLAYING', rowX + rowW - 10, cy);
             } else if (i > 0) {
                 ctx.font = sideFs + 'px "Courier New", monospace';
                 ctx.fillStyle = selected ? fg : (picked ? '#ffe9a8' : '#ffd700');
@@ -7533,7 +7533,7 @@ const Street = (() => {
             } else if (pickCount > 0) {
                 ctx.font = sideFs + 'px "Courier New", monospace';
                 ctx.fillStyle = selected ? fg : '#8ce88c';
-                ctx.fillText('▶ ' + pickCount + ' kpl', rowX + rowW - 10, cy);
+                ctx.fillText('▶ ' + pickCount + ' track(s)', rowX + rowW - 10, cy);
             } else {
                 ctx.font = sideFs + 'px "Courier New", monospace';
                 ctx.fillStyle = dim;
@@ -7567,7 +7567,7 @@ const Street = (() => {
         }
 
         // 7) Alaohje (kiinteä ja terävä – ei vilkkumista)
-        const helpTxt = '▲/▼ = valitse   (o)/Space = ota/poista   Enter = soita & poistu';
+        const helpTxt = '▲/▼ = select   (o)/Space = pick/remove   Enter = play & exit';
         ctx.textAlign = 'center';
         setFitFont(helpTxt, winW - 16, 12, 9, 'Arial, sans-serif');
         ctx.fillStyle = '#e9e9ef';
@@ -7875,9 +7875,9 @@ const Street = (() => {
 
         /* Äidin lappu – 3 riviä (varoitus hampurilaisten kulutuksesta) */
         const hintLines = [
-            'SEURAA HAMPURILAISTEN KULUTUSTA',
-            'MUISTA SYÖDÄ MARKO!',
-            'Tv. Äiti'
+            'WATCH YOUR BURGER INTAKE',
+            'REMEMBER TO EAT, MARKO!',
+            'Love, Mum'
         ];
         const boxPad = 36;                    // laatikon sisämarginaali
         const hintFs = fitFs(hintLines, 'bold', needPx(12, 10, 12), 8,
@@ -7893,9 +7893,9 @@ const Street = (() => {
 
         /* Ostotilanteen rivi – fontti pisimmän vaihtoehdon mukaan */
         const infoRows = [
-            'Ostit ' + Math.max(barBuyQty, 1) + 'x🍔 hampurilaista!',
-            '🍔 Hampurilaiskiintiö täynnä Osta jotain muuta!.',
-            '🍔 Ei kolikoita. Hommaa massia!'
+            'You bought ' + Math.max(barBuyQty, 1) + 'x🍔 burgers!',
+            '🍔 Burger quota full. Buy something else!',
+            '🍔 No coins. Get some cash!'
         ];
         const infoFs = fitFs(infoRows, 'normal', needPx(15, 13, 15), 8,
                              '"Courier New", monospace', winW - 24);
@@ -7963,17 +7963,17 @@ const Street = (() => {
         ctx.font = 'normal ' + infoFs + 'px "Courier New", monospace';
         ctx.textAlign = 'center';
         if (barBuyQty > 0) {
-            ctx.fillText('Ostit ' + barBuyQty + 'x🍔 hampurilaista!', 400, infoBaseline);
+            ctx.fillText('You bought ' + barBuyQty + 'x🍔 burgers!', 400, infoBaseline);
         } else if (hamburgerCount >= 10) {
-            ctx.fillText('🍔 Hampurilaiskiintiö täynnä Osta jotain muuta!.', 400, infoBaseline);
+            ctx.fillText('🍔 Burger quota full. Buy something else!', 400, infoBaseline);
         } else if (coinCount <= 0) {
-            ctx.fillText('🍔 Ei kolikoita. Hommaa massia!', 400, infoBaseline);
+            ctx.fillText('🍔 No coins. Get some cash!', 400, infoBaseline);
         }
 
         // Ohjevihje: ▲ osta / ▼ peru / (o) poistu
         var pulse = Math.sin(Date.now() / 800) * 0.3 + 0.7;
         ctx.fillStyle = 'rgba(255,255,255,' + pulse + ')';
-        var exitRow = '▲ = osta 1 🍔   ▼ = peru 1   POISTU: (o) / Space';
+        var exitRow = '▲ = buy 1 🍔   ▼ = undo 1   EXIT: (o) / Space';
         ctx.font = Math.max(8, fitFs([exitRow], 'normal', 10, 8, 'Arial, sans-serif',
                                      winW - 24)) + 'px Arial, sans-serif';
         ctx.fillText(exitRow, 400, 370);
