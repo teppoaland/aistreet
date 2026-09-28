@@ -2466,8 +2466,6 @@ const Street = (() => {
         ctx.imageSmoothingEnabled = false;
         randomizeBuildingColors();  // arvo taloille uudet sävyt joka kerta
         state = GameState.load();
-        // v10.11: syntikka soi vasta, kun jukeboxista on soitettu kerran.
-        StreetAudio.setSynthUnlocked(state.jukeboxPlayedOnce === true);
         /* Onko kyseessä aivan uusi peli (0-tila)? Kuun kello (moonClock)
            jätetään vertailusta pois: se tallentuu itsestään heti yön alettua,
            eikä sen kuulu sammuttaa aloitusohjetta. Sama auringon kellolle. */
@@ -4164,7 +4162,6 @@ const Street = (() => {
                 state.jukeQueue = jukeQueue.slice();
                 state.jukePos = qPos;
                 state.jukeboxPlayedOnce = true;
-                StreetAudio.setSynthUnlocked(true);
                 GameState.save(state);
                 playCoin();
                 if (play.length < picks.length) {
@@ -4186,7 +4183,6 @@ const Street = (() => {
                 state.jukeQueue = jukeQueue.slice();
                 state.jukePos = 0;
                 state.jukeboxPlayedOnce = true;
-                StreetAudio.setSynthUnlocked(true);
                 GameState.save(state);
                 jukeSavedPos = 0;
                 playCoin();
@@ -9279,19 +9275,41 @@ window.addEventListener('DOMContentLoaded', () => {
         showMenu();
         StreetAudio.setMenuActive(true);   // fallback: ei gate-elementtiä
     }
+    const CHAOS_INTRO_TRACK = 'jukebox/8_nickpanek-coffee-first-heavy-grunge-metal-instrumental-391308.mp3';
+    /* Siirtymä (v11.02): kaaostason valinnasta näyttö mustenee 2 s
+       (CHAOS_BLACKOUT_MS) ja valikkobiisi vaimenee samaan aikaan; peli
+       käynnistyy mustan alla, minkä jälkeen katu paljastuu 1 s häivytyksellä
+       (CHAOS_REVEAL_MS) → koko siirtymä on 3 s. Nupit: alla. */
+    const CHAOS_BLACKOUT_MS = 2000;   // mustuminen + valikkobiisin häivytys
+    const CHAOS_REVEAL_MS = 1000;     // mustan häivytys pois → katu näkyy
+    const blackout = document.getElementById('chaos-blackout');
     let started = false;
     const start = (level) => {
         if (started) return;
         started = true;
         menu.classList.add('faded');        // v10.14: tekstit haihtuvat pois ennen pelin alkua
+        if (blackout) blackout.classList.add('on');   // v11.02: näyttö mustenee
+        // v11.02: valikkobiisi vaimenee mustumisen aikana. Funktio on aina
+        // samassa versiossa – varmistus, ettei vanha välimuistiin jäänyt
+        // audio.js kaada koko käynnistystä.
+        if (StreetAudio.fadeOutMenuMusic) StreetAudio.fadeOutMenuMusic(CHAOS_BLACKOUT_MS);
         setTimeout(() => {
             menu.classList.add('hidden');
             StreetAudio.setMenuActive(false);   // valikkobiisi pois, peli alkaa
             Street.setChaos(level);
             Street.saveChaosSession();
             Street.init(canvas);
-            StreetAudio.start(30000);           // grace: syntikka hiljaa 30 s valikosta aloitettaessa (v10.09)
-        }, 2000);
+            StreetAudio.playChaosIntro(CHAOS_INTRO_TRACK);   // kaaos-intro: yksi kappale kerran, sitten wave-musiikki
+            // v11.02: paljastus – musta häivytetään pois, sitten elementti pois tieltä
+            if (blackout) {
+                blackout.classList.remove('on');
+                blackout.classList.add('reveal');
+                setTimeout(() => {
+                    blackout.classList.remove('reveal');
+                    blackout.classList.add('hidden');
+                }, CHAOS_REVEAL_MS);
+            }
+        }, CHAOS_BLACKOUT_MS);
     };
     menu.querySelectorAll('[data-level]').forEach(btn => {
         btn.addEventListener('click', () => start(btn.getAttribute('data-level')));

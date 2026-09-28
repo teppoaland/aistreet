@@ -1,20 +1,16 @@
 # 🧩 Järjestelmän arkkitehtuuri
 
 > **Tarkoitus:** Cline:n referenssi projektin rakenteesta ja siitä, mitä ei saa rikkoa.
-> **Kompaktoitu 23.9.2026 (v4.71).**
+> **Kompaktoitu 23.9.2026 (v4.71) · tiivistetty 28.9.2026 (v11.00, 13,4 → 12,1 kt):** kaaos K0–K7 → `docs/chaos.md`.
+> Esiforkin (Pimeä Katu) koko historia: `D:\AI\Main` – tämän repon historia alkaa `b854771`.
+> ⚠️ **Vahti:** jos koko pankki > 60 kt → kompaktoi (vain uusi aines; esiforkin v4.x-historia säilyy).
 
 ## ⭐ Yleisarkkitehtuuri
 
 - **Pääportaali (juuri):** `index.html`, `style.css`, `street.js`, `gameState.js`, `audio.js` – ei `js/`-kansiota.
-- **Kaaosjärjestelmä (v10.01):** keskitetty `chaosProfiles`/`setChaos()` `street.js`:ssä kirjoittaa kertoimet
-  suoraan olemassa oleviin `let`-muuttujiin (ei uutta mekaniikkaa). Hub `#chaos-menu` (`index.html`) valitaan
-  aina ennen `Street.init()`; NORMAL = nykyiset arvot, FULL CHAOS = `generateFullChaosSeed()`.
-- **Kaaosparametrien suunnitelma (27.9.2026, kaikki vaiheet koodattu v10.02–v10.05):** `docs/chaos.md` v2 – kategoriat **K0–K7**
-  vaikutuksen mukaan (K1 visuaalinen = vapaa · K3 uhka & K4 keho = rajoitettu klampit · **K5 talous 🔒
-  lukittu** · K6 ääni · K7 tapahtumakortit = v1 vain visuaalisia). Kaikki arvat kulkevat portin
-  `clampChaosCfg()` + `validateChaosCfg()` läpi; pelaajan kyvykkyysindeksi **C** skaalaa uhkat
-  (nopeus ≤ 1,4 × C, varoitus ≥ 21/C f). Sitovat pääsäännöt: **NORMAL ei hajoa koskaan** ja
-  **peli pysyy pelattavana kaikissa moodeissa**. Toteutus valmis `v10.02`…`v10.05` (K0 / K1 / K3+K4 / K2+K6+K7).
+- **Kaaosjärjestelmä (v10.01–v10.18):** keskitetty `chaosProfiles`/`setChaos()` `street.js`:ssä kirjoittaa kertoimet suoraan olemassa oleviin `let`-muuttujiin (ei uutta mekaniikkaa); hub `#chaos-menu` valitaan aina ennen `Street.init()` (NORMAL = nykyiset arvot, FULL = `generateFullChaosSeed()`); valittu mode + `chaosCfg` `sessionStorage`en (v10.06), kolikot/🍔 `pimeakatu_gamestate`:ssa.
+- **Portti ja pääsäännöt:** jokainen arpa kulkee `clampChaosCfg()` + `validateChaosCfg()` läpi; pelaajan kyvykkyysindeksi **C** skaalaa uhkat (nopeus ≤ 1,4 × C, varoitus ≥ 21/C f). Sitovat: **NORMAL ei hajoa koskaan** ja **peli pysyy pelattavana kaikissa moodeissa**.
+- **Kategoriat K0–K7** vaikutuksen mukaan (K1 visuaalinen = vapaa · K3 uhka & K4 keho = klampit · K5 talous 🔒 lukittu · K6 ääni · K7 tapahtumakortit = v1 vain visuaalisia) + tasomanifesti, C-indeksi ja DoD: **`docs/chaos.md`** (toteutus `v10.02`…`v10.05`, uudet akselit `v10.18`).
 - **Iframet (5 alipeliä):** `digGame1/` ⛏️ Dig Game · `digGame2/` 💎 Dig Däsh · `bm/` ✈️ Blue Mäx ·
   `fruitgame/` 🍒 Hedelmäpeli (talo 7, **auki vain öisin** v4.34) · `sinkship/` 🚢 Laivanupotus (`buildings[2]`, 2 potkua oveen, aina auki, v4.86).
 - **Kadun canvas-huoneet (ei iframe):** **makuuhuone** (ex-palkintohuone, `buildings[7]`, **ovi aina auki**
@@ -28,8 +24,7 @@
 
 **Salaiset cheatit kadulla (testityökalut, eivät tallennu):** vitoslamppu (x 720) 5 potkua putkeen →
 kaikki avaimet + koko valorivi; jatkona 20 potkua → **+20 kolikkoa** (hiljainen: ei popuppia/ääntä).
-Nupit `COIN_CHEAT_*` = `LAMP 4`, `KICKS 20`, `REWARD 20`, `GAP 120`, `COOLDOWN 3600`; putki katkeaa
-toiseen lamppuun / 2 s taukoon / palkkioon, cooldown 60 s.
+Nupit `COIN_CHEAT_*` = `LAMP 4`, `KICKS 20`, `REWARD 20`, `GAP 120`, `COOLDOWN 3600`.
 
 **Huoneiden piirto (mobiili):** huoneet piirretään maailmakoordinaatteihin 0–800, mutta mobiilissa canvas
 on vain `viewW` (260–800) leveä ja kamera keskittää huoneen (`camX = (800 − viewW)/2`) → sisältö
@@ -37,22 +32,20 @@ sovitetaan näkyvään ikkunaan keskitettynä x = 400 (jukebox v4.22, BAR v4.25:
 `fitFs()`, paneeli ≤ `winW − 24`, `ctx.save()/restore()`-pari ettei tila vuoda kadulle).
 
 **Äänet:** taustamusiikki = proseduraalinen syntikka (`MUSIC_SOURCE 'synth'`, ei tiedostoa) tai `'mp3'`-varatie
-`knived_unafraid.mp3`; `jukebox/` soi vain jukebox-huoneesta – **6 raitaa**: 3 × Knived + raidat 4–6
-(kolmannen osapuolen heavy metal, kansikuvat `jukebox/covers/{4,5,6}.png`). Masterit repon ulkopuolella
+`knived_unafraid.mp3`; `jukebox/` soi vain jukebox-huoneesta – **9 raitaa** (v4.97): 3 × Knived + kolmannen
+osapuolen heavy metal + Alex Morgan / NickPanek (kansikuvat `jukebox/covers/{1..9}.png`). Masterit repon ulkopuolella
 `D:\AI\Knived` / `D:\AI\free_music` (`.gitignore` estää `*.mpeg`/`*.mp4`).
 
-**Valikkomusiikki + portti + grace (v10.07–v10.09):** alkuvalikko ("Choose your chaos level") on erillinen
-**portti** peliin (näytetään vain: uusi peli / ✕-hard reset / kuolema). Valikko soi oman biisin
-(`jukebox/alec_koff-heavy-doom-dark-metal-493397.mp3`, loop, `audio.js` `setMenuActive`/`menuEl`).
-Autoplay-lukon kierto = `#start-gate` ("CLICK / PRESS ANY KEY TO BEGIN", `index.html` + `style.css`),
-jonka ensimmäinen ele avaa äänen ja näyttää valikon musiikin soidessa. Valikosta peliin siirryttäessä
-syntikka on hiljaa 30 s (`StreetAudio.start(30000)`, `musicGraceMs`) ja häivyttyy sitten sisään
-(`SYNTH_FADE_IN 800 ms`). F5 (soft reset) ohittaa portin + gracen ja jatkaa suoraan peliin.
+**Valikkomusiikki + portti + grace (v10.07–v10.11):** alkuvalikko ("Choose your chaos level") on erillinen
+**portti** peliin (vain uusi peli / ✕-hard reset / kuolema) ja soi oman biisin (`jukebox/alec_koff-heavy-doom-dark-metal-493397.mp3`, loop, `audio.js` `setMenuActive`/`menuEl`). Autoplay-lukon kierto = `#start-gate` ("CLICK / PRESS ANY KEY TO BEGIN"), jonka ensimmäinen ele avaa äänen ja näyttää valikon (`GATE_MENU_DELAY_MS 2000` estää mobiilin ghost-clickin). Pelissä syntikka hiljaa 30 s (`StreetAudio.start(30000)`) → `SYNTH_FADE_IN 800 ms`; F5 (soft reset) ohittaa portin + gracen. Syntikka pysyy hiljaisena kunnes jukeboxista on soitettu 1 kappale (v10.11, `synthUnlocked`) – **poistettu v11.01**, tilalle kaaos-intro (ks. activeContext). **v11.02:** valinnan jälkeen koko ruutu
+mustenee 2 s (`#chaos-blackout`, `style.css` `.on`/`.reveal`, z 9998) ja valikkobiisi vaimenee
+(`fadeOutMenuMusic(ms)`, 50 ms portaat + `MUSIC_VOLUME`-palautus); valikko piilotetaan ja `Street.init()`
+käynnistyy **mustan alla**, minkä jälkeen katu paljastuu 1 s häivytyksellä → koko siirtymä 3 s.
 
 **Kuvat:** `assets/justiina.png` (315×261) = BAR-huoneen seinätaulu (`BAR_PIC_SRC`, `barPicReady`,
 varapinta jos ei lataudu) · `fruitgame/assets/dude_mv.jpg` (672×400, MV) = hedelmäpelin huoneen seinäkuva
 HTML-elementtinä `#wall-pic` (ei canvasin piirrossa; koko/asemointi `renderer.wallPicSize()`, piiloon
-mobiilin vaakatasossa) · `jukebox/covers/{4,5,6}.png` = soivan kappaleen kansikuva. Muu grafiikka on
+mobiilin vaakatasossa) · `jukebox/covers/{1..9}.png` = soivan kappaleen kansikuva. Muu grafiikka on
 proseduraalista.
 
 **Syvyysskaalaus (syvyysvaikutelma):** talot `buildingScale()` 100 / 95 / 90 % ankkuroituna `GROUND_Y`:hin ·
@@ -68,10 +61,9 @@ ratkaista tilan jo ennen avaimia** → auringonnousu ei enää laukea. `dayT` li
 näkyy kadulle palatessa (`?day=1` / `?day=0` pakottavat tilan, eivät tallenna). **Visuaalinen vain** –
 kaikki päivähaarat ovat ehtoja `dayT > 0`, joten `dayT = 0` piirtää bitilleen entisen yökuvan.
 
-**Aukiolo (v4.34):** jukebox (talo 5) ja hedelmäpeli (talo 7) auki **vain öisin**; päivällä
-(`dayT >= 0.5`, `CLOSED_AT_DAYT`) ovesta sama popup kuin lukitusta ovesta
-(`CLOSED_SIGN 'Avoinna\nKlo 20 - 06'`, `nightOnlyClosed()`) eikä huonetta/peliä avata. Yölogiikka ja
-talousarvot ennallaan.
+**Aukiolo (v4.34):** jukebox (talo 5) ja hedelmäpeli (talo 7) auki **vain öisin**; päivällä (`dayT >= 0.5`,
+`CLOSED_AT_DAYT`) ovesta sama popup kuin lukitusta ovesta (`CLOSED_SIGN 'Open\n8pm-6am'`, `nightOnlyClosed()`)
+eikä huonetta/peliä avata. Yölogiikka ja talousarvot ennallaan.
 
 **Nälkä (v4.41 / v4.49 / v4.50):** `hungerOnHold()` (`sleepRoom || sleepPhase > 0`) pitää
 `hamburgerTimer`in jäissä nukkuessa; herätessä `HUNGER_WAKE_GRACE 600` (väh. 10 s). **Kaikkialla muualla**
@@ -139,28 +131,14 @@ peli/
   (Dig Däsh, Blue Mäx). Makuuhuone (talo 7) on **aina auki ilman avaimia** (v4.43).
 - **Kadun uudet tilat (rosvo, kaivo, kuu, tankki, sanomalehti):** vain muistissa – ei uusia avaimia.
 
-## 🔒 Talousbalanssi (LUKITTU 20.9.2026)
+## 🔒 Talousbalanssi (SUPERSEDED forkissa 27.9.2026)
 
 > **⚠️ SUPERSEDED 27.9.2026:** sääntö 04 oli kirjoitettu **alkuperäistä Pimeä Katu -peliä** varten.
 > **AI CHAOS STREET -forkissa se EI enää päde** – NORMAL on vain yksi kaaostaso, ja talousarvot
 > (aloituskolikot/🍔, 🍔-tahti, RTP, hinnat) ovat vapaita muutettaviksi/kaaostettaviksi myös NORMALissa.
-> Alla olevat arvot säilyvät **historiallisena dokumentaationa** alkuperäispelin balanssista,
-> eivät sitovina rajoituksina chaos-versiossa.
+> Alkuperäispelin lukitut arvot, hyväksytty mittapuu ja testityökalut (eivät balanssia): **`.clinerules/04-economy-balance.md`**
+> + **`docs/economy-balance-memo.md`** – historiallista dokumentaatiota, **eivät sitovia rajoituksia** chaos-versiossa.
 
-> **Vanha ISO VAROITUS (alkuperäispeli):** älä muuta kolikko-/🍔-/RTP-arvoja ilman käyttäjän
-> eksplisiittistä pyyntöä. Sitova sääntö **`.clinerules/04-economy-balance.md`**, tausta
-> **`docs/economy-balance-memo.md`** sekä säännön 02 kohta "Talous ja palkkiotase".
-
-- **Hedelmäpeli:** panos 1, painot 🍒7 🍋5 🔔4 🍔2 💎2, maksut 💎35 🍔20 🔔12 🍋7 🍒4 + pari = panos takaisin
-  → **RTP ≈ 78,5 %**; ilmainen pyöräytys 1 / 120 s.
-- **Katu:** kolikko 1 kpl / 120 s · potkukolikko 1/5 + 30 s · 🍔 5 alussa, +1 / 40 s · BAR 1 kolikko = 1 🍔
-  (katto 10) · jukebox 1 kolikko / kappale · osuma = −1 🍔 · **rosvo = −1 🍔 + kaikki kolikot (v4.68)** ·
-  **kaivo = enintään −2 🪙 / 1/6 +3 🪙 (v4.52/v4.69)** · Nuku = +1 🍔 · syntymäpaketti 2 kolikkoa + 5 🍔.
-- **Hyväksytty mittapuu (käyttäjän pelitestit):** 1 kolikko on pakko jättää ja käydä katsomassa, onko pakko
-  syödä; hedelmäpeli palauttaa yleensä 1–2 kolikkoa; iso voitto (20 kolikkoa) ~kerran 30 pelikerrasta.
-  **Tasapaino on empiirisesti löydetty → siksi lukossa.**
-- **Testityökalut eivät ole balanssia:** `COIN_CHEAT_*`, `?coins=N` / `?debug`, `?day=0/1`, `?hole=0/1/2`,
-  `?burgers=N`, `bm`-debug, `MUSIC_SOURCE` – vapaasti säädettävissä (ei lupaa, ei versionostoa).
 
 ## 🏷️ Nimeämiskäytännöt
 

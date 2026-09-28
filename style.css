@@ -443,6 +443,30 @@ body::after {
     opacity: 0;
 }
 
+/* ═══ SIIRTYMÄMUSTA (v11.02) ═══════════════════════════════════════════
+   Kaaostason valinnan jälkeen: näyttö mustenee 2 s (ease-in) samalla kun
+   valikkobiisi vaimenee (audio.js fadeOutMenuMusic), sitten peli käynnistyy
+   mustan alla ja katu paljastuu 1 s häivytyksellä (ease-out) → yht. 3 s.
+   .on = musta (estää täppäykset), .reveal = paljastus (ei ota täppäyksiä). */
+#chaos-blackout {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 9998;   /* valikon (9000), gaten (9100) ja versiotekstin (9100) yllä */
+}
+#chaos-blackout.on {
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 2s ease-in;
+}
+#chaos-blackout.reveal {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1s ease-out;
+}
+
 /* v10.15: mobiilin vaakakuva – napit riviin, jotta koko valikko mahtuu matalaan näyttöön */
 @media (orientation: landscape) and (max-height: 500px) {
     #chaos-menu { gap: 12px; }

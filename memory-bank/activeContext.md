@@ -1,8 +1,11 @@
 # 🎯 Aktiivinen konteksti
 
 > **Kevyt:** Vain tämä tiedosto luetaan session alussa.
-> **Kompaktoitu 23.9.2026 (v4.71):** versiokohtainen yksityiskohtaselostus (v3.9x–v4.49) on git-historiassa
-> (viimeisin täysi versio commitissa `ffb1dd9`; HEAD `cc7046b`). v4.50+ tiivistetty alla.
+> **Kompaktoitu 28.9.2026 (v11.00, 42,0 → 27,2 kt):** tiivistettiin vain v10.x/uusi aines (kaaos K0–K7 → `docs/chaos.md`)
+> ja korjattiin rakenteelliset viat (kuolleet git-viitteet, orvot/tyhjät rivit). **Esiforkin v4.x-historia säilyy alla sellaisenaan.**
+> **Pankki 28.9.2026:** activeContext 27,2 · progress 20,7 · systemPatterns 12,1 kt = **60,0 kt** (ennen 84,9 kt, −29 %) = budjetti täynnä.
+> Esiforkin koko historia: `D:\AI\Main` (196 committia; ffb1dd9 · cc7046b · 44db9e7) – tämän repon historia alkaa `b854771`.
+> ⚠️ **Vahti:** jos tämä tiedosto > 25 kt tai koko pankki > 60 kt → kompaktoi (vain uusi aines; esiforkin v4.x-historia säilyy).
 
 ---
 
@@ -16,191 +19,21 @@
 
 ## 📍 Nyt (AI CHAOS STREET – fork 27.9.2026)
 
-- **Projekti:** **AI CHAOS STREET** – uusi itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages
-  `teppoaland.github.io/aistreet/`), forkattu Pimeä Katu v5.02:sta. Alkuperäinen `D:\AI\Main`
-  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v11.00` (`index.html` → `#version-tag`).
-- 🔓 **Sääntö 04 (talousbalanssi-lukko) EI PÄDE enää AI CHAOS STREET -versiossa** (käyttäjän linjaus
-  27.9.2026): sääntö 04 kirjoitettiin **alkuperäistä Pimeä Katu -peliä** varten ja sen lukitut arvot
-  ovat NORMAL-tason arvoja. Chaos-forkissa NORMAL on vain yksi kaaostaso → talousarvot
-  (aloituskolikot/🍔, 🍔-tahti, RTP, hinnat, syntymäpaketti) ovat **vapaita muutettaviksi/kaaostettaviksi**
-  myös NORMALissa. `.clinerules/04-economy-balance.md` ja `docs/economy-balance-memo.md` ovat
-  historiallisia viitteitä alkuperäispeliin, **eivät sitovia** chaos-versiossa. K4-taloudelliset akselit
-  (❓2) voidaan siten avata ilman sääntö 04:n prosessia.
-- **🌀 Alkuhubi + kaaostasot (v10.01):** `index.html` `#chaos-menu` (NORMAL / MILD / GOOD / BAD /
-  FULL CHAOS). `street.js` `setChaos()` + `chaosProfile()` + `applyChaosProfile()` +
-  `generateFullChaosSeed()`. Hub näytetään aina latauksessa → valinnan jälkeen spawn-arpa ja
-  session valitun tason asetuksilla. Kaaos muuttaa VAIN olemassa olevia arvoja/kertoimia:
-  tuuli/pilvet (`windSpeedMult`, `windDirFlip`), liikenne (`trafficSpeedMult`, `trafficSpawnMult`),
-  vuorokausi (`DAY_CYCLE_FRAMES`, `skyDir` = auringon/kuun suunta), linnut (`BIRD_COUNT_MIN/MAX`),
-  kolikko (`COIN_RESPAWN_FRAMES`), rosvo (`ROBBER_APPEAR_CHANCE/SPEED/COOLDOWN/TTL`).
-  NORMAL = nykyiset arvot bitti-identtisinä.
-- **🔄 F5-soft reset (v10.06):** hubia **ei näytetä** F5/reloadissa – valittu mode + ratkaistu
-  `chaosCfg` tallennetaan `sessionStorage`en (`aistreet_chaos_session`; selviää reloadista, tyhjenee
-  uudessa välilehdessä). F5 jatkaa samassa modessa ja **samalla** kaaosconfigilla (myös FULL:in
-  satunnaiset värit/palettit) – kolikot/🍔 säilyvät `pimeakatu_gamestate`:ssa. Hubi näytetään vain:
-  **ensivierailu/uusi välilehti**, **✕-hard reset** ja **kuolema** (kaikki kolme tyhjentävät sessionin).
-- **🎵 Valikkomusiikki (v10.07):** alkuvalikko ("Choose your chaos level") soi oman biisin –
-  `jukebox/alec_koff-heavy-doom-dark-metal-493397.mp3` (loop). **Vain valikossa** – pelin syntikkaa ja
-  jukeboxia ei kosketa. `audio.js`: `MENU_MUSIC_FILE`, oma `menuEl` (loop), `setMenuActive(on)` +
-  `startMenuMusic`/`stopMenuMusic`; `onGesture` valikon auki ollessa soittaa vain valikkobiisin (ei
-  pelitaustaa) ja yrittää uudelleen autoplay-eston jälkeen. `street.js` `DOMContentLoaded`:
-  valikon näyttö → `StreetAudio.setMenuActive(true)`, `start()` → `setMenuActive(false)` + `StreetAudio.start()`.
-- **🚪 Aloitusgate (v10.08):** autoplay-lukon takia valikkobiisi ei ehdi kuulua, jos chaos-tason klikkaa heti.
-  Ratkaisu: ennen chaos-valikkoa pieni `#start-gate` ("CLICK / PRESS ANY KEY TO BEGIN") – ensimmäinen ele
-  avaa äänilukon → chaos-valikko aukeaa **musiikin soidessa**. `index.html` `#start-gate` + `style.css`
-  (gate 9100, blink-animaatio) + `street.js` `DOMContentLoaded` (`setMenuActive(true)` jo gatessa, `onGesture`
-  hoitaa musiikin, `unlock()` näyttää valikon). Fallback ilman gate-elementtiä.
-- **⏱️ Aloitusgaten 2 s viive (v10.10):** korjaa mobiilin ghost-clickin – gaten napautus avasi valikon heti,
-  jolloin sama napautus (touchend + synteettinen click) osui valikon alla olevaan kaaostasonappiin ja eteni
-  suoraan peliin. Nyt `unlock()` viivyttää `showMenu()`ta **2000 ms** (`GATE_MENU_DELAY_MS`, `setTimeout`) ja
-  poistaa kuuntelijat välittömästi + `unlocked`-lippu estää toiston → napautuksen synteettiset jatkotapahtumat
-  tapahtuvat valikon ollessa vielä piilossa.
-- **🎵 Syntikka piilossa kunnes jukebox soi (v10.11):** pelin oma taustamusiikki (proseduraalinen syntikka /
-  "wave") ei soi ennen kuin jukeboxista on soitettu vähintään yksi kappale. `audio.js`: `synthUnlocked`-lippu +
-  julkinen `setSynthUnlocked(on)` (nollaa `musicGraceMs`/`fadeInNextSynth`); `playPhase()` palaa heti
-  (`phase='silent'`, ei ajastinta) kun lukittu. `gameState.js`: `defaultState.jukeboxPlayedOnce: false`.
-  `street.js`: `init()` → `StreetAudio.setSynthUnlocked(state.jukeboxPlayedOnce === true)`;
-  `jukeboxExitAndPlay()` asettaa lipun onnistuneen soiton jälkeen (molemmat haarat). Lukituksen auettua
-  `onJukeboxEnded()` → `playPhase()` alkaa soida normaalilla syklillä. Lippu on `pimeakatu_gamestate`:ssa →
-  nollautuu kuolemassa/✕-resetissä (per run, käyttäjän valinta). Valikkobiisi ja grace koskematta.
-- **🔪 Rosvo jahtaa vapaasti BAD CHAOS -tasolla (v10.12):** uusi kaaosakseli `robberChasesY` (boolean, oletus
-  `false`; `CHAOS_DEFAULTS2` false, `chaosProfile('bad')` true, muut/full false). `ROBBER_CHASES_Y`-lippu +
-  `applyChaosProfile()` kirjoittaa sen. `updateRobber()`: jahtaus haarassa ohjaa molemmilla akseleilla kuten
-  avenger (`r.x += sign(pcx−rcx)·speed·dt`, `r.y += sign(player.y−r.y)·speed·dt`, `facing` pelaajaan) ja kiinniotto
-  **ilman** `onLane`-ehtoa (pelkkä etäisyys < `ROBBER_HIT_R`); muuten partiointi + kaistakiinniotto bitti-identtinen.
-  **Rosvon elinikä kuluu nyt myös piilossa** (kaikki tasot): uusi blokki `trackHiddenStreet()`:n jälkeen tikittää
-  `robber.ttl`:ää kun `iframeOpen || sleepRoom || barRoom || jukeboxRoom || newsRoom` → "piiloudu ja odota"
-  -pakoreitti toimii. Renderöinti ennallaan (rosvo aina pylvään takana, kuten avenger). Nopeus yhä klampissa ≤ 1,4 × C.
-- **🌠 Meteoriitti + valikon vaakakuva (v10.15–v10.17):** tähdenlennon tilalla iso, hitaasti putoava
-  meteoriitti (v10.20: vain FULL CHAOS; aiemmin ei-NORMAL MILD 12 % · GOOD 8 % · BAD 40 % · FULL 55 %; NORMAL 0 %). `shootingStar.kind` +
-  `meteoriteChance()`. v10.16: viisto laskeutumiskulma 40–60° vaakasuorasta (kuten tähdenlento), häntä
-  2x pidempi, tärinä ~2,5 s, törmäysvälähdys = koko **taivas** välähtää salaman lailla (~1 s, talojen takana).
-  v10.17: kalpea, hoikka ulkoasu – jäänvalkoinen ydin + kylmä hehku, ei "joulupukin reki"; kipinät kalpeat.
-  Tärinä/välähdys vain katunäkymässä (huoneet return-varhain; meteoriitti päivittyy vain kadun yöpolussa).
-- **📱 Choose your -valikko vaakakuva (v10.15):** mobiilin landscape (≤ 500 px korkeus) – napit `flex-wrap: wrap`
-  -riveihin (3+2), pienempi otsikko/teksti, jotta koko valikko mahtuu matalaan näyttöön (ei aiemmin ollut
-  puhelinoptimoitu).
-- **🌀 Kaaos v10.18 – uudet akselit (polariteetti: ikävät = BAD/FULL, neutraalit = kaikki chaos-tasot):**
-  käyttäjän ideat "mistä saisi hyviä chaos-kohteita". **Ikävät (vain BAD/FULL):** lukitut ovet
-  (`doorLockChance`; jukebox + hedelmäpeli, **ei koskaan BAR/makuuhuone**, ei ilmoitusta – sääntö 06) ·
-  **hoipertelu** (`staggerAmount`; normaali vauhti + juopunut sivuttais-/pystyvärähtely → voi ajautua auton
-  alle / sähkökaappiin) · kuvan pieni jatkuva tärinä (`screenShakeAmount`). **Neutraalit:** lamppu napsahtaa
-  hetkeksi punaiseksi (`lampRedFlicker`, kuin potkaistu ilman savua) · BAR-kyltin palanut kirjain
-  (`barBurntLetter` −1/0/1/2) · sähkökaapin valon "rätinä" (`cabFlicker`) · auringon koko (`sunSizeMult`
-  0.6–2.0, BAD "tupla"). **Hidastus poistettu:** `playerSpeedMult` alaraja 0.6 → **1.0** (ei enää hidasta;
-  MILD 1.0–1.1 · BAD 1.0 · FULL 1.0–1.6) – hoipertelu korvaa tylsän hidastuksen. Kaikki uudet akselit
-  NORMALissa no-op → bitti-identtinen. Headless `%TEMP%`-smoke: 2170 setChaos-ajoa + 2000 FULL-arpaa → 0
-  hylättyä, 0 heittoa.
-- **🌠 Meteoriitti tuhoaa taustarivin taloja (v10.19):** meteoriitin osuessa maahan (`shootingStar.y >= GROUND_Y`)
-  poistetaan **3** taustataloa `backdrop.blocks`-taulukosta (lähin lohko + 2 viereistä, wrap-around reunalla;
-  `destroyBackdropHouses` + `METEOR_BACKDROP_HOUSES = 3`). Rivistö (~33 taloa, 28–38) häviää ~10 meteoriitilla.
-  Tärinä/välähdys/partikkelit ennallaan (käyttäjän linjaus: erillistä tärinää ei tarvita). Vain ei-NORMAL →
-  NORMAL bitti-identtinen. Ei uutta localStorage-avainta – `initBackdrop()` palauttaa rivin kuoleman/resetin
-  yhteydessä.
-- **🔫 Sädease kadulta + meteoriitit (v10.20–v10.24):** Sädease = kadulta poimittava esine (`beamPickup`,
-  vain FULL, kerran per run, satunnainen paikka) → `beamWeaponCollected` (uusi `gameState.js`-kenttä,
-  nollautuu kuolemassa). Ohjaus: **PC = hiiri** (tähtäysristikko seuraa kursoria, klikkaus ampuu),
-  **mobiili = täppäys taivaalle** (tähtää + ampuu). HUD `🔫`, ammukset rajattomat, ei rahapalkkiota.
-  **v10.21:** poiminta → dialogi "Sädease: ammu putoavat meteoriitit!"; harmaa kepakko 45° pelaajan etukädessä
-  (`drawPlayer`); laserääni (`playLaser`) + valojuova ~1 s (`BEAM_FIRE_FRAMES` 60, hehku + häivytys).
-  **v10.22:** säde lähtee piipun kärjestä (`beamMuzzle()` = sama piste piirrolle ja osumalle); `beamCanFire()`
-  vaatii pelaajan kääntyneeksi meteoriitin tulosuuntaan (`facing * vx < 0`, ei ammuntaa selästä) JA
-  lamppurivistön alapuolelle (jalkapiste ≥ `LAMP_BASE_Y` 325); laserääni pidennetty 1 s.
-  **v10.23:** talojen läpi ei voi ampua – `beamHitsBuilding()` (Liang–Barsky `segmentIntersectsRect`):
-  jos säteen linja kulkee katurivin talon kautta, osumaa ei rekisteröidä.
-  **v10.24:** `meteoriteChance()` FULL = **1** (aina, ~10 s) · BAD = **0.25** (harvakseltaan tuhoavia,
-  **ei sädeasetta** → pelaaja joutuu katsomaan kaupungin tuhoutuvan) · MILD/GOOD/NORMAL = **0**.
-  NORMAL bitti-identtinen (ei meteoriitteja eikä esinettä).
-
-
-
-
-- **📖 Ohjeikkuna – INSTRUCTIONS (v10.27–v10.30):** alkuvalikon lopussa pieni punainen `INSTRUCTIONS`-teksti
-  (`#instructions-link`) avaa CRT-tyylisen ohjeikkunan: **avaus 1 s** (power-on: viiva venyy pystyyn),
-  ohjeteksti kirjoitetaan **merkki merkiltä** (`typeInstructions()`, nupit `INS_*` `street.js`:ssä:
-  18 ms/merkki + tauot , ; : 120 ms ja . ! ? 260 ms, rivinvaihto 320 ms; 556 merkkiä ≈ 16 s),
-  **sulku 2 s** täppäyksellä tai Escillä (rivit alas nopeana kaskadina → CRT power-off).
-  Ikkuna **ei mene itsestään kiinni** (`insOpen`/`insClosing`-liput, `animationend` + varajastin
-  estetyille animaatioille). Ohjeteksti luetaan `#instructions-source`:sta (`index.html`) → sitä voi
-  vapaasti lisätä/vähentää. Äänet `audio.js`: `playPanelOn` / `playTypeClick` / `playPanelOff`.
-  `prefers-reduced-motion` → ei efektejä. Ikkuna on `#chaos-menu`:n sisällä (perii valikon `hidden`in,
-  ei vuoda kadulle) – **pelilogiikkaan, talouteen, porttiin eikä sessioon koskettu**. Tekstit englanniksi.
-  **v10.28:** `INSTRUCTIONS`-teksti vilkkuu rauhallisesti (`ins-link-blink` 2,4 s ease-in-out; pois
-  `.faded`-valikossa ja `prefers-reduced-motion`illa) ja ikkuna viilattiin mobiiliin (dvh-korkeus,
-  `max-width: 100%`, ≤480/≤360 px + vaakanäyttö; tyhjä rivi = riviväli `ins-gap`).
-  **v10.29/v10.30:** loppurivi on **vasemmalla kuten kaikki muukin** (keskitys `ins-final` **poistettu**) ja
-  lopun **`HAVE FUN!` vilkahtaa kerran** kirjoituksen valmistuttua – JS irrottaa sanan omaksi
-  `<span class="ins-fun ins-blink">`iksi (`blinkFinalWords()`), samalla keyframesilla ja tahdilla kuin
-  linkki (`ins-link-blink 2.4s ease-in-out 350ms 1`); vain opacity muuttuu → teksti ei siirry mihinkään.
-
-
-- **💰 FULL CHAOS: aloituskolikot + meteoriittipalkkio (v10.32, 28.9.2026):** käyttäjän linjaus – FULL CHAOS
-  alkaa **aina 2 kolikolla** kuten NO CHAOS: `generateFullChaosSeed()` `startCoins: CHAOS_DEFAULTS2.startCoins`
-  (ennen `rndInt(1, 100)`), ja **jokainen sädeaseella ammuttu meteoriitti = +1 🪙** (`fireBeam`-osuma,
-  portti `chaosLevel === 'full'` → BADissa ei palkkiota, koska `beamWeaponCollected` on jaettu tallennuskenttä
-  ja BADissa meteoriitteja on 25 %). Palaute: `playCoin()` + kultakipinät + HUD-lukema (sääntö 06: ei uutta
-  tekstiä, eikä `inventory.coin`-lippua aseteta → kadun kolikko ei katoa). **Mikään muu ei muutu:** FULLin
-  kolikon syntymäväli (1800–18000 f), muut kaaosakselit ja NORMAL bitti-identtinen. Validoitu
-  `%TEMP%\street-meteor-coin-test.cjs` (23/23) + `chaos-normal-check.cjs` (0 diffs) + `chaos-phase3-test.cjs`
-  (20 000 FULL-arpaa, 0 hylättyä).
-
-- **🌐 Koko UI englanniksi – v11.00 (28.9.2026):** kaikki **pelaajalle näkyvä** teksti on englanniksi
-  (pääpeli `street.js` + `index.html`, `bm`, `digGame1`, `digGame2`, `fruitgame`, `sinkship`). Käännös
-  tehtiin **tarkoituksella kaikelle UI-materiaalille**. Suomeksi jäivät **kommentit ja dokumentit** sekä
-  sanomalehden ASCII-manuaalisivu (`street.js`). **Rajapinnat ennallaan:** `postMessage`-protokolla
-  (`RETURN_TO_STREET`, `KEY_COLLECTED`, …), localStorage-avaimet (`pimeakatu_gamestate`,
-  `pimeakatu_fruit_free`), talousarvot ja kaaoslogiikka. Versio **v10.32 → v11.00** (`#version-tag` +
-  `?v=` style/gameState/audio/street) ja `index.html` `lang="en"`; alapelien omat versiotagit
-  (Dig Game `v1.2`, Battleship `v0.11`, Blue Mäx `dev`) jäivät ennalleen.
-
-
-- **⏱️ Grace-jakso (v10.09):** menun heavy metal → pelin syntikka -pudotus pehmennetty: pelin alkaessa
-  **valikosta** syntikka on hiljaa ensimmäiset **30 s** (vain kadun ambientti), sitten häivyttyy sisään
-  (`SYNTH_FADE_IN 800 ms`). F5 ei saa gracea. `audio.js`: `start(delayMs)`, `musicGraceMs` + `fadeInNextSynth`
-  `playPhase()`:ssä, `startSynth(fadeInMs)` (linearRamp 0→1). `street.js` `start()` → `StreetAudio.start(30000)`.
-- **📄 Kaaosparametrien suunnitelma v2 (27.9.2026):** `docs/chaos.md` – kategoriat K0–K7, tasomanifesti, C-kyvykkyysindeksi + 🍔-intervallin lattia (1200 f), kielletyt yhdistelmät, MUST-kohteet (kova tuuli · paksut pilvet + myrskytaivas · vihreä aurinko), toteutusresepti portteineen, testaus/DoD, 4 vaihetta ja avoimet päätökset (`❓`). Koodivaiheet `v10.02`…`v10.05` – **v10.02 (K0), v10.03 (K1), v10.04 (K3+K4), v10.05 (K2+K6+K7) valmiit.**
-- **🛡️ Kaaoksen kaksi pääsääntöä:** (1) **NORMAL ei saa koskaan hajota** – kaaosarvot ovat NORMALissa no-op ja peli on bitti-identtinen; (2) **koko peli pysyy pelattavana kaikissa moodeissa** – jokainen arpa kulkee `clampChaosCfg()` + `validateChaosCfg()` -portin läpi (ei epäreilua kuolemaa, uhkanopeus ≤ 1,4 × C).
-- **🛡️ Kaaosportti K0 (v10.02):** `street.js` – `makeRng` (mulberry32) + `chaosRng`, testikytkimet
-  `?chaos=`/`?seed=`/`?debug`, `CHAOS_DEFAULTS2` (täysi superset NORMAL-arvoilla) + uudet `let`:t
-  (`cloudCount`, `starCount`, `sunColor`, `animalSpeedMult`, …). Portti `clampChaosCfg()`/
-  `validateChaosCfg()`/`chaosAbility()` valmiina (tuotantokäyttö v10.03+). NORMAL bitti-identtinen.
-- **🧪 Sääntö 05 päivitetty (27.9.2026):** AI **saa** testata ja kirjoittaa/ajaa testiskriptejä oman
-  harkinnan mukaan (erityisesti kaaos-/rakennevalidointi); käyttäjän silmä jää lopulliseksi tuomariksi ulkoasussa.
-- **🌠 Meteoriitti-idea (vaihe 2, ❓4):** käyttäjän idea – tähdenlennosta voisi tulla iso, hitaasti ja
-  pahaenteisesti etenevä meteoriitti (yllätys). Liittyy `tähdenlento/satelliitti`-akseliin (K1) ja ❓4:ään
-  (meteor/satelliitti-logiikka on `street.js`:ssä kahtena kopiona: 2632–2676 ja 2302–2303).
-- **🌀 Kaaos Vaihe 2 (K1, → v10.03) VALMIS:** ❓4 = refaktoroi tähdenlento/satelliitti apufunktioiksi
-  (`updateShootingStar`/`updateSatellite`), **ei** meteoriittia. K1-akselit käyttöön: kova tuuli
-  (`windSpeedMult` BAD 2.0–3.5), paksut pilvet + myrskytaivas (`cloudCount/cloudOpacityMult/cloudSizeMult`/
-  `cloudBandTop/H`/`cloudCirrusShare`/`CLOUD_DAY_ALPHA`/`DAY_SKY_*`), **vihreä/violetti/verenpunainen aurinko**
-  (`sunColor`/`sunGlow`), tähdet (`starCount`/`starSizeMult`), ikkunavalot (`windowTargetMax`/`windowDurMin/Max`/
-  `SILHOUETTE_CHANCE`/`WIN_DAY_FILL`), talopaletit (`WARM/NEAR_BLACK/randomHuePalette`), eläimet
-  (`animalSpeedMult`/`animalDirBias`/`animalTypeWeights`), lepakot (`batSpawnFrames`/`BAT_COUNT_MAX`),
-  linnut (`birdSpeedMult`), kuoriaiset (`beetleCount`), lamput (`lampHueShift`/`LAMP_RADIUS`). NORMAL bitti-identtinen.
-- **🌀 Kaaos Vaihe 3 (K3+K4, → v10.04) VALMIS:** C-indeksi tuotantokäyttöön (`drawChaosCfg`: klampit +
-  validointi kaikille arvoille; FULL-arpa rejection sampling ≤ 40 yritystä). `chaosAbilityFor(cfg)` =
-  `playerSpeedMult × hungerMultFor(startBurgers)` (portti käyttää arvottavan configin arvoja, ei elävää
-  🍔-määrää – korjattu C-laskenta). K3: oviukon tn/nopeus/varoitus/jäädytys/tauko (`AVENGER_*`), rosvon
-  nopeusarpa ≤ 1.4·C (`randomRobberSpeed`), liikenteen ylityssääntö (`crossMax`), sähkökaappi
-  (`cabinetOnChance`). K4: kävelynopeus `playerSpeedMult` (klampi 0.6–1.6, ❓1=c), tainnutus (`avengerStun`/
-  `robberStun` ≤ nykyinen), herätysrako `hungerWakeGrace`, 🍔-tahti `burgerInterval` (lattia 1200 f) +
-  aloituskolikot/🍔 (`startCoins` 1–100 · `startBurgers` 2–10, vain `init`in `freshGame`-haarassa). NORMAL
-  bitti-identtinen (portti no-op); offline-linteri `%TEMP%\chaos-phase3-test.cjs` 20 000 arpaa → 0 hylättyä.
-- **🎴🔊 Kaaos Vaihe 4 (K2+K6+K7, → v10.05) VALMIS:** K2 loput: hämärä (`dayFadeFrames`/`nightFadeFrames`),
-  vuorokausiviive (`cycleChangeDelayFrames`), lamppushow (`nightLampFirst`/`nightLampInterval`/`spawnLampDelay`),
-  kaappien tahti (`cabBlinkMin/Max`/`cabRerollMin/Max`), hyttyset (`mosquitoDayDim`), tähdenlento/satelliitin
-  tahti (`meteorTempoMult`). K6 (vain `street.js`, ❓3=a): SFX-taso `sfxVolumeMult` (potku/kolikko/osuma/
-  kävely/sähköisku/lamppu). K7 (❓5=a): **10 visuaalista korttia** (`chaosCardDefs`/`updateCards`/
-  `cardFlashWindows` + `cardState`): Vihreä hetki · Tähtisade · Sumu nousee · Tuulenpuuska · Valot sammuvat ·
-  Kaikki ikkunat syttyvät · Eläinparaati · Värien vaihto · Taivaan vaihto · Tähtitaivas täyteen. 1 kerrallaan,
-  3–6/sessio (ensimmäinen ≥ 60 s, väli 90–300 s), itsestään palautuvat, **ei vahinkoa/taloutta/tekstiä**,
-  vain ei-NORMAL-tasoilla. Sumuverho (`fogAlpha`) + piirto renderissä. NORMAL bitti-identtinen;
-  headless `%TEMP%\street-k2k6k7-test.cjs` (5 tarkistusta, 2000 FULL-arpaa → 0 hylättyä).
-- ✅ **NORMAL varmistettu puhtaaksi** (headless, 56 avainta / 0 eroa): kaaosarvoja ei valu NORMALiin.
-  Spawn-paikan arpa joka latauksella on **tarkoituksellinen** forkin ominaisuus (v10.01, ei korjata) –
-  sama kuin talovärien ja tuulen suunnan arvonta.
-- **📝 Nimeäminen/polut siivottu (27.9.2026):** `PROJECT.md` + `README.md` otsikoitu AI CHAOS STREET:ksi;
-  vanhentuneet `D:\AI\Main\` -polut korjattu (`.clinerules/01`, `hook.md`, `PROJECT.md`).
+- **Projekti:** **AI CHAOS STREET** – itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages `teppoaland.github.io/aistreet/` ONLINE 27.9.2026), forkattu Pimeä Katu v5.02:sta; alkuperäinen `D:\AI\Main` jäädytetty. **Versio `v11.02`** (`index.html` `#version-tag`).
+- 🔓 **Sääntö 04 (talousbalanssi-lukko) EI PÄDE enää forkissa** (27.9.2026): se kirjoitettiin **alkuperäistä Pimeä Katu -peliä** varten → talousarvot (aloituskolikot/🍔, 🍔-tahti, RTP, hinnat, syntymäpaketti) ovat **vapaita myös NORMALissa**. `.clinerules/04` + `docs/economy-balance-memo.md` = historiallisia viitteitä, **eivät sitovia**.
+- 🛡️ **Kaaoksen kaksi pääsääntöä:** (1) **NORMAL ei saa koskaan hajota** – kaaosarvot ovat NORMALissa no-op, peli bitti-identtinen; (2) **peli pysyy pelattavana kaikissa moodeissa** – jokainen arpa kulkee `clampChaosCfg()` + `validateChaosCfg()` -portin läpi (ei epäreilua kuolemaa, uhkanopeus ≤ 1,4 × C). NORMAL varmistettu headlessinä (0 eroa).
+- 🌀 **Alkuhubi + portti K0 (v10.01/v10.02):** `#chaos-menu` (NORMAL/MILD/GOOD/BAD/FULL) → `setChaos()`/`chaosProfile()`/`applyChaosProfile()`/`generateFullChaosSeed()`; hubi vain ensivierailulla/uudessa välilehdessä/✕-resetissä/kuolemassa. Kaaos muuttaa **vain olemassa olevia arvoja/kertoimia** – ei uutta mekaniikkaa. `CHAOS_DEFAULTS2` (superset NORMAL-arvoilla) + `makeRng` (mulberry32) + testikytkimet `?chaos=`/`?seed=`/`?debug`.
+- 🧩 **Kaaos K0–K7 valmis (v10.02–v10.05, v10.18):** K1 visuaalinen · K3 uhka (oviukko, rosvo ≤ 1,4 × C, liikenne, kaapit) · K4 keho (`playerSpeedMult`, tainnutus, herätysrako, 🍔-tahti, aloitusarvat) · K2 kello · K6 SFX-taso · K7 10 visuaalista korttia · **K5 talous = 🔒 lukittu** (ei kaaosakseleita). **v10.18:** lukitut ovet (`doorLockChance`, ei koskaan BAR/makuuhuone, ei ilmoitusta – sääntö 06) · hoipertelu · kuvan tärinä · punainen lamppu · BAR-kyltin palanut kirjain · kaapin rätinä · auringon koko. **Kategoriat, klampit, tasomanifesti, C-indeksi ja DoD: `docs/chaos.md`.**
+- 🔄 **F5-soft reset (v10.06):** reload **ei näytä** hubia – mode + ratkaistu `chaosCfg` `sessionStorage`en (`aistreet_chaos_session`); F5 jatkaa samassa modessa, kolikot/🍔 `pimeakatu_gamestate`:ssa. Tyhjenee: uusi välilehti, ✕-reset, kuolema.
+- 🎵 **Valikko + portti + grace + syntikkalukko (v10.07–v10.11):** valikko soi `jukebox/alec_koff-heavy-doom-dark-metal-493397.mp3` (loop) – **vain valikossa**; `#start-gate` ("CLICK / PRESS ANY KEY TO BEGIN") avaa äänilukon → valikko soi musiikin kanssa; `GATE_MENU_DELAY_MS 2000` estää ghost-clickin. Valikosta tultaessa syntikka hiljaa 30 s + häivytys (`SYNTH_FADE_IN`), F5 ei gracea; syntikka pysyy hiljaisena kunnes jukeboxista on soitettu 1 kappale (`synthUnlocked`) – **lukko poistettu v11.01** (alla).
+- 🎵 **Kaaos-intro + syntikkalukko pois (v11.01):** chaos-valinnan jälkeen (tuore valikko, kaikki moodit) soitetaan kerran `jukebox/8_nickpanek-coffee-first-heavy-grunge-metal-instrumental-391308.mp3` (`StreetAudio.playChaosIntro()`, `loop=false`), sitten wave palaa (`INTRO_GAP 2000`). **`synthUnlocked`-lukko poistettu** → wave/syntikka soi nyt **oletuksena** kaikissa sessioissa (pelaaja kuuntelee wavea tai maksaa jukeboxista); `setSynthUnlocked()` + 3 kutsua purettu. F5/`?chaos=` ei introa. `#version-tag` v11.01.
+- 🎬 **Kaaosvalinnan siirtymä 3 s (v11.02):** tason valinnasta koko ruutu mustenee **2 s** ja valikkobiisi vaimenee samalla (`StreetAudio.fadeOutMenuMusic(ms)`, 50 ms portaat, lopuksi `MUSIC_VOLUME` palautus; `stopMenuMusic()` siivoaa kesken jääneen häivytyksen) → valikko piiloon ja `setChaos`/`saveChaosSession`/`init`/`playChaosIntro` **mustan alla** → musta häivytetään **1 s** (`#chaos-blackout.reveal`) ja elementti `hidden` → **yht. 3 s**, peli käynnistyy heti (ei enää "tyhjää" väliä biisin ja kadun välillä). Nupit `CHAOS_BLACKOUT_MS 2000` / `CHAOS_REVEAL_MS 1000` (`street.js` `start()`); `#chaos-blackout` (z 9998, `style.css` `.on`/`.reveal`) sijaitsee valikon **ulkopuolella**. F5/`?chaos=` **ei** siirtymää; NORMAL bitti-identtinen (vain UI-ajoitus); ei uutta tekstiä (sääntö 06). `#version-tag` v11.02.
+- 🔪 **Rosvo jahtaa vapaasti BAD:ssa (v10.12):** kaaosakseli `robberChasesY` (vain BAD) → molemmat akselit + kiinniotto ilman kaistaehtoa; rosvon `ttl` kuluu **myös piilossa** (huone/alapeli) kaikilla tasoilla.
+- 🌠 **Meteoriitti (v10.15–v10.17, v10.19):** tähdenlennon tilalla hidas meteoriitti (`meteoriteChance()`: MILD 12 % · GOOD 8 % · BAD 40 % · FULL 55 % · NORMAL 0 %); kulma 40–60°, tärinä + taivasvälähdys, jäänvalkoinen ulkoasu; osuma poistaa **3 taustataloa** (`destroyBackdropHouses`, wrap-around) ja `initBackdrop()` palauttaa rivin kuolemassa/resetissä. Vain katunäkymässä.
+- 🔫 **Sädease + meteoriitit (v10.20–v10.24, v10.25/26, v10.32):** FULL = meteoriitteja aina + kadulta poimittava **sädease** (`beamPickup`, kerran/run, `beamWeaponCollected`) ja **aloitus aina 2 🪙:lla**; PC hiiri-tähtäys, mobiili täppäys; `beamMuzzle`, ammunta vain tulosuuntaan (`facing*vx<0`) ja lamppurivistön alapuolelta (jalkapiste ≥ `LAMP_BASE_Y` 325), talojen läpi ei ammu (`beamHitsBuilding`; v10.25/26: taloesto tarkistaa meteoriitin sijainnin); laserääni + valojuova 1 s; **ammuttu meteoriitti = +1 🪙** (hiljainen: `playCoin` + kultakipinät). BAD = 25 % meteoriitteja **ilman** asetta. NORMAL bitti-identtinen.
+- 📖 **INSTRUCTIONS-ohjeikkuna (v10.27–v10.31):** valikon punainen `INSTRUCTIONS` avaa CRT-ikkunan – avaus 1 s → teksti merkki merkiltä (`typeInstructions()`, nupit `INS_*`, sisältö `#instructions-source`:sta) → sulku 2 s (täppäys/Esc); ei mene itsestään kiinni; v10.31 vilkunta toimii puhelimilla.
+- 🌐 **Koko UI englanniksi (v11.00, 28.9.2026):** kaikki **pelaajalle näkyvä** teksti englanniksi (`street.js`, `index.html`, `bm`, `digGame1/2`, `fruitgame`, `sinkship`); kommentit/dokumentit + sanomalehden ASCII-manuaalisivu jäivät suomeksi. **Rajapinnat ennallaan:** `postMessage`-protokolla, localStorage-avaimet, talousarvot, kaaoslogiikka; `lang="en"`; alapelien omat versiotagit ennallaan.
+- **📝 Nimeäminen/polut siivottu (27.9.2026):** `PROJECT.md` + `README.md` otsikoitu AI CHAOS STREET:ksi, vanhentuneet `D:\AI\Main`-polut korjattu. **👇 Alla esiforkin historia v4.5x–v5.02 + forkin katurikuvat (säilytetty ennallaan).**
 - **🌳 Puiden lisähaara (v5.01):** `street.js` `drawBareTree()` – puiden 1 ja 2 oikean alaoksan (+0.7 rad) puolivälistä lähtee nyt +45° lisähaara (Math.PI/4, pituus 50 %, leveys 55 % emooksasta, syvyys 2).
 - **🐦 Päivälinnut (v5.00):** `street.js` – päivällä 10–15 mustaa lintua istuskelee puiden latvuksissa (Y 275–285, korjattu 1.10.2026: nostettu ylemmäs oksille, pois rungolta ja latvan yläpuolelta). Liikkuvat satunnaisesti paikasta toiseen 3–12 s välein. Lepakot ennallaan yöllä.
 - **🎵 Jukebox aina vapaa (v5.00):**ebox ei enää lukkiudu soiton ajaksi. Soivan kappaleen aikana voi valita lisää kappaleita, jotka lisätään jonon perään (numerojärjestyksessä 1→N). Tilateksti näyttää `Soittojonossa: X kappaletta` (`(i/n)`-parenteesi pois SOI NYT -riviltä).
@@ -247,7 +80,7 @@
 - **Kadun canvas-huoneet (ei iframe):** makuuhuone (talo 7) · BAR (talo 9) · jukebox (`buildings[4]`,
   ovi x 410) · sanomalehti (`newsRoom`) · hedelmäpelitalo (`buildings[6]`, iframe).
 - **Aukiolo (v4.34):** jukebox + hedelmäpeli auki **vain öisin** (päivällä `dayT >= 0.5` → popup
-  `Avoinna` / `Klo 20 - 06`, `CLOSED_SIGN`, `nightOnlyClosed()`) – ei potkua, ei valoja, ei sisään.
+  `Open` / `8pm-6am`, `CLOSED_SIGN`, `nightOnlyClosed()`) – ei potkua, ei valoja, ei sisään.
 - **Päivä/yö (v4.33, tallennettu `state.isDay`):** `null` = ratkaisematon · kaikki 3 avainta nostaa päivän
   kerran (v4.32) · sen jälkeen **makuuhuoneen Nuku** vaihtaa päivä ⇄ yö (Poistu ei muuta mitään).
   Makuuhuoneen ovi on **aina auki** (v4.43) → Nuku voi ratkaista tilan jo ennen avaimia.
@@ -304,7 +137,7 @@
   (`nearNewspaper()`, säde 26 px) → `newsRoom` 5 sivua: 4 ohjesivua + **MANUAALI** (rahavirran
   ASCII-piirros 64/40 merkkiä; `newsLayout()`, generaattori `%TEMP%\newspaper-art.cjs`, validointi
   `np-verify.cjs`). Liikenne **ei pysähdy** lukiessa (`updateTraffic(dt)`) → auto voi ajaa yli
-  (lehti putoaa, tainnutus −1 🍔); ylätunniste varoittaa `⚠ VARO AUTOA – liikenne ei pysähdy!`.
+  (lehti putoaa, tainnutus −1 🍔); ylätunniste varoittaa `⚠ WATCH OUT – TRAFFIC NEVER STOPS!`.
 - **🌙 Kuu liukuu (v4.65):** alkaa vasemmalta (`MOON_X_MIN = SUN_X` 140) ja etenee oikealle **myös
   huoneissa/alapeleissä**, kunnes laskeutuu ulos (`MOON_SET_X ≈ 884`, `MOON_NIGHT_FRAMES 57600` ≈ 16 min);
   laskeutuessaan `moonDark` 0 → 0.15 (`MOON_SET_START 0.60`). `resetMoon()` uudessa yössä/spawnissa;
@@ -360,8 +193,7 @@ mopo, puut, kolikko, mobiilikamera, potkukolikko).
   `SYNTH_PLAY_DURATION 30000` · `SONG_PLAY_LIMIT 30000` · `SONG_FADE_OUT 600` · `MUSIC_VOLUME 0.05` ·
   tauko `getSilenceDuration()` 30–90 s · `JUKEBOX_GAP 2500` · `JUKEBOX_VOLUME = MUSIC_VOLUME` ·
   `JUKEBOX_TRACKS` 6 kpl (raidat 4–6 = kolmannen osapuolen heavy metal + `covers/{4,5,6}.png`).
-- **Panssarivaunu (v4.56):** `type 'tank'`, `w 86 / h 36`, nopeus 0,4–0,8, ei ajovaloa; ääni 28 Hz + särö
-  + toinen oskillaattori.
+- **Panssarivaunu (v4.56):** `type 'tank'`, `w 86 / h 36`, nopeus 0,4–0,8, ei ajovaloa.
 - **Testicheatit:** `COIN_CHEAT_LAMP/KICKS/REWARD/GAP/COOLDOWN` = 4/20/20/120/3600 · avain-cheat 5 potkua
   (`lamps[4]`) · `?burgers=N`.
 - **Ovikynnykset:** `THRESH_RINGS`, `THRESH_TOP_Y`, `THRESH_DIP`, `THRESH_DETAILS`, `THRESH_LIGHT`,
@@ -382,7 +214,7 @@ mopo, puut, kolikko, mobiilikamera, potkukolikko).
   `SLEEP_DARK_FRAMES 45` + `SLEEP_ZZZ_FRAMES 180` (`SLEEP_FADE_FRAMES`) · `hungerOnHold()` ·
   `HUNGER_WAKE_GRACE 600` · `sleepSel` (0 = Nuku, 1 = Poistu) · sänky `bedW = min(340, panelW − 16)`.
 - **Notifikaatiot:** `showNotification(text, durationMs = 2500)` + 0,5 s fade; `showSpawnHint` 4500 ms.
-- **Aukiolo (v4.34):** `CLOSED_SIGN 'Avoinna\nKlo 20 - 06'` · `CLOSED_AT_DAYT 0.5` · `nightOnlyClosed()`.
+- **Aukiolo (v4.34):** `CLOSED_SIGN 'Open\n8pm-6am'` · `CLOSED_AT_DAYT 0.5` · `nightOnlyClosed()`.
 
 ## 🔒 Lukitut osa-alueet
 
@@ -396,49 +228,24 @@ mopo, puut, kolikko, mobiilikamera, potkukolikko).
 
 ## 🔜 Seuraavaksi (odottaa käyttäjän päätöstä)
 
-- **🌐 Koko pelin tekstit englanniksi – ✅ TEHTY 28.9.2026 (käyttäjän pyyntö):** HUD, notifikaatiot, popupit,
-  canvas-huoneet (`street.js`), `fruitgame`, `digGame1`, `digGame2`, `bm`, `sinkship` on käännetty;
-  kommentit/dokumentit jäivät suomeksi, pelilogiikka ja protokollat (`postMessage`, localStorage) sekä
-  talousarvot ennallaan. **Versio nostettu v11.00:aan** (käyttäjän päätös 28.9.2026 – käännös tehtiin
-  tarkoituksella kaikelle UI-materiaalille, joten `#version-tag` + `?v=` = 11.00). Ks. `progress.md`.
+- **🌐 Koko pelin tekstit englanniksi – ✅ TEHTY 28.9.2026 (v11.00):** ks. yllä "Nyt" (kaikki pelaajalle näkyvä UI käännetty; kommentit/dokumentit suomeksi).
 
 - **Blue Mäx:** TESTIMODE pois → vihollisten ammunta takaisin 60 % aggressiolle.
 - **Pääsiäismunat Dig Däshiin.**
 - **Hedelmäpeli:** RTP-presetit (A 74 % / **B 78,5 % oletus** / C 85 %), panosvalitsin 1/2/5,
   symboligrafiikan hienosäätö. Testaus `fruitgame/game_main.html?coins=100` / `?debug`.
-- **Jukebox:** `jukebox/Knived_Unafraid_instrumental.mp3` on sama äänite kuin juuren
-  `knived_unafraid.mp3` → raita 3 voisi osoittaa juuritiedostoon (~2 MB säästö).
-- **Jukebox-testit:** `%TEMP%\street-jukebox-*.cjs` odottavat vanhaa yhden valinnan mallia → päivitettävä
-  (myös 6 raidan lista).
-- **Päivä / makuuhuone – vapaat säädöt jos silmä vaatii:** ikkunavalot eivät sammu päivällä ·
-  maagradientti · `DAY_LIGHT_ALPHA` / `DAY_SKY_*` · `bedW` / peiton väri / yöpöytä · `SLEEP_FADE_FRAMES` ·
-  `NIGHT_FADE_FRAMES` · heräämisteksti.
-- **Jatkoideat (ei tehty):** potkun 1 px screen shake · pää ja nyrkit recteinä `arc()`:n sijaan ·
-  hengityksen syvyys 2 px / hitaampi sykli.
+- **Jukebox:** `jukebox/Knived_Unafraid_instrumental.mp3` = sama äänite kuin juuren `knived_unafraid.mp3` → raita 3 voisi osoittaa juuritiedostoon (~2 MB säästö). **Jukebox-testit** `%TEMP%\street-jukebox-*.cjs` odottavat vanhaa yhden valinnan mallia → päivitettävä.
+- **Päivä / makuuhuone – vapaat säädöt jos silmä vaatii:** ikkunavalot · maagradientti · `DAY_LIGHT_ALPHA`/`DAY_SKY_*` · `bedW`/peitto/yöpöytä · `SLEEP_FADE_FRAMES`/`NIGHT_FADE_FRAMES` · heräämisteksti.
+- **Jatkoideat (ei tehty):** potkun 1 px screen shake · pää/nyrkit recteinä · hengityksen syvyys 2 px.
 
 ## ⚠️ Huomiot
 
-- **Kadun talous – mekaniikat, eivät paperilukuja:** katukolikko näkyvissä 10 s (`despawnTimer 600`) →
-  30 s tauko (`despawnCooldown 1800`) → uusi satunnaispaikka (x 0–780, y 310–380); kadun ylitys ~10,6 s →
-  kolikko ehtii kadota nenän edestä. Keräysalue osuu autokaistoille (kaistat y 328 ja 340; turvassa
-  `player.y ≥ 347`). **Tasapainoa ei todisteta laskemalla – se testataan pelaamalla** (sääntö 04).
-- **Huoneet mobiilissa:** canvas on vain `viewW` (260–800) leveä ja kamera keskittää huoneen
-  (`camX = (800 − viewW)/2`) → sisältö sovitetaan näkyvään ikkunaan (ks. `systemPatterns.md`).
+- **Kadun talous – mekaniikat, eivät paperilukuja:** katukolikko näkyvissä 10 s (`despawnTimer 600`) → 30 s tauko (`despawnCooldown 1800`) → uusi satunnaispaikka (x 0–780, y 310–380); kadun ylitys ~10,6 s → kolikko ehtii kadota nenän edestä. Keräysalue osuu autokaistoille (kaistat y 328 ja 340; turvassa `player.y ≥ 347`). **Tasapainoa ei todisteta laskemalla – se testataan pelaamalla.**
+- **Huoneet mobiilissa:** canvas vain `viewW` (260–800) leveä, kamera keskittää (`camX = (800 − viewW)/2`) → sisältö sovitetaan ikkunaan (ks. `systemPatterns.md`).
 - Pään ympyrä (arc r = 7, `py+6`) peittää paidan ylimmät rivit → pään/kaulan varjostus vasta `py+13`.
-- **Pelaajan syvyysskaalaus (v4.31):** `s ≠ 1` tekee pikselikoordinaateista murto-osaisia → 1 px reunat
-  voivat pehmentyä. Jos silmä havaitsee: kvantisoi skaala portaisiin (esim. 0,025 välein) tai
-  offscreen-blitti lähimmällä naapurilla.
-- **Päivä/yö (v4.33):** `state.isDay` (`null` / `true` / `false`); 3 avainta nostaa päivän kerran ja
-  tallentaa `true`; v4.43:n avoin makuuhuone → **Nuku voi ratkaista tilan jo ennen avaimia**, jolloin
-  v4.32:n auringonnousu ei enää laukea. Avain-cheat sytyttää päivän samalla logiikalla. Päivänvalo on
-  additive-kerros (`'lighter'`) → palettia ei muuteta; valoisampaa saa nostamalla `DAY_LIGHT_ALPHA`.
-- **Makuuhuone (v4.33/v4.43/v4.44):** päivä/yö-liuku on pysähdyksissä huoneessa (`!sleepRoom`) ja
-  iframe-peleissä → muutos näkyy kadulle palatessa. Huone piirretään ennen päivänvalo-washiä.
-  Nukkuminen antaa **+1 🍔** (katto 10) eikä koske lamppuihin, oviin eikä avaimiin.
-- `handleAction()` palaa heti osumasta → hit pause asetetaan haaroissa, `actionJustPressed` nollataan
-  framen lopussa (ei tuplapotkua). `KICK_DURATION` ja törmäyslogiikka ennallaan.
-- `street.js` `lamps[].label` on **kuollutta dataa** – kadun kyltit eivät näytä pelien nimiä.
-- **Headless-validointi** onnistuu Node `vm` + Proxy-canvas-stub -tekniikalla (rAF ohjattavana);
-  testiskriptit `%TEMP%\*.cjs` – ei repossa (luettelo `progress.md`:ssä).
+- **Pelaajan syvyysskaalaus (v4.31) ja päivä/yö (v4.33/v4.43):** `state.isDay` (`null`/`true`/`false`) tallennetaan; 3 avainta nostaa päivän kerran, sen jälkeen **Nuku** vaihtaa; avoin makuuhuone → **Nuku voi ratkaista tilan jo ennen avaimia**, jolloin v4.32:n auringonnousu ei enää laukea. Päivänvalo = additive-kerros (`'lighter'`), valoisampaa saa nostamalla `DAY_LIGHT_ALPHA`. Syvyysskaalaus `s ≠ 1` tekee pikselikoordinaateista murto-osaisia → 1 px reunat voivat pehmentyä (tarvittaessa kvantisoi skaala portaisiin / offscreen-blitti lähimmällä naapurilla). Ks. `systemPatterns.md`.
+- **Makuuhuone (v4.33/v4.43/v4.44):** päivä/yö-liuku on pysähdyksissä huoneessa (`!sleepRoom`) ja iframe-peleissä → muutos näkyy kadulle palatessa; huone piirretään ennen päivänvalo-washiä. Nuku = **+1 🍔** (katto 10), ei koske lamppuihin, oviin eikä avaimiin.
+- `handleAction()` palaa heti osumasta → hit pause asetetaan haaroissa, `actionJustPressed` nollataan framen lopussa (ei tuplapotkua); `KICK_DURATION` ja törmäyslogiikka ennallaan. `street.js` `lamps[].label` on **kuollutta dataa** (kyltit eivät näytä pelien nimiä).
+- **Headless-validointi:** Node `vm` + Proxy-canvas-stub (rAF ohjattavana); testiskriptit `%TEMP%\*.cjs` – ei repossa (luettelo `progress.md`:ssä).
 - Pääportaalin mobiiliohjain: `position: absolute`, `opacity: 0.65`, landscape overlay, D-pad + ⚡.
 - Julkaisu: GitHub Pages `https://teppoaland.github.io/aistreet/` (ONLINE 27.9.2026).

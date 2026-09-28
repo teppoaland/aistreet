@@ -7,9 +7,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <!-- v11.00: ?v= -versioleima – mobiiliselaimet eivät jää jumiin vanhaan
+    <!-- v11.02: ?v= -versioleima – mobiiliselaimet eivät jää jumiin vanhaan
          CSS:ään/JS:ään. Nosta sama numero kuin #version-tag. -->
-    <link rel="stylesheet" href="style.css?v=11.00">
+    <link rel="stylesheet" href="style.css?v=11.02">
 </head>
 <body>
     <!-- ═══ ALOITUSGATE (äänilukko auki ennen chaos-valikkoa) ═══ -->
@@ -55,8 +55,14 @@
 
     </div>
 
+    <!-- ═══ SIIRTYMÄMUSTA (v11.02) ═══════════════════════════
+         Kaaostason valinnan jälkeen näyttö mustenee (2 s) ja
+         katu paljastuu pehmeästi (1 s). Sijaitsee #chaos-menu:n
+         ULKOPUOLELLA, koska valikko piilotetaan kesken siirtymän. -->
+    <div id="chaos-blackout"></div>
+
     <!-- Versionumero (aina näkyvissä – myös alkunäkymässä) -->
-    <div id="version-tag">v11.00</div>
+    <div id="version-tag">v11.02</div>
 
     <!-- ═══ PÄÄNÄKYMÄ ═══════════════════════════════════ -->
     <div id="game-wrapper">
@@ -95,9 +101,9 @@
     </div>
 
     <!-- ═══ SKRIPTIT ═════════════════════════════════════ -->
-    <script src="gameState.js?v=11.00"></script>
-    <script src="audio.js?v=11.00"></script>
-    <script src="street.js?v=11.00"></script>
+    <script src="gameState.js?v=11.02"></script>
+    <script src="audio.js?v=11.02"></script>
+    <script src="street.js?v=11.02"></script>
 
     <!-- ✕-napit (alapeli + huone + reset) – yksi yhteinen toiminto -->
     <script>

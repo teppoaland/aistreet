@@ -17,7 +17,6 @@ const StreetAudio = (() => {
     let loopId = null;
     let started = false;
     let melodyReverse = false;
-    let synthUnlocked = false;   // v10.11: syntikka piilossa, kunnes jukeboxista soitettu kerran
 
     // ── Taustamusiikin lähde ─────────────────────────────────
     // 'synth' = proseduraalinen syntikkalooppi (oletus – soi aina)
@@ -43,6 +42,7 @@ const StreetAudio = (() => {
     let menuEl = null;            // <audio>-elementti (loop)
     let menuActive = false;       // onko alkuvalikko auki
     let menuMusicBlocked = false; // autoplay estetty – yritetään uudelleen eleessä
+    let menuFadeTimer = null;     // valikkobiisin häivytyksen interval-tunniste (v11.02)
 
     function startMenuMusic() {
         init();
@@ -64,6 +64,7 @@ const StreetAudio = (() => {
             started = false;
             stopMusicLoop();
             stopJukebox();
+            stopIntro();
             menuMusicBlocked = false;
             const p = menuEl.play();
             if (p && typeof p.catch === 'function') {
@@ -73,10 +74,35 @@ const StreetAudio = (() => {
     }
 
     function stopMenuMusic() {
+        // Kesken oleva häivytys ei saa jäädä päälle (v11.02)
+        if (menuFadeTimer) { clearInterval(menuFadeTimer); menuFadeTimer = null; }
         if (menuEl) {
             try { menuEl.pause(); } catch (e) {}
             try { menuEl.currentTime = 0; } catch (e) {}
+            try { menuEl.volume = MUSIC_VOLUME; } catch (e) {} // palauta perustaso seuraavaa valikkoa varten
         }
+    }
+
+    /* Valikkobiisin häivytys (v11.02): kaaostason valinnan jälkeen kappale
+       vaimenee ms-ajan kuluessa ja pysähtyy lopuksi (ei kovaa katkaisua).
+       Volume palautetaan loppuun, jotta seuraava valikko soi taas täysillä. */
+    function fadeOutMenuMusic(ms) {
+        if (!menuEl) return;
+        if (menuFadeTimer) { clearInterval(menuFadeTimer); menuFadeTimer = null; }
+        const dur = Math.max(0, ms | 0);
+        if (!dur) { stopMenuMusic(); return; }
+        const stepMs = 50;
+        const steps = Math.max(1, Math.round(dur / stepMs));
+        let i = 0;
+        menuFadeTimer = setInterval(() => {
+            i++;
+            try { menuEl.volume = MUSIC_VOLUME * Math.max(0, 1 - i / steps); } catch (e) {}
+            if (i >= steps) {
+                clearInterval(menuFadeTimer);
+                menuFadeTimer = null;
+                stopMenuMusic();
+            }
+        }, stepMs);
     }
 
     function setMenuActive(on) {
@@ -772,13 +798,6 @@ const StreetAudio = (() => {
     function playPhase() {
         if (!ctx) return;
         if (cycleTimer) { clearTimeout(cycleTimer); cycleTimer = null; }
-        // v10.11: syntikka pysyy piilossa, kunnes jukeboxista on soitettu kerran.
-        // Ei ajastinta → ei taustamusiikkia ennen lukituksen aukeamista.
-        if (!synthUnlocked) {
-            phase = 'silent';
-            started = false;
-            return;
-        }
         phase = 'playing';
         // Grace-jakso (v10.09): menun jälkeen syntikka hiljaa, sitten häivyttyy sisään.
         if (musicGraceMs > 0) {
@@ -811,7 +830,7 @@ const StreetAudio = (() => {
             return;
         }
         // Jukebox soi → ei taustamusiikkia päälle
-        if (jukePlaying || phase === 'jukebox') return;
+        if (jukePlaying || phase === 'jukebox' || introPlaying) return;
         // Autoplay-eston jälkeen soitetaan odottava jukebox-jono (osto on jo tehty)
         if (pendingJukeQueue && pendingJukeQueue.length) {
             const q = pendingJukeQueue;
@@ -959,6 +978,63 @@ const StreetAudio = (() => {
     }
 
 
+    /* ── Kaaos-intro (v11.01): pelin alkaessa soitetaan yksi kappale kerran,
+       sitten palataan normaaliin wave/syntikka-musiikkiin. ── */
+    const INTRO_GAP = 2000;              // tauko ennen kuin wave-musiikki palaa (ms)
+    let introEl = null;                  // <audio> intro-kappaleelle (loop = false)
+    let introPlaying = false;            // soiko intro parhaillaan
+
+    function stopIntro() {
+        introPlaying = false;
+        if (introEl) {
+            try { introEl.pause(); } catch (e) {}
+            try { introEl.currentTime = 0; } catch (e) {}
+        }
+    }
+
+    function onIntroEnded() {
+        stopIntro();
+        if (phase === 'intro') phase = 'silent';
+        if (cycleTimer) { clearTimeout(cycleTimer); cycleTimer = null; }
+        cycleTimer = setTimeout(playPhase, INTRO_GAP);
+    }
+
+    /* Soittaa intro-kappaleen kerran ja palaa sen jälkeen wave-musiikkiin. */
+    function playChaosIntro(url) {
+        if (!url) { start(); return; }
+        init();
+        if (!ctx) { start(); return; }
+        try { if (ctx.state === 'suspended') ctx.resume(); } catch (e) {}
+        cancelCycle();                    // taustamusiikki pois intron ajaksi
+        stopMenuMusic();
+        stopJukebox();
+        phase = 'intro';
+        introPlaying = true;
+        if (!introEl) {
+            try {
+                introEl = new Audio();
+                introEl.loop = false;
+                introEl.preload = 'auto';
+                introEl.addEventListener('ended', onIntroEnded);
+                introEl.addEventListener('error', onIntroEnded);
+            } catch (e) {
+                introPlaying = false;
+                onIntroEnded();
+                return;
+            }
+        }
+        try { introEl.volume = MUSIC_VOLUME; } catch (e) {}
+        try { introEl.src = url; } catch (e) { introPlaying = false; onIntroEnded(); return; }
+        const p = introEl.play();
+        if (p && typeof p.catch === 'function') {
+            p.catch(() => {
+                // Autoplay estetty → ei jäädä hiljaiseksi, wave palaa.
+                introPlaying = false;
+                onIntroEnded();
+            });
+        }
+    }
+
     /* ── Julkinen API ────────────────────────────────── */
     function start(delayMs) {
         init();
@@ -967,7 +1043,7 @@ const StreetAudio = (() => {
             ctx.resume();
         }
         // Jukebox soi → ei käynnistetä taustamusiikkia sen päälle
-        if (jukePlaying || phase === 'jukebox') return;
+        if (jukePlaying || phase === 'jukebox' || introPlaying) return;
         // Grace-jakso (v10.09): valikosta aloitettaessa syntikka hiljaa ensin
         if (delayMs) musicGraceMs = delayMs;
         // Käynnistä vain jos mikään sykli ei ole käynnissä
@@ -982,6 +1058,7 @@ const StreetAudio = (() => {
         started = false;
         phase = 'silent';
         stopJukebox();             // myös jukebox-kappale hiljenee (kuolema keskeyttää kaiken)
+        stopIntro();
         stopMusicLoop();
         stopMenuMusic();                            // valikkobiisi hiljenee (kuolema)
         if (synthGain) synthGain.gain.value = 0;   // syntikkatausta hiljenee heti (kuolema)
@@ -991,20 +1068,8 @@ const StreetAudio = (() => {
     function getDestination() { init(); return ctx ? ctx.destination : null; }
     function setHungerTempo(mult) { hungerTempo = mult; }
 
-    /* v10.11: avaa syntikan lukitus (kutsutaan kun jukeboxista on soitettu kerran).
-       Nollaa valikosta mahdollisesti jääneen gracen, ettei lukituksen auettua
-       jää ylimääräistä 30 s hiljaisuutta. Ei käynnistä sykliä itse – jukebox-kappaleen
-       loputtua onJukeboxEnded() ajoittaa playPhase()n, joka nyt alkaa soida. */
-    function setSynthUnlocked(on) {
-        synthUnlocked = !!on;
-        if (on) {
-            musicGraceMs = 0;
-            fadeInNextSynth = false;
-        }
-    }
-
     return { init, start, stop, playDeathGong, getCtx, getDestination,
              playJukebox, playJukeboxQueue, appendJukeboxQueue, stopJukebox,
              isJukeboxPlaying, getJukeboxQueuePos, setHungerTempo, setMenuActive,
-             setSynthUnlocked, playPanelOn, playPanelOff, playTypeClick };
+             fadeOutMenuMusic, playChaosIntro, playPanelOn, playPanelOff, playTypeClick };
 })();
