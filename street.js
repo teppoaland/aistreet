@@ -9432,9 +9432,11 @@ window.addEventListener('DOMContentLoaded', () => {
        Kun valikko ("CHOOSE YOUR CHAOS LEVEL") on auennut, hover-efekti liukuu
        kerran kaikkien viiden kaaosnapin yli ylhäältä alas: 1 s valikon
        avautumisesta, sen jälkeen 10 s välein (kierroksen alusta alkuun)
-       niin kauan kuin valikko on auki. Yksi nappi kerrallaan 346 ms
-       (v11.17: 450 → 346 ms eli +30 % nopeampi), ja viimeinen (FULL CHAOS)
-       jää päälle 2 s – samalla koko näyttö tärisee.
+       niin kauan kuin valikko on auki. Yksi nappi kerrallaan 173 ms
+       (v11.17: 450 → 346 ms eli +30 %, sen jälkeen vielä puolet pois
+       346 → 173 ms), ja viimeinen (FULL CHAOS)
+       jää päälle 2 s – samalla koko näyttö tärisee. Pito ja tärinä ovat
+       ennallaan: ne tulevat ikään kuin siitä, että valikko tippuu.
        Efekti on pelkkä luokka .auto-hover (style.css = täsmälleen sama ulkoasu
        kuin :hover), joten oikea hiiri ja täppäys toimivat koko ajan
        normaalisti – oikea osoitin myös keskeyttää käynnissä olevan liu'un.
@@ -9454,7 +9456,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const AUTO_HOVER_ON        = urlParams.get('autohover') !== '0';
     const AUTO_HOVER_START_MS  = 1000;    // viive siitä, kun valikko on auennut
     const AUTO_HOVER_REPEAT_MS = 10000;   // kierroksen alusta seuraavan alkuun = 10 s
-    const AUTO_HOVER_STEP_MS   = 346;     // yksi nappi kerrallaan (4 × 346 ms ennen FULL CHAOSia)
+    const AUTO_HOVER_STEP_MS   = 173;     // yksi nappi kerrallaan (4 × 173 ms ennen FULL CHAOSia)
     /* v11.05: viimeinen nappi (FULL CHAOS) jää päälle ja koko näyttö tärisee
        saman ajan (style.css: @keyframes chaos-shake – kesto pidettävä samana). */
     const AUTO_HOVER_HOLD_MS   = 2000;    // FULL CHAOS -pidon + tärinän kesto
