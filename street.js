@@ -18,7 +18,7 @@ const Street = (() => {
         walkFrame: 0, walkTimer: 0,
         kicking: false, kickFrame: 0,
         knockedDown: false, knockdownTimer: 0,
-        knockFallY: undefined   // auton osuman putoamistaso; muutoin GROUND_Y+10 (v4.78)
+        knockFallY: undefined   // auton osuman putoamistaso (osumakohta −25 px, v11.12); muutoin GROUND_Y+10 (v4.78)
     };
     const PLAYER_SPEED = 1.225;   // hidastettu 30% (oli 1.75) – kävely hitaampi kuin autot
     const GRAVITY = 0.4;
@@ -126,13 +126,36 @@ const Street = (() => {
     /* ── Sädease (v10.20) – poimittava kadulta, vain FULL CHAOS ── */
     let beamWeaponCollected = false;   // tallennettu tila (gameState.js)
     let beamPickup = null;             // { x, y } – esine kadulla (null = ei näkyvissä)
+    /* v11.15 (bugikorjaus): poiminta onnistuu vain, jos pelaajan JALKAPISTE on alle
+       10 px päässä esineestä (`update`). Satunnainen y (`randomCoinY`) saattoi viedä
+       esineen täsmälleen lampputolpan kohdalle, jossa sitä ei saanut napattua:
+         • matalilla y-arvoilla (310–325) koko esine jää pylvään TAAKSE piiloon
+           (tolpan juuri on syvyysviivalla LAMP_BASE_Y 325),
+         • täsmäasettumista vaikeuttaa tolpan estoblokki: pelaajan keskiö 286–295
+           työnnetään aina ±15 px päähän (LAMP_BLOCK_X) → 10 px:n säde ei täyty,
+         • syvemmät y-arvot ovat ajoradalla, jossa FULL CHAOSin liikenne kaataa
+           pelaajan kesken poiminnan.
+       Nyt esine ilmestyy AINA samalle syvyysviivalle: teräsaidan viereen, pelaajan
+       alimpaan mahdolliseen jalkapisteeseen (COIN_Y_MAX = (WORLD_H − 50) + h = 380).
+       Siellä jalkapiste on tasan esineen kohdalla (dy = 0) → täysi 10 px:n
+       vaakasuuntainen pelivara, tolppablokki ei laukea lainkaan (keskiö 365 >
+       LAMP_PASS_FRONT_Y 310), pylväs ei peitä esinettä (esine ja vilkkuva piste ovat
+       pylvään juuren alapuolella) eikä liikenne yllä aidan juureen asti. */
+    const BEAM_PICKUP_Y = COIN_Y_MAX;                  // 380 = aidan juuri (alin jalkapiste)
+    // x saa olla satunnainen, mutta ei aivan reunaan: poiminta vaatii pelaajan
+    // keskipisteen alle 10 px päähän, ja keskipiste yltää välille [w/2, WORLD_W − w/2].
+    const BEAM_PICKUP_X_MIN = player.w / 2;            // 10
+    const BEAM_PICKUP_X_MAX = WORLD_W - player.w / 2;  // 790
     let aimX = 0, aimY = 0;            // tähtäyspiste (maailmakoordinaatit)
     let aimActive = false;             // hiiri on käynyt (ristikko näytetään PC:llä)
     let beamFireTimer = 0;             // säteen piirto frameä laukaisun jälkeen
+    let beamCooldownTimer = 0;         // laukaisun lukitus (v11.14) – tikittää update()ssa
     let beamStartX = 0, beamStartY = 0;  // säteen lähtöpiste (jäädytetään laukaisussa)
     let beamEndX = 0, beamEndY = 0;      // säteen kohdepiste (jäädytetään laukaisussa)
     const BEAM_HIT_TOLERANCE = 0;      // osuma vain jos säde osuu meteoriitin kehään (tarkka, v10.26)
     const BEAM_FIRE_FRAMES = 60;       // säteen näkyvyysaika (frameä) – ~1 s valoraita
+    const BEAM_COOLDOWN_FRAMES = 60;   // v11.14: laukaisuväli 1,0 s – huti maksaa saman kuin osuma
+    const METEOR_HITS_TO_KILL = 2;     // v11.14: meteoriitti kestää 2 osumaa (kuori halkeaa ensin)
 
     /* ── Sähkökaapit (talojen kyljissä, kerrostalon vas. seinä) ── */
     // 1. kaappi: 1. puu (trees[0], x 175) on talojen 1–2 välissä. Sen oikealla
@@ -1351,6 +1374,61 @@ const Street = (() => {
         } catch(e) {}
     }
 
+    /* ── Meteoriitin osumaääni (v11.14): kivi halkeaa – matala kolahtava
+       "klonk" + lyhyt murskautuvan kuoren kohina. Erottuu selvästi laserin
+       pew-äänestä, jotta pelaaja tietää osuneensa (1. osuma ei vielä tuhoa). */
+    function playMeteorHit() {
+        try {
+            initAudio();
+            if (!audioCtx || audioCtx.state !== 'running') return;
+            const now = audioCtx.currentTime;
+            // Kolahtava runko: kivi resonoi matalalla
+            const osc = audioCtx.createOscillator();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(220, now);
+            osc.frequency.exponentialRampToValueAtTime(70, now + 0.16);
+            const ogain = audioCtx.createGain();
+            ogain.gain.setValueAtTime(0.13 * sfxVolumeMult, now);
+            ogain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+            osc.connect(ogain).connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.18);
+            // Murskautuva kuori: lyhyt keskiääninen kohinapiikki
+            const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * 0.09), audioCtx.sampleRate);
+            const data = buf.getChannelData(0);
+            for (let i = 0; i < data.length; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.018));
+            }
+            const src = audioCtx.createBufferSource(); src.buffer = buf;
+            const bp = audioCtx.createBiquadFilter(); bp.type = 'bandpass';
+            bp.frequency.value = 900; bp.Q.value = 0.9;
+            const ngain = audioCtx.createGain();
+            ngain.gain.setValueAtTime(0.10 * sfxVolumeMult, now);
+            ngain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+            src.connect(bp).connect(ngain).connect(audioCtx.destination);
+            src.start(now); src.stop(now + 0.09);
+        } catch(e) {}
+    }
+
+    /* ── Tyhjä laukaus (v11.14): kuiva klikki, kun ase on vielä lukossa.
+       Kertoo, että klikkaus meni perille mutta laukaus ei lähde – ei uutta
+       tekstiä (sääntö 06), vain ääni. */
+    function playBeamEmpty() {
+        try {
+            initAudio();
+            if (!audioCtx || audioCtx.state !== 'running') return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(340, now);
+            osc.frequency.exponentialRampToValueAtTime(150, now + 0.05);
+            const g = audioCtx.createGain();
+            g.gain.setValueAtTime(0.045 * sfxVolumeMult, now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+            osc.connect(g).connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.06);
+        } catch(e) {}
+    }
+
     /* ── Katuvalon syttyminen (yön lamppushow, v4.42) ──
        Pehmeä naksahdus: lyhyt korkea kohinapiikki + lämmin humahdus.
        Sama tyyli kuin muilla kadun SFX:illä (Web Audio, ei tiedostoja). */
@@ -1680,6 +1758,7 @@ const Street = (() => {
     /* ── Sädease: tähtäys + laukaisu (v10.20) ── */
     function beamCanFire() {
         if (!beamWeaponCollected) return false;
+        if (beamCooldownTimer > 0) return false;   // v11.14: laukaisuväli (piilottaa myös ristikon)
         if (!shootingStar || !shootingStar.active || shootingStar.kind !== 'meteorite') return false;
         if (dayT > 0) return false;
         // v10.22: pelaajan on oltava kääntyneenä meteoriitin tulosuuntaan (ei ammuntaa selästä)
@@ -1728,7 +1807,12 @@ const Street = (() => {
     }
 
     function fireBeam() {
+        // v11.14: lukon aikana kuiva klikki – muuten hiljainen "ei laukausta"
+        // (päivällä, ilman meteoriittia tai väärinpäin seisten ei kuulu klikkiä)
+        if (beamCooldownTimer > 0) { playBeamEmpty(); return; }
         if (!beamCanFire()) return;
+        // v11.14: lukko päälle ENNEN osumatarkistusta → huti maksaa saman kuin osuma
+        beamCooldownTimer = BEAM_COOLDOWN_FRAMES;
         beamFireTimer = BEAM_FIRE_FRAMES;
         const m = beamMuzzle();
         beamStartX = m.x; beamStartY = m.y;
@@ -1738,7 +1822,19 @@ const Street = (() => {
         if (meteoriteBehindBuilding()) return;
         const d = distanceToSegment(shootingStar.x, shootingStar.y, m.x, m.y, aimX, aimY);
         if (d < shootingStar.r + BEAM_HIT_TOLERANCE) {
-            // Osuma → meteoriitti räjähtää ennen maahan osumista (ei taustatuhoa, ei tärinää)
+            // v11.14: meteoriitti kestää METEOR_HITS_TO_KILL osumaa. Ensimmäinen
+            // osuma vain lämmittää sen (sävy vaihtuu tasaisesti oranssiksi: ydin,
+            // vana ja hehku) ja kolahtaa; tuhoutuminen ja kolikko vasta tappavasta.
+            const hpBefore = (shootingStar.hpLeft === undefined) ? METEOR_HITS_TO_KILL : shootingStar.hpLeft;
+            shootingStar.hpLeft = hpBefore - 1;
+            shootingStar.hitFlash = 10;   // lyhyt lämmin välähdys osumasta
+            if (shootingStar.hpLeft > 0) {
+                shootingStar.cracked = true;
+                playMeteorHit();
+                spawnParticles(shootingStar.x, shootingStar.y, '#ffb46a', 12);
+                return;
+            }
+            // Tappava osuma → meteoriitti räjähtää ennen maahan osumista (ei taustatuhoa, ei tärinää)
             spawnParticles(shootingStar.x, shootingStar.y, '#dbe6ff', 22);
             spawnParticles(shootingStar.x, shootingStar.y, '#f4f8ff', 12);
             shootingStar.active = false;
@@ -1760,7 +1856,11 @@ const Street = (() => {
     function spawnBeamPickup() {
         // Vain FULL CHAOS ja vain jos ase on vielä ansaitsematta.
         if (chaosLevel !== 'full' || beamWeaponCollected) { beamPickup = null; return; }
-        beamPickup = { x: randomCoinX(), y: randomCoinY() };
+        /* v11.15: y on AINA sama (teräsaidan vieressä, pelaajan alin jalkapiste) –
+           satunnainen y vei esineen toisinaan lampputolpan taakse, josta sitä ei
+           voinut poimia lainkaan. Vain x arvotaan, ja sekään ei aivan reunaan. */
+        const bx = BEAM_PICKUP_X_MIN + Math.random() * (BEAM_PICKUP_X_MAX - BEAM_PICKUP_X_MIN);
+        beamPickup = { x: bx, y: BEAM_PICKUP_Y };
     }
 
     function updateShootingStar(dt) {
@@ -1782,6 +1882,8 @@ const Street = (() => {
                         vy: Math.sin(mAng) * mSpd,
                         r: 8 + Math.random() * 6,
                         active: true, life: 0,
+                        hpLeft: METEOR_HITS_TO_KILL,   // v11.14: 2 osumaa tuhoaa
+                        cracked: false, hitFlash: 0,   // cracked = ottanut osuman → lämmin oranssi sävy
                         trail: [], timer: chaosLevel === 'full' ? 600 : (600 + Math.random() * 2100) * meteorTempoMult
                     };
                 } else {
@@ -1802,6 +1904,7 @@ const Street = (() => {
             shootingStar.x += shootingStar.vx * dt;
             shootingStar.y += shootingStar.vy * dt;
             shootingStar.life += dt;
+            if (shootingStar.hitFlash > 0) shootingStar.hitFlash -= dt;   // v11.14: osumavälähdys
             shootingStar.trail.push({x: shootingStar.x, y: shootingStar.y});
             if (shootingStar.trail.length > 48) shootingStar.trail.shift();  // v10.16: 2x pidempi häntä
             if (shootingStar.y >= GROUND_Y) {
@@ -1828,25 +1931,42 @@ const Street = (() => {
 
     function drawMeteorite() {
         const m = shootingStar;
+        // v11.14: osuman ottanut meteoriitti on "lämmennyt" – muoto ja syke pysyvät
+        // täysin ennallaan, vain sävy vaihtuu tasaisesti lämpimään oranssiin
+        // (ei halkeamia eikä muita muotoyksityiskohtia: se näytti mustalta rastilta).
+        const dmg = m.cracked === true;
+        const trailRGB = dmg ? '255,192,140' : '205,220,245';
         // Kapea, vaalea, häipyvä vana (kalpea + hoikka, ei "joulupukin reki")
         for (let t = 0; t < m.trail.length; t++) {
             const tr = m.trail[t];
             const k = t / m.trail.length;
-            ctx.fillStyle = 'rgba(205,220,245,' + (k * 0.4) + ')';
+            ctx.fillStyle = 'rgba(' + trailRGB + ',' + (k * 0.4) + ')';
             ctx.beginPath(); ctx.arc(tr.x, tr.y, 0.7 + k * 1.4, 0, Math.PI * 2); ctx.fill();
         }
-        // Hoikka, vaalea ydin + heikko kylmä hehku
+        // Hoikka ydin + heikko hehku: kylmä jäänvalkoinen → lämmenneenä pehmeä oranssi
         const pulse = 0.85 + Math.sin(m.life * 0.12) * 0.15;
         const r = m.r * pulse * 0.55;   // laihempi ydin
         const glow = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, r * 2.4);
-        glow.addColorStop(0, 'rgba(240,246,255,' + (0.5 * pulse) + ')');
-        glow.addColorStop(0.55, 'rgba(175,195,225,0.20)');
-        glow.addColorStop(1, 'rgba(150,170,200,0)');
+        if (dmg) {
+            glow.addColorStop(0, 'rgba(255,206,150,' + (0.5 * pulse) + ')');
+            glow.addColorStop(0.55, 'rgba(255,152,78,0.20)');
+            glow.addColorStop(1, 'rgba(205,95,45,0)');
+        } else {
+            glow.addColorStop(0, 'rgba(240,246,255,' + (0.5 * pulse) + ')');
+            glow.addColorStop(0.55, 'rgba(175,195,225,0.20)');
+            glow.addColorStop(1, 'rgba(150,170,200,0)');
+        }
         ctx.fillStyle = glow;
         ctx.beginPath(); ctx.arc(m.x, m.y, r * 2.4, 0, Math.PI * 2); ctx.fill();
-        // Vaalea ydin
-        ctx.fillStyle = '#f4f8ff';
+        // Ydin (lämmenneenä pehmeä oranssi)
+        ctx.fillStyle = dmg ? '#ffcf95' : '#f4f8ff';
         ctx.beginPath(); ctx.arc(m.x, m.y, r * 0.7, 0, Math.PI * 2); ctx.fill();
+        // Osumavälähdys: lyhyt lämmin pop (~10 f) – pelkkä sävy, ei muotoa (v11.14)
+        if (m.hitFlash > 0) {
+            const flash = Math.min(1, m.hitFlash / 10);
+            ctx.fillStyle = 'rgba(255,214,160,' + (0.75 * flash).toFixed(3) + ')';
+            ctx.beginPath(); ctx.arc(m.x, m.y, r * 1.5, 0, Math.PI * 2); ctx.fill();
+        }
     }
 
     function updateSatellite(dt) {
@@ -2513,6 +2633,7 @@ const Street = (() => {
         bmKeyCollected = state.bmKeyCollected || false;
         beamWeaponCollected = state.beamWeaponCollected || false;
         spawnBeamPickup();
+        beamCooldownTimer = 0;   // v11.14: uusi peli ei ala keskeneräisellä lukolla
         /* Päivä/yö on tallennettu tila (state.isDay, v4.33):
              null  = ei vielä ratkaistu → 3 avainta nostaa päivän kerran
              true  = päivä, false = yö (makuuhuoneen Nuku-valinta)
@@ -2720,6 +2841,17 @@ const Street = (() => {
        on sisällä talossa → `playerSafe = true` ohittaa pelaajan
        törmäystestin, joten auto ei voi tainnuttaa kesken musiikin valinnan
        (muuten liike, spawnit ja äänet toimivat täsmälleen kuten kadulla).
+       HUOM (v11.09): sama periaate BARissa, makuuhuoneessa (myös nukkumisen
+       pimennyksen aikana) ja kaivoon putoamisen/kiipeämisen aikana
+       (`mhAction`) → liike, spawnit ja moottoriäänet eivät enää jäädy
+       näiden tilojen ajaksi. Ennen korjausta `v.x` seisoi, jolloin moottorin
+       panorointi (lasketaan v.x:stä) jäi jumiin ja ajoneuvo palasi kadulle
+       täsmälleen samasta kohdasta.
+       HUOM (v11.10): sama periaate myös tainnutuksessa (`update()`in
+       knockedDown-haara) – mutta VAIN jos kaataja ei ollut auto. Auton osuma
+       on kolari, johon liikenne on osallisena → silloin liikenne seisoo koko
+       tainnutuksen ajan (`player.knockFallY` asetetaan vain tässä funktiossa,
+       joten se toimii merkkinä auton osumasta).
        `PLAYER_DEPTH_MAX_Y` (WORLD_H - 50 = 350) on sama raja kuin
        update()in paikallinen PLAYER_Y_MAX (aidan yläreuna). */
     function updateTraffic(dt, playerSafe) {
@@ -2803,9 +2935,11 @@ const Street = (() => {
                     player.knockdownTimer = 600;
                     player.kicking = false;
                     player.kickFrame = 0;
-                    // Kaadutaan 10 px ylös osumakohdasta (v4.78) – muuten pelaaja jää
-                    // makaamaan keskelle tietä ja autot kolarijatkuvat katkeamatta päältä
-                    player.knockFallY = player.y + player.h - 10;
+                    // Kaadutaan 25 px ylös osumakohdasta (v4.78: 10 px, v11.12: 25 px,
+                    // jotta pysähtynyt auto ei osu heti uudelleen ylösnoustessa) – muuten
+                    // pelaaja jää makaamaan keskelle tietä ja autot kolarijatkuvat
+                    // katkeamatta päältä
+                    player.knockFallY = player.y + player.h - 25;
                     spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#ffaa44', 15);
                     playKnock();   // "Smack"-tömähdys
                     vehicleShakeTimer = 90;  // ~1.5s tärinä
@@ -2828,6 +2962,7 @@ const Street = (() => {
         if  (vehicleShakeTimer > 0) { vehicleShakeTimer -= dt; }
         if (meteorShakeTimer > 0) { meteorShakeTimer -= dt; }
         if (beamFireTimer > 0) { beamFireTimer -= dt; }
+        if (beamCooldownTimer > 0) { beamCooldownTimer -= dt; }   // v11.14: laukaisuväli
         if (meteorFlash) { meteorFlash.t -= dt; if (meteorFlash.t <= 0) meteorFlash = null; }
 
         // ── Hit pause: maailma jäätyy 2  frameä osumasta (render jatkaa) ──
@@ -3047,7 +3182,12 @@ const Street = (() => {
 
         // ── Avoin kaivo: pudotus / ylöskiipeäminen käynnissä (v4.51) ──
         // Katu on jäissä sekvenssin ajan (kuten nukkumisen pimennys).
-        if (mhAction) { updateManholeAction(dt); return; }
+        // LIIKENNE EI PYSÄHDY (v11.09): sama periaate kuin jukebox-huoneessa
+        // (v4.61) – autot ajavat taustalla, jotta yksikään ajoneuvo ei jää
+        // jyrräämään paikalleen (moottoriäänen panorointi seuraa v.x:ää).
+        // Pelaaja on reiässä (kadun ulkopuolella) → playerSafe = true:
+        // ei törmäystä, ei tainnutusta eikä 🍔-menetystä kesken sekvenssin.
+        if (mhAction) { updateTraffic(dt, true); updateManholeAction(dt); return; }
 
         // ── Makuuhuone (ex-palkintohuone, talo 7) ──
         //   ▲ / W = Nuku     ▼ / S = Poistu   (valinta liikkuu reunoilla)
@@ -3055,6 +3195,15 @@ const Street = (() => {
         //   Poistuminen ilman nukkumista ei muuta päivä/yö-tilaa mihinkään.
         //   Nuku → pimennys (SLEEP_FADE_FRAMES) → tila vaihtuu → takaisin kadulle.
         if (sleepRoom) {
+            /* LIIKENNE EI PYSÄHDY (v11.09): kadun autot ajavat taustalla myös
+               makuuhuoneessa ja nukkumisen pimennyksen aikana – sama periaate
+               kuin jukebox-huoneessa (v4.61). Muuten ajoneuvo jäisi jyrräämään
+               paikalleen (moottoriäänen panorointi seuraa v.x:ää) ja palaisi
+               kadulle täsmälleen samasta kohdasta. Pelaaja on sisällä talossa
+               → `playerSafe = true` (ei törmäystä, ei tainnutusta eikä
+               🍔-menetystä). Ei talousmuutoksia. */
+            updateTraffic(dt, true);
+
             // Nukkumisen pimennys: tila vaihtuu vasta pimennyksen lopussa
             if (sleepPhase > 0) {
                 sleepPhase -= dt;
@@ -3117,6 +3266,15 @@ const Street = (() => {
         //   ▲ / W = osta 1 hampurilainen (1 kolikko)      ▼ / S = peru viimeisin osto
         //   (o) / Space / Enter = poistu
         if (barRoom) {
+            /* LIIKENNE EI PYSÄHDY (v11.09): sama periaate kuin jukebox-huoneessa
+               (v4.61) – kadun autot ajavat taustalla normaalisti, jotta
+               yksikään ajoneuvo ei jää jyrräämään paikalleen (moottoriäänen
+               panorointi seuraa v.x:ää) eikä palaa kadulle samasta kohdasta.
+               Pelaaja on sisällä talossa → `playerSafe = true` (ei törmäystä,
+               ei tainnutusta eikä 🍔-menetystä kesken ostosten). Ei
+               talousmuutoksia (ostot ja hinnat ennallaan). */
+            updateTraffic(dt, true);
+
             const buyUp = !!(keys['ArrowUp'] || keys['w'] || keys['W']);
             const buyDown = !!(keys['ArrowDown'] || keys['s'] || keys['S']);
 
@@ -3245,8 +3403,18 @@ const Street = (() => {
 
         // Tainnutus - kukkaruukku osui
         if (player.knockedDown) {
+            // LIIKENNE EI PYSÄHDY (v11.10): tainnutus jäädyttää kadun, mutta
+            // liikenne jatkaa – paitsi jos kaataja oli auto. Vain auton osuma
+            // on kolari, johon liikenne on osallisena (`player.knockFallY`
+            // asetetaan ainoastaan updateTrafficin törmäyksessä) → silloin
+            // liikenne seisoo koko tainnutuksen ajan, kuten ennenkin.
+            // Sähkökaappi, rosvo, kukkaruukku, lamppu ja oviukko eivät
+            // pysäytä liikennettä. `playerSafe = true`: makaavaan pelaajaan
+            // ei tule uutta osumaa (ei toistuvaa 🍔-menetystä).
+            if (player.knockFallY === undefined) updateTraffic(dt, true);
             player.knockdownTimer -= dt;
-            // Putoamistaso: auton osuma kaataa 10 px ylös osumakohdasta (v4.78);
+            // Putoamistaso: auton osuma kaataa 25 px ylös osumakohdasta (v4.78: 10,
+            // v11.12: 25 px – pysähtynyt auto ei osu heti uudelleen ylösnoustessa);
             // muilla tainnutuslähteillä oletus jalkakäytävän taso (GROUND_Y + 10).
             const fallY = (player.knockFallY !== undefined) ? player.knockFallY : (GROUND_Y + 10);
             player.vx = 0; player.vy += GRAVITY * dt; player.y += player.vy * dt;
@@ -4330,6 +4498,7 @@ const Street = (() => {
         bmKeyCollected = state.bmKeyCollected || false;
         beamWeaponCollected = state.beamWeaponCollected || false;
         spawnBeamPickup();
+        beamCooldownTimer = 0;   // v11.14: resetti ei jätä lukkoa päälle
         sleepRoom = false;
         sleepSel = 0;
         sleepHeldUp = false;
@@ -8404,7 +8573,7 @@ const Street = (() => {
         ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     }
 
-    /* ── Sädease-esine kadulla (v10.20) ───────────── */
+    /* ── Sädease-esine kadulla (v10.20 / v11.13) ───────────── */
     function drawBeamPickup() {
         const bx = beamPickup.x, by = beamPickup.y;
         const glow = ctx.createRadialGradient(bx, by, 1, bx, by, 7);
@@ -8421,6 +8590,18 @@ const Street = (() => {
         ctx.fillRect(-1, -14, 2, 6);         // piippu
         ctx.fillStyle = '#7fe0ff';           // hohtava kärki
         ctx.fillRect(-1, -15, 2, 2);
+        /* v11.13: pieni vilkkuva keltainen piste piipun yllä. Vain PISTE vilkkuu
+           (ase pysyy paikallaan) – pelaaja hoksaa, että esine on poimittava.
+           Jukeboxin neonin tapaan aika lasketaan Date.now():sta (ei uutta tilaa). */
+        const blink = Math.sin(Date.now() / 200) * 0.5 + 0.5;       // 0…1, ~1,25 s sykli
+        const dotAlpha = 0.25 + blink * 0.75;
+        const dotGlow = ctx.createRadialGradient(0, -20, 0.5, 0, -20, 4);
+        dotGlow.addColorStop(0, 'rgba(255,235,120,' + (0.55 * dotAlpha).toFixed(3) + ')');
+        dotGlow.addColorStop(1, 'rgba(255,220,80,0)');
+        ctx.fillStyle = dotGlow;
+        ctx.beginPath(); ctx.arc(0, -20, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,240,140,' + dotAlpha.toFixed(3) + ')';
+        ctx.beginPath(); ctx.arc(0, -20, 1.5, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
     }
 

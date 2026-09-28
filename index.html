@@ -13,8 +13,24 @@
          leima nostettiin "b":llä, jotta selain hakee uuden CSS:n.
          v11.06/v11.07: muistipankin päivitys + kokorajojen mitoitus
          (infrastruktuuri, sääntö 03) → kaikki leimat samaan numeroon.
-         v11.08: jukebox pysäyttää kaaos-intron (ei mp3-päällekkäisyyttä). -->
-    <link rel="stylesheet" href="style.css?v=11.08">
+         v11.08: jukebox pysäyttää kaaos-intron (ei mp3-päällekkäisyyttä).
+         v11.09: liikenne ei pysähdy BARissa, makuuhuoneessa eikä kaivossa
+         (sama periaate kuin jukebox v4.61).
+         v11.10: liikenne ei pysähdy myöskään tainnutuksessa, jos kaataja ei
+         ollut auto (sähkökaappi, rosvo, kukkaruukku, lamppu, oviukko);
+         auton osuma = kolari → liikenne seisoo koko tainnutuksen ajan.
+         v11.12: kolarin putoamistaso 10 → 25 px ylös osumakohdasta →
+         pysähtynyt auto ei enää osu uudelleen, kun pelaaja nousee.
+         v11.13: sädeaseen (FULL CHAOS) pieni vilkkuva keltainen piste
+         piipun yllä – vain piste vilkkuu, itse ase pysyy paikallaan.
+         v11.14: sädease laukeaa vain 1,0 s välein (huti maksaa saman kuin
+         osuma) ja meteoriitti kestää 2 osumaa: ensimmäisestä se lämpenee
+         tasaisesti oranssiksi + kolahtaa, kolikko vasta tappavasta.
+         v11.15: sädease ilmestyy aina samalle syvyysviivalle (teräs­aidan
+         vieressä, pelaajan alin jalkapiste) – satunnainen y vei aseen
+         toisinaan lampputolpan kohdalle, josta sitä ei voinut poimia →
+         kaikki ?v=-leimat samaan numeroon kuin #version-tag. -->
+    <link rel="stylesheet" href="style.css?v=11.15">
 </head>
 <body>
     <!-- ═══ ALOITUSGATE (äänilukko auki ennen chaos-valikkoa) ═══ -->
@@ -67,7 +83,7 @@
     <div id="chaos-blackout"></div>
 
     <!-- Versionumero (aina näkyvissä – myös alkunäkymässä) -->
-    <div id="version-tag">v11.08</div>
+    <div id="version-tag">v11.15</div>
 
     <!-- ═══ PÄÄNÄKYMÄ ═══════════════════════════════════ -->
     <div id="game-wrapper">
@@ -106,9 +122,9 @@
     </div>
 
     <!-- ═══ SKRIPTIT ═════════════════════════════════════ -->
-    <script src="gameState.js?v=11.08"></script>
-    <script src="audio.js?v=11.08"></script>
-    <script src="street.js?v=11.08"></script>
+    <script src="gameState.js?v=11.15"></script>
+    <script src="audio.js?v=11.15"></script>
+    <script src="street.js?v=11.15"></script>
 
     <!-- ✕-napit (alapeli + huone + reset) – yksi yhteinen toiminto -->
     <script>

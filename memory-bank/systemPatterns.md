@@ -84,10 +84,21 @@ myös huoneissa/alapeleissä ja laskeutuu ulos (`MOON_SET_X ≈ 884`, `MOON_NIGH
 laskeutuessaan maisema pimenee hiukan (`moonDark` → 0.15). `resetMoon()` nollaa kuun spawnissa ja
 uudessa yössä. Makuuhuoneen ikkunan oma aurinko/kuu säilyy ennallaan.
 
-**Liikenne (v4.37 / v4.56–v4.63):** 1 ajoneuvo/kaista; tyypit auto, mopo, ambulanssi ja **panssarivaunu**
+**Liikenne (v4.37 / v4.56–v4.63 / v11.09 / v11.10 / v11.12):** 1 ajoneuvo/kaista; tyypit auto, mopo, ambulanssi ja **panssarivaunu**
 (`type 'tank'`, 86×36, nopeus 0,4–0,8, ei ajovaloa, moottorisaundi 28 Hz + särö, 75 px tykkiputki +
 telat). Ajoneuvolohko on eristetty `updateTraffic(dt)`iin → se pyörii myös sanomalehteä lukiessa (v4.54)
-ja jukebox-huoneessa (v4.61).
+ja **kaikissa sisätiloissa**: jukebox-huone (v4.61), BAR ja makuuhuone (myös nukkumisen pimennys) sekä
+kaivoon putoaminen/kiipeäminen (`mhAction`) (v11.09). Sisätiloissa kutsutaan `updateTraffic(dt, true)` →
+`playerSafe = true`: liike, spawnit ja moottoriäänet (panorointi lasketaan `v.x`:stä) toimivat, mutta
+pelaajan törmäystä ei tarkisteta (ei tainnutusta eikä 🍔-menetystä). **Tainnutus (v11.10):**
+`knockedDown`-haara päivittää liikennettä samoin (`updateTraffic(dt, true)`) – **mutta vain jos kaataja
+ei ollut auto**: `player.knockFallY` asetetaan ainoastaan `updateTraffic`in törmäyksessä (v4.78), joten
+sen puuttuminen = ei-kolari. Auton osuma on kolari, johon liikenne on osallisena → silloin ajoneuvot
+seisovat koko tainnutuksen ajan. Oviukon 3 s hit-stop (`hitPauseTimer = AVENGER_FREEZE`) on ennen
+tainnutushaaraa → lyhyt koko maailman jäädytys säilyy. **Sääntö: jokainen `update()`in varhainen
+`return` ennen liikennettä on bugi** – se jäädyttää ajoneuvon paikalleen (`v.x` seisoo) ja moottorin
+panorointi jämähtää. Sama juurisyy on korjattu kolmesti: jukebox (v4.61), huoneet + kaivo (v11.09) ja
+tainnutus (v11.10). **Putoamistaso (v11.12):** auton osuma asettaa `player.knockFallY`in 25 px ylös osumakohdasta (`player.y + player.h - 25`; v4.78: 10 px, v11.11: 15 px) → pysähtynyt auto ei osu pelaajaan uudelleen ylösnoustessa (mitattu 0 uudelleenosumaa 13 kolarisyvyydellä; 10 px:llä 5, 15 ja 20 px:llä 1). Muut tainnutuslähteet käyttävät edelleen oletusta `GROUND_Y + 10`.
 
 ## 🎮 Pelien yhteinen arkkitehtuurimalli
 
@@ -119,6 +130,7 @@ peli/
 | Fysiikka / vihollis-AI / kenttäformaatit | 🟠 KORKEA | `physics.js`, `enemies.js`, `levels.js` |
 | Pisteytys/vakiot + renderöinti | 🟡 NORMAALI | `constants.js` (arvoja voi säätää, avaimia ei poistaa), `renderer.js` (visuaaliset muutokset ok) |
 | Äänet / ohjaus | 🟢 MATALA | `audio.js`, `input.js` (voi lisätä näppäimiä, ei poistaa) |
+| Kadun liikenneputki (`updateTraffic`) | 🟠 KORKEA | Jokainen `update()`in varhainen `return` **ennen** liikennettä on bugi (ajoneuvo ja moottorin panorointi jäätyvät) – korjattu kolmesti: jukebox (v4.61), huoneet + kaivo (v11.09), tainnutus (v11.10). Kolarin putoamistaso `player.knockFallY` = osumakohta − 25 px (v11.12); muilla kaatajilla `GROUND_Y + 10` |
 
 ## 💾 Tiedon tallennus
 
