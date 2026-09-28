@@ -18,7 +18,7 @@
 
 - **Projekti:** **AI CHAOS STREET** – uusi itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages
   `teppoaland.github.io/aistreet/`), forkattu Pimeä Katu v5.02:sta. Alkuperäinen `D:\AI\Main`
-  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.31` (`index.html` → `#version-tag`).
+  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.32` (`index.html` → `#version-tag`).
 - 🔓 **Sääntö 04 (talousbalanssi-lukko) EI PÄDE enää AI CHAOS STREET -versiossa** (käyttäjän linjaus
   27.9.2026): sääntö 04 kirjoitettiin **alkuperäistä Pimeä Katu -peliä** varten ja sen lukitut arvot
   ovat NORMAL-tason arvoja. Chaos-forkissa NORMAL on vain yksi kaaostaso → talousarvot
@@ -132,6 +132,17 @@
   lopun **`HAVE FUN!` vilkahtaa kerran** kirjoituksen valmistuttua – JS irrottaa sanan omaksi
   `<span class="ins-fun ins-blink">`iksi (`blinkFinalWords()`), samalla keyframesilla ja tahdilla kuin
   linkki (`ins-link-blink 2.4s ease-in-out 350ms 1`); vain opacity muuttuu → teksti ei siirry mihinkään.
+
+
+- **💰 FULL CHAOS: aloituskolikot + meteoriittipalkkio (v10.32, 28.9.2026):** käyttäjän linjaus – FULL CHAOS
+  alkaa **aina 2 kolikolla** kuten NO CHAOS: `generateFullChaosSeed()` `startCoins: CHAOS_DEFAULTS2.startCoins`
+  (ennen `rndInt(1, 100)`), ja **jokainen sädeaseella ammuttu meteoriitti = +1 🪙** (`fireBeam`-osuma,
+  portti `chaosLevel === 'full'` → BADissa ei palkkiota, koska `beamWeaponCollected` on jaettu tallennuskenttä
+  ja BADissa meteoriitteja on 25 %). Palaute: `playCoin()` + kultakipinät + HUD-lukema (sääntö 06: ei uutta
+  tekstiä, eikä `inventory.coin`-lippua aseteta → kadun kolikko ei katoa). **Mikään muu ei muutu:** FULLin
+  kolikon syntymäväli (1800–18000 f), muut kaaosakselit ja NORMAL bitti-identtinen. Validoitu
+  `%TEMP%\street-meteor-coin-test.cjs` (23/23) + `chaos-normal-check.cjs` (0 diffs) + `chaos-phase3-test.cjs`
+  (20 000 FULL-arpaa, 0 hylättyä).
 
 
 - **⏱️ Grace-jakso (v10.09):** menun heavy metal → pelin syntikka -pudotus pehmennetty: pelin alkaessa

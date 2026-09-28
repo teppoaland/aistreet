@@ -1742,6 +1742,18 @@ const Street = (() => {
             spawnParticles(shootingStar.x, shootingStar.y, '#dbe6ff', 22);
             spawnParticles(shootingStar.x, shootingStar.y, '#f4f8ff', 12);
             shootingStar.active = false;
+            // v10.32: FULL CHAOS – jokainen ammuttu meteoriitti = +1 🪙.
+            // Portti chaosLevel === 'full': ase on jaettu tallennuskenttä, joten
+            // BADissa (25 % meteoriitit) ei tule kolikkoa – muut tasot pysyvät ennallaan.
+            // Sääntö 06: ei uutta tekstiä – pling + kultakipinät + HUD-lukema riittävät.
+            if (chaosLevel === 'full') {
+                coinCount++;
+                state.inventory.coinCount = coinCount;
+                GameState.save(state);
+                playCoin();
+                spawnParticles(shootingStar.x, shootingStar.y, '#ffd700', 10);
+                updateHUD();
+            }
         }
     }
 
@@ -1886,7 +1898,10 @@ const Street = (() => {
             avengerStun: rndInt(150, 600),
             robberStun: rndInt(150, 900),
             cabinetOnChance: rnd(0, 0.9),
-            startCoins: rndInt(1, 100),
+            // v10.32: aloituskolikot KIINTEÄT = sama kuin NO CHAOS (CHAOS_DEFAULTS2.startCoins = 2).
+            // Ennen rndInt(1, 100) → kolikkoja oli alussa liikaa, eikä meteoriittien
+            // ampumiselle ollut motivaatiota. Muut kaaosakselit ennallaan.
+            startCoins: CHAOS_DEFAULTS2.startCoins,
             startBurgers: rndInt(2, 10),
             hungerWakeGrace: rndInt(600, 1800),
             burgerInterval: rndInt(1200, 12000),
@@ -2461,7 +2476,9 @@ const Street = (() => {
         delete progressState.sunClock;
         const freshGame = (JSON.stringify(progressState) === JSON.stringify(GameState.defaultState));
         // Kaaos K4 (v10.04): uuden pelin syntymäpaketti kaaosakselina
-        // (aloituskolikot 1–100 · aloitus🍔 2–10). Tallennettu saldo voittaa aina
+        // (aloituskolikot · aloitus🍔 2–10). v10.32: aloituskolikot ovat FULLissa
+        // KIINTEÄT = NO CHAOSin arvo (CHAOS_DEFAULTS2.startCoins); muilla tasoilla
+        // ne ovat aina olleet CHAOS_DEFAULTS2:sta. Tallennettu saldo voittaa aina
         // (sääntö 01) → koskee vain aivan uutta peliä.
         if (freshGame) {
             state.inventory.coinCount = chaosCfg.startCoins;
