@@ -894,6 +894,71 @@ const StreetAudio = (() => {
         } catch(e) {}
     }
 
+    /* ── Valikon ohjeikkunan SFX (v10.27) ────────────────
+       Kolme pientä retro-ääntä "Choose your chaos level" -valikon
+       INSTRUCTIONS-ikkunalle: CRT päälle, kirjoitusklik ja CRT pois.
+       Oma hiljainen taso (INS_SFX_GAIN); ei kosketa valikkobiisiä,
+       syntikkaa, rumpuja eikä jukeboxia. */
+    const INS_SFX_GAIN = 1.0;   // hienosäätönuppi (kerroin masterGainin päällä)
+
+    /* CRT power-on: matala humahdus ylös */
+    function playPanelOn() {
+        if (!ok()) return;
+        try {
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(46, now);
+            osc.frequency.linearRampToValueAtTime(128, now + 0.24);
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(0.001, now);
+            g.gain.linearRampToValueAtTime(0.45 * INS_SFX_GAIN, now + 0.06);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+            osc.connect(g).connect(masterGain);
+            osc.start(now);
+            osc.stop(now + 0.4);
+        } catch (e) {}
+    }
+
+    /* CRT power-off: sama humahdus alas */
+    function playPanelOff() {
+        if (!ok()) return;
+        try {
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(132, now);
+            osc.frequency.exponentialRampToValueAtTime(34, now + 0.3);
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(0.5 * INS_SFX_GAIN, now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
+            osc.connect(g).connect(masterGain);
+            osc.start(now);
+            osc.stop(now + 0.36);
+        } catch (e) {}
+    }
+
+    /* Kirjoitusklik: lyhyt naksahdus, korkeus arvotaan ettei kuulosta
+       konekivääriltä */
+    function playTypeClick() {
+        if (!ok()) return;
+        try {
+            const now = ctx.currentTime;
+            const base = 620 + Math.random() * 200;
+            const osc = ctx.createOscillator();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(base, now);
+            osc.frequency.exponentialRampToValueAtTime(base * 0.5, now + 0.02);
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(0.5 * INS_SFX_GAIN, now);
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.028);
+            osc.connect(g).connect(masterGain);
+            osc.start(now);
+            osc.stop(now + 0.03);
+        } catch (e) {}
+    }
+
+
     /* ── Julkinen API ────────────────────────────────── */
     function start(delayMs) {
         init();
@@ -941,5 +1006,5 @@ const StreetAudio = (() => {
     return { init, start, stop, playDeathGong, getCtx, getDestination,
              playJukebox, playJukeboxQueue, appendJukeboxQueue, stopJukebox,
              isJukeboxPlaying, getJukeboxQueuePos, setHungerTempo, setMenuActive,
-             setSynthUnlocked };
+             setSynthUnlocked, playPanelOn, playPanelOff, playTypeClick };
 })();

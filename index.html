@@ -27,10 +27,34 @@
             <button data-level="bad">BAD CHAOS</button>
             <button data-level="full">FULL CHAOS</button>
         </div>
+        <!-- Ohjevalinta (v10.27): pelkkä teksti, ei laatikko -->
+        <div class="chaos-instructions" id="instructions-link">INSTRUCTIONS</div>
+
+        <!-- ═══ OHJEIKKUNA (valikon päälle) ═══
+             Avaus 1 s (CRT power-on) → ohjeteksti kirjoitetaan merkki
+             merkiltä (kesto = tekstin pituus) → sulku 2 s täppäyksellä
+             tai Esc-näppäimellä. Ikkuna ei mene itsestään kiinni. -->
+        <div id="instructions-overlay" class="hidden">
+            <div id="instructions-panel">
+                <!-- Ohjetekstin lähde: JS lukee tämän ja kirjoittaa sen
+                     merkki merkiltä. Tekstiä voi vapaasti lisätä/vähentää. -->
+                <div id="instructions-source" class="hidden">
+                    <h2>AI CHAOS STREET</h2>
+                    <p>Move along the street. Kicking opens doors — and if nothing happens, kick a few more times: something unexpected may happen. But beware, things can also go badly for you!</p>
+                    <p>Games. Beat the digging games and you will find the keys one by one — then you get to fly.</p>
+                    <p>By collecting coins you can play your favourite music on the Jukebox or play the fruit machine, BUT remember to eat. If you don't eat, you DIE even in the middle of a game! So keep an eye on the hamburger indicator.</p>
+                    <p>You'll have to figure out the rest yourself.</p>
+                    <p>GO AND PLAY! HAVE FUN!</p>
+                </div>
+                <div id="instructions-body"></div>
+                <div class="ins-hint">TAP SCREEN OR PRESS ESC TO CLOSE</div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Versionumero (aina näkyvissä – myös alkunäkymässä) -->
-    <div id="version-tag">v10.26</div>
+    <div id="version-tag">v10.30</div>
 
     <!-- ═══ PÄÄNÄKYMÄ ═══════════════════════════════════ -->
     <div id="game-wrapper">

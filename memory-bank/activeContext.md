@@ -18,7 +18,7 @@
 
 - **Projekti:** **AI CHAOS STREET** – uusi itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages
   `teppoaland.github.io/aistreet/`), forkattu Pimeä Katu v5.02:sta. Alkuperäinen `D:\AI\Main`
-  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.24` (`index.html` → `#version-tag`).
+  (v5.02, `pimeakatu`) jäädytetty. **Versio:** `v10.30` (`index.html` → `#version-tag`).
 - 🔓 **Sääntö 04 (talousbalanssi-lukko) EI PÄDE enää AI CHAOS STREET -versiossa** (käyttäjän linjaus
   27.9.2026): sääntö 04 kirjoitettiin **alkuperäistä Pimeä Katu -peliä** varten ja sen lukitut arvot
   ovat NORMAL-tason arvoja. Chaos-forkissa NORMAL on vain yksi kaaostaso → talousarvot
@@ -113,6 +113,25 @@
   NORMAL bitti-identtinen (ei meteoriitteja eikä esinettä).
 
 
+
+
+- **📖 Ohjeikkuna – INSTRUCTIONS (v10.27–v10.30):** alkuvalikon lopussa pieni punainen `INSTRUCTIONS`-teksti
+  (`#instructions-link`) avaa CRT-tyylisen ohjeikkunan: **avaus 1 s** (power-on: viiva venyy pystyyn),
+  ohjeteksti kirjoitetaan **merkki merkiltä** (`typeInstructions()`, nupit `INS_*` `street.js`:ssä:
+  18 ms/merkki + tauot , ; : 120 ms ja . ! ? 260 ms, rivinvaihto 320 ms; 556 merkkiä ≈ 16 s),
+  **sulku 2 s** täppäyksellä tai Escillä (rivit alas nopeana kaskadina → CRT power-off).
+  Ikkuna **ei mene itsestään kiinni** (`insOpen`/`insClosing`-liput, `animationend` + varajastin
+  estetyille animaatioille). Ohjeteksti luetaan `#instructions-source`:sta (`index.html`) → sitä voi
+  vapaasti lisätä/vähentää. Äänet `audio.js`: `playPanelOn` / `playTypeClick` / `playPanelOff`.
+  `prefers-reduced-motion` → ei efektejä. Ikkuna on `#chaos-menu`:n sisällä (perii valikon `hidden`in,
+  ei vuoda kadulle) – **pelilogiikkaan, talouteen, porttiin eikä sessioon koskettu**. Tekstit englanniksi.
+  **v10.28:** `INSTRUCTIONS`-teksti vilkkuu rauhallisesti (`ins-link-blink` 2,4 s ease-in-out; pois
+  `.faded`-valikossa ja `prefers-reduced-motion`illa) ja ikkuna viilattiin mobiiliin (dvh-korkeus,
+  `max-width: 100%`, ≤480/≤360 px + vaakanäyttö; tyhjä rivi = riviväli `ins-gap`).
+  **v10.29/v10.30:** loppurivi on **vasemmalla kuten kaikki muukin** (keskitys `ins-final` **poistettu**) ja
+  lopun **`HAVE FUN!` vilkahtaa kerran** kirjoituksen valmistuttua – JS irrottaa sanan omaksi
+  `<span class="ins-fun ins-blink">`iksi (`blinkFinalWords()`), samalla keyframesilla ja tahdilla kuin
+  linkki (`ins-link-blink 2.4s ease-in-out 350ms 1`); vain opacity muuttuu → teksti ei siirry mihinkään.
 
 
 - **⏱️ Grace-jakso (v10.09):** menun heavy metal → pelin syntikka -pudotus pehmennetty: pelin alkaessa
@@ -356,6 +375,10 @@ mopo, puut, kolikko, mobiilikamera, potkukolikko).
   `TILE.BOULDER`, `pimeakatu_gamestate`, `pimeakatu_fruit_free` – rajapintaa, ei uudelleennimeämistä.
 
 ## 🔜 Seuraavaksi (odottaa käyttäjän päätöstä)
+
+- **🌐 Koko pelin tekstit englanniksi (kirjattu 28.9.2026):** HUD, notifikaatiot, popupit,
+  canvas-huoneet (`street.js`), `fruitgame`, `digGame1`, `digGame2`, `bm`, `sinkship` ovat vielä
+  suomeksi – tällä hetkellä vain uusi ohjeikkuna (v10.27–v10.30) on englanniksi. Odottaa käyttäjän päätöstä.
 
 - **Blue Mäx:** TESTIMODE pois → vihollisten ammunta takaisin 60 % aggressiolle.
 - **Pääsiäismunat Dig Däshiin.**

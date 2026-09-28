@@ -1,6 +1,6 @@
 # 📊 Projektin edistyminen
 
-> **v10.24 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026. Kompaktoitu 23.9.2026 (täysi historia git-historiassa: viimeisin täysi versio
+> **v10.30 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026. Kompaktoitu 23.9.2026 (täysi historia git-historiassa: viimeisin täysi versio
 > `ffb1dd9`, HEAD `44db9e7`)
 
 ## 🏮 Pääportaali – AI CHAOS STREET
@@ -24,6 +24,8 @@
 | 🌠 Meteoriitti tuhoaa taustarivin | ✅ **v10.19** – meteoriitin osuessa maahan poistetaan 3 taustataloa `backdrop.blocks`-taulukosta (lähin lohko + 2 viereistä, wrap-around; `destroyBackdropHouses` + `METEOR_BACKDROP_HOUSES = 3`). Rivistö (~33 taloa, 28–38) häviää ~10 meteoriitilla. Tärinä/välähdys/partikkelit ennallaan. Vain ei-NORMAL → NORMAL bitti-identtinen. Ei uutta localStorage-avainta; `initBackdrop()` palauttaa rivin kuoleman/resetin yhteydessä |
 | 🔫 Sädease + meteoriitit vain FULL | ✅ **v10.20** – meteoriitit vain FULL (`meteoriteChance()` full 0.55, muut 0). Sädease = kadulta poimittava esine (`beamPickup`, vain FULL, kerran per run, satunnainen paikka); `beamWeaponCollected` (uusi `gameState.js`-kenttä). PC: hiiri-tähtäys + klikkaus; mobiili: täppäys taivaalle; osuma (`distanceToSegment` < r + 10) räjäyttää meteoriitin ennen maahan osumista (ei taustatuhoa). HUD `🔫`. Ammukset rajattomat, ei rahapalkkiota. NORMAL bitti-identtinen |
 | 🔫 Sädease & meteoriitit – viimeistely | ✅ **v10.21–v10.24** – v10.21: poimintadialogi + harmaa kepakko 45° käteen + laserääni + valojuova 1 s. v10.22: säde piipun kärjestä (`beamMuzzle`), ammunta vaatii kääntyneenä meteoriitin suuntaan (`facing*vx<0`) + lamppurivistön alapuolella (jalkapiste ≥ 325), ääni 1 s. v10.23: talojen läpi ei voi ampua (`beamHitsBuilding`, Liang–Barsky). v10.24: meteoriitit BADissa harvakseltaan (25 %, ei asetta) – pelaaja katsoo kaupungin tuhoutuvan. NORMAL bitti-identtinen |
+| 📖 Ohjeikkuna – INSTRUCTIONS | ✅ **v10.27–v10.30** – valikon lopussa pieni punainen `INSTRUCTIONS`-teksti avaa CRT-ikkunan: avaus 1 s (power-on) → ohjeteksti **merkki merkiltä** (`typeInstructions()`, nupit `INS_*`; sisältö luetaan `#instructions-source`:sta `index.html`:stä → tekstiä voi vapaasti lisätä/vähentää) → sulku **2 s** täppäyksellä tai Escillä (rivit alas + power-off). Ei mene itsestään kiinni. Äänet: `StreetAudio.playPanelOn`/`playTypeClick`/`playPanelOff`; `prefers-reduced-motion` → ei efektejä. Ikkuna `#chaos-menu`:n sisällä (ei vuoda kadulle). **Pelilogiikka, talous, portti ja sessio ennallaan**. v10.28: `INSTRUCTIONS`-tekstin rauhallinen vilkunta (`ins-link-blink` 2,4 s, pois `.faded`-valikossa ja reduced-motionilla) + mobiiliviilaus (dvh, `max-width:100%`, ≤480/≤360 px, vaakanäyttö; tyhjä rivi = `ins-gap`). v10.29/v10.30: loppurivi vasemmalle (keskitys `ins-final` poistettu) ja lopun **`HAVE FUN!` vilkahtaa kerran** (span `ins-fun ins-blink`, `blinkFinalWords()`; sama tahti kuin linkillä, vain opacity muuttuu) |
+
 
 
 
@@ -101,6 +103,8 @@
 | Tekijänoikeudet | ✅ 20.9.2026 – juuren `LICENSE` (Copyright (c) 2024–2026 Teppo Ålander, All rights reserved) + README-osio; 22.9.2026 LICENSE/README mainitsevat myös jukeboxin kolmannen osapuolen raidat (raidat 4–6) |
 | Pelinimien yhdenmukaistus | ✅ 20.9.2026 – näkyvät nimet "Dig Däsh" ja "Blue Mäx" kaikkialla; sisäiset tunnisteet ennallaan |
 | 📄 Kaaosparametrien suunnitelma | ✅ 27.9.2026 – `docs/chaos.md` v2: kategoriat **K0–K7**, tasomanifesti (NORMAL–FULL), C-kyvykkyysindeksi + 🍔-intervallin lattia (1200 f), kielletyt yhdistelmät, uhkabudjetti, MUST-kohteet (kova tuuli · paksut pilvet + myrskytaivas · vihreä aurinko), toteutusresepti portteineen, testaus/DoD, 4 vaihetta ja 7 avointa päätöstä (`❓`). **Ei koodimuutoksia** → versio pysyy `v10.01`; toteutus `v10.02`…`v10.05` käyttäjän rastien jälkeen |
+| 🌐 Pelin tekstien kääntö englanniksi | ⏳ **TODO (28.9.2026)** – HUD, notifikaatiot, popupit, canvas-huoneet (`street.js`), `fruitgame`, `digGame1/2`, `bm`, `sinkship`: kaikki vielä suomeksi. Uusi ohjeikkuna (v10.27–v10.30) on jo englanniksi. Ei aloitettu – odottaa käyttäjän päätöstä |
+
 | Julkaisu | ✅ **ONLINE** – GitHub Pages `https://teppoaland.github.io/aistreet/` (27.9.2026) |
 
 ## 🧪 Testipenkit (ei repossa)

@@ -9283,5 +9283,166 @@ window.addEventListener('DOMContentLoaded', () => {
             start(btn.getAttribute('data-level'));
         }, { passive: false });
     });
+    /* ═══ Ohjeikkuna (v10.27) ═══════════════════════════════════════════
+       INSTRUCTIONS-valinta: avaus 1 s (CRT power-on) → ohjeteksti
+       kirjoitetaan merkki merkiltä (kesto = tekstin pituus) → sulku 2 s
+       (rivit alas + CRT power-off). Ikkuna EI mene itsestään kiinni:
+       pelaaja sulkee sen täppäämällä näyttöä tai painamalla Esc.
+       Äänet: StreetAudio.playPanelOn / playTypeClick / playPanelOff.
+       Ajoitusnupit ovat alla; itse teksti luetaan #instructions-source:sta
+       (index.html), joten sitä voi vapaasti lisätä/vähentää. */
+    const insLink    = document.getElementById('instructions-link');
+    const insOverlay = document.getElementById('instructions-overlay');
+    const insPanel   = document.getElementById('instructions-panel');
+    const insBody    = document.getElementById('instructions-body');
+    const insSource  = document.getElementById('instructions-source');
+
+    const INS_OPEN_MS          = 1000;   // ikkunan avautuminen (CRT power-on)
+    const INS_CLOSE_MS         = 2000;   // sulku: rivikaskadi + CRT power-off
+    const INS_TYPE_BASE_MS     = 18;     // perusväli per merkki
+    const INS_TYPE_COMMA_MS    = 120;    // lisätauko pilkun/kaksoispisteen jälkeen
+    const INS_TYPE_SENTENCE_MS = 260;    // lisätauko lauseen jälkeen
+    const INS_TYPE_LINE_MS     = 320;    // tauko ennen seuraavaa riviä
+    const INS_TYPE_CLICK_EVERY = 3;      // kirjoitusklik joka N:s merkki
+
+    let insTimer      = null;    // kirjoituksen ajastin
+    let insCloseTimer = null;    // sulun varajastin (estetyt animaatiot)
+    let insOpen       = false;   // ikkuna auki
+    let insClosing    = false;   // sulkuanimaatio käynnissä
+    let insLines      = null;    // ohjeteksti talteen: [{ tag, text }]
+
+    function insReducedMotion() {
+        return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    /* Ohjeteksti luetaan kerran #instructions-source:sta (h2 + p). */
+    function readInstructions() {
+        if (insLines || !insSource) return insLines;
+        insLines = [];
+        insSource.querySelectorAll('h2, p').forEach(el => {
+            insLines.push({ tag: el.tagName.toLowerCase(), text: el.textContent.trim() });
+        });
+        return insLines;
+    }
+
+    /* Kirjoittaa ohjeet merkki merkiltä rivi kerrallaan. */
+    function typeInstructions() {
+        const lines = readInstructions();
+        if (!lines || !lines.length || !insBody) return;
+        let li = 0, ci = 0, clicks = 0, lineEl = null, node = null, caret = null;
+
+        function finishTyping() {
+            blinkFinalWords();                   // "HAVE FUN!" vilkahtaa kerran (v10.30)
+            insBody.classList.add('ins-done');   // paljastaa "TAP SCREEN OR PRESS ESC TO CLOSE"
+        }
+
+        function step() {
+            insTimer = null;
+            if (insClosing) return;
+            if (li >= lines.length) { finishTyping(); return; }
+
+            if (!lineEl) {                       // aloita uusi rivi
+                lineEl = document.createElement(lines[li].tag);
+                lineEl.className = lines[li].text ? 'ins-line' : 'ins-line ins-gap';   // tyhjä rivi = riviväli
+                node = document.createTextNode('');
+                caret = document.createElement('span');
+                caret.className = 'ins-caret';
+                caret.textContent = '▮';
+                lineEl.appendChild(node);
+                lineEl.appendChild(caret);
+                insBody.appendChild(lineEl);
+                insTimer = setTimeout(step, INS_TYPE_LINE_MS);
+                return;
+            }
+
+            const text = lines[li].text;
+            const ch = text.charAt(ci++);
+            node.textContent += ch;
+            if (insPanel) insPanel.scrollTop = insPanel.scrollHeight;   // seuraa kirjoitusta
+            if (ch && ++clicks % INS_TYPE_CLICK_EVERY === 0 && StreetAudio.playTypeClick) StreetAudio.playTypeClick();
+
+            if (ci >= text.length) {              // rivi valmis → seuraava
+                if (caret && caret.parentNode) caret.parentNode.removeChild(caret);
+                li++; ci = 0; lineEl = null; node = null; caret = null;
+                insTimer = setTimeout(step, INS_TYPE_LINE_MS);
+                return;
+            }
+            let pause = INS_TYPE_BASE_MS;
+            if (ch === ',' || ch === ';' || ch === ':') pause += INS_TYPE_COMMA_MS;
+            else if (ch === '.' || ch === '!' || ch === '?') pause += INS_TYPE_SENTENCE_MS;
+            insTimer = setTimeout(step, pause);
+        }
+        step();
+    }
+
+    /* Loppuhuuto: "HAVE FUN!" vilkahtaa kerran heti kun teksti on valmis.
+       Sana erotetaan omaksi span-elementiksi, jotta vain se vilkkuu
+       (opacity muuttuu, leveys ei → teksti ei siirry mihinkään). */
+    function blinkFinalWords() {
+        const last = insBody && insBody.lastElementChild;       // viimeinen rivi
+        const node = last && last.firstChild;                   // sen tekstisolmu
+        if (!node || !node.textContent) return;
+        const m = /(HAVE\s+FUN!?)\s*$/i.exec(node.textContent);  // loppuhuuto rivin lopussa
+        if (!m) return;
+        const span = document.createElement('span');
+        span.className = 'ins-fun ins-blink';                   // .ins-blink = 3 vilkausta
+        span.textContent = m[1];
+        node.textContent = node.textContent.slice(0, m.index);
+        last.appendChild(span);
+    }
+
+    function openInstructions() {
+        if (!insOverlay || started || insOpen || insClosing) return;
+        insOpen = true;
+        if (insBody) { insBody.innerHTML = ''; insBody.classList.remove('ins-done'); }
+        if (insPanel) insPanel.scrollTop = 0;
+        insOverlay.classList.remove('hidden');
+        if (StreetAudio.playPanelOn) StreetAudio.playPanelOn();
+        window.addEventListener('keydown', onInsKey);
+        // Teksti alkaa vasta kun ikkuna on avautunut
+        insTimer = setTimeout(typeInstructions, insReducedMotion() ? 0 : INS_OPEN_MS);
+    }
+
+    function closeInstructions() {
+        if (!insOverlay || !insOpen || insClosing) return;
+        insClosing = true;
+        if (insTimer) { clearTimeout(insTimer); insTimer = null; }
+        window.removeEventListener('keydown', onInsKey);
+        if (StreetAudio.playPanelOff) StreetAudio.playPanelOff();
+        insOverlay.classList.add('ins-closing');
+        insOverlay.addEventListener('animationend', onInsClosed);
+        // Varakeino: estetyillä animaatioilla animationend ei laukea lainkaan
+        insCloseTimer = setTimeout(onInsClosed, insReducedMotion() ? 0 : INS_CLOSE_MS);
+    }
+
+    /* Sulku valmis (taustaverhon oma animaatio tai varajastin) → piilota. */
+    function onInsClosed(e) {
+        if (e && e.target !== insOverlay) return;    // lapsianimaatiot ohitetaan
+        if (insCloseTimer) { clearTimeout(insCloseTimer); insCloseTimer = null; }
+        insOverlay.removeEventListener('animationend', onInsClosed);
+        insOverlay.classList.remove('ins-closing');
+        insOverlay.classList.add('hidden');
+        insOpen = false;
+        insClosing = false;
+    }
+
+    function onInsKey(e) {
+        if (e.key === 'Escape') { e.preventDefault(); closeInstructions(); }
+    }
+
+    /* Sama kuvio kuin kaaostasonapeissa: touchend hoitaa napautuksen heti ja
+       estää synteettisen clickin (ei 300 ms viivettä eikä tuplalaukaisua).
+       Avaus on varmistettu `insOpen`-lipulla, sulku `insClosing`-lipulla. */
+    function bindInsTap(el, fn) {
+        if (!el) return;
+        el.addEventListener('click', fn);
+        el.addEventListener('touchend', (e) => {
+            if (e.cancelable) e.preventDefault();
+            fn();
+        }, { passive: false });
+    }
+    bindInsTap(insLink, openInstructions);
+    bindInsTap(insOverlay, closeInstructions);
+
 });
 window.addEventListener('resize', () => { if (Street.resize) Street.resize(); });

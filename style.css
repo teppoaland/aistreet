@@ -438,7 +438,8 @@ body::after {
 /* v10.14: kaaostason valinnan jälkeen tekstit haihtuvat pois ennen pelin alkua */
 #chaos-menu.faded h1,
 #chaos-menu.faded .chaos-sub,
-#chaos-menu.faded .chaos-buttons {
+#chaos-menu.faded .chaos-buttons,
+#chaos-menu.faded .chaos-instructions {
     opacity: 0;
 }
 
@@ -506,5 +507,292 @@ body::after {
 @keyframes gate-blink {
     0%, 60% { opacity: 1; }
     61%, 100% { opacity: 0.15; }
+}
+
+
+/* ═══ OHJEIKKUNA (v10.27) ═══════════════════════════════════════════════
+   Valikon lopussa pieni punainen INSTRUCTIONS-teksti → avaa CRT-ikkunan.
+   Ikkuna on #chaos-menu:n sisällä (perii valikon "hidden"in, ei vuoda
+   kadulle). Avaus 1 s, teksti kirjoitetaan merkki merkiltä, sulku 2 s.
+   Ajoitusnupit ovat street.js:ssä (INS_*), animaatiot tässä. */
+
+/* Valintateksti: pelkkä teksti, ei laatikkoa */
+#chaos-menu .chaos-instructions {
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    font-size: 0.5rem;
+    letter-spacing: 1px;
+    color: #e03a3a;
+    cursor: pointer;
+    margin-top: -6px;
+    transition: color 0.15s, text-shadow 0.15s, opacity 1.6s ease-out;
+    /* Rauhallinen vilkkuminen (v10.28): hidas, pehmeä hengitys */
+    animation: ins-link-blink 2.4s ease-in-out infinite;
+}
+#chaos-menu .chaos-instructions:hover,
+#chaos-menu .chaos-instructions:active {
+    color: #ff6b6b;
+    text-decoration: underline;
+    text-shadow: 0 0 8px rgba(255, 80, 80, 0.6);
+}
+
+#instructions-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9200;                 /* valikon (9000) ja gaten (9100) yläpuolella */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.82);
+    cursor: pointer;
+    animation: ins-backdrop-open 350ms ease-out both;
+}
+/* Sulku (2 s): taustaverho häviää vasta paneelin romahduksen jälkeen */
+#instructions-overlay.ins-closing {
+    animation: ins-backdrop-close 2000ms ease-in both;
+    pointer-events: none;          /* tuplanapautus ei osu mihinkään */
+}
+/* Hitaasti vyöryvä scanline koko ikkunan päällä (retro) */
+#instructions-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(255, 255, 255, 0.03) 0px,
+        rgba(255, 255, 255, 0.03) 1px,
+        transparent 1px,
+        transparent 6px
+    );
+    animation: ins-scan 6s linear infinite;
+}
+
+#instructions-panel {
+    position: relative;
+    width: min(560px, 92vw);
+    max-height: 86vh;
+    overflow-y: auto;
+    padding: 18px 16px;
+    background: #000;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 3px #000, 0 0 26px rgba(255, 255, 255, 0.28);
+    color: #ffe066;                             /* keltainen teksti */
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    font-size: 0.52rem;
+    line-height: 1.9;
+    text-align: left;                           /* valikko on center → tämä voittaa */
+    animation: ins-panel-open 850ms cubic-bezier(0.2, 0.8, 0.3, 1) 150ms both;
+}
+#instructions-overlay.ins-closing #instructions-panel {
+    animation: ins-panel-close 1100ms ease-in 900ms both;
+}
+/* CRT:n romahdus: ohut valkoinen viiva välähtää ennen sammumista */
+#instructions-panel::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 2px;
+    background: #fff;
+    opacity: 0;
+    pointer-events: none;
+}
+#instructions-overlay.ins-closing #instructions-panel::before {
+    animation: ins-flash-line 300ms ease-out 1700ms both;
+}
+
+#instructions-body h2.ins-line {
+    font-size: 0.62rem;
+    letter-spacing: 2px;
+    text-align: center;
+    color: #ffe066;
+    text-shadow: 0 0 10px rgba(255, 224, 102, 0.65);
+    margin: 0 0 16px 0;
+}
+#instructions-body p.ins-line {
+    margin: 0 0 12px 0;
+}
+
+/* Kirjoituksen kursori (vilkkuva lohko) */
+.ins-caret {
+    display: inline-block;
+    width: 0.55em;
+    color: #ffe066;
+    animation: ins-blink 0.55s steps(1, end) infinite;
+}
+
+/* Sulkuvihje: näkyviin vasta kun teksti on kirjoitettu loppuun */
+.ins-hint {
+    margin-top: 14px;
+    text-align: center;
+    font-size: 0.42rem;
+    color: #cfcfcf;
+    opacity: 0;
+    transition: opacity 1.2s ease-out;
+}
+#instructions-body.ins-done + .ins-hint { opacity: 1; }
+#instructions-overlay.ins-closing .ins-hint { opacity: 0; transition: none; }
+
+/* Sulku: rivit katoavat alhaalta ylöspäin nopeana kaskadina */
+#instructions-overlay.ins-closing .ins-line {
+    animation: ins-line-out 200ms ease-in both;
+}
+#instructions-overlay.ins-closing .ins-line:nth-last-child(1)  { animation-delay: 0ms; }
+#instructions-overlay.ins-closing .ins-line:nth-last-child(2)  { animation-delay: 150ms; }
+#instructions-overlay.ins-closing .ins-line:nth-last-child(3)  { animation-delay: 300ms; }
+#instructions-overlay.ins-closing .ins-line:nth-last-child(4)  { animation-delay: 450ms; }
+#instructions-overlay.ins-closing .ins-line:nth-last-child(5)  { animation-delay: 600ms; }
+#instructions-overlay.ins-closing .ins-line:nth-last-child(6)  { animation-delay: 700ms; }
+#instructions-overlay.ins-closing .ins-line:nth-last-child(7)  { animation-delay: 800ms; }
+#instructions-overlay.ins-closing .ins-line:nth-last-child(8)  { animation-delay: 850ms; }
+#instructions-overlay.ins-closing .ins-line:nth-last-child(n+9) { animation-delay: 900ms; }
+
+/* ── Animaatiot ─────────────────────────────────────────────────────── */
+@keyframes ins-backdrop-open {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes ins-backdrop-close {
+    0%, 45% { opacity: 1; }
+    100%    { opacity: 0; }
+}
+/* CRT power-on: viiva venyy pystyyn ja välähtää kirkkaana */
+@keyframes ins-panel-open {
+    0%   { transform: scaleY(0.04) scaleX(0.6); filter: brightness(2.4); }
+    55%  { transform: scaleY(1.04) scaleX(1);   filter: brightness(1.5); }
+    100% { transform: scaleY(1) scaleX(1);      filter: brightness(1); }
+}
+/* CRT power-off: venytys vielä hetki, välähdys ja romahdus viivaksi */
+@keyframes ins-panel-close {
+    0%   { transform: scaleY(1) scaleX(1);        filter: brightness(1); }
+    35%  { transform: scaleY(0.92) scaleX(1);     filter: brightness(2.6); }
+    100% { transform: scaleY(0.02) scaleX(0.9);   filter: brightness(3.2); opacity: 0; }
+}
+@keyframes ins-flash-line {
+    0%   { opacity: 0; }
+    40%  { opacity: 1; }
+    100% { opacity: 0; }
+}
+@keyframes ins-line-out {
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(-6px); }
+}
+@keyframes ins-blink {
+    0%, 50%      { opacity: 1; }
+    50.01%, 100% { opacity: 0; }
+}
+@keyframes ins-scan {
+    from { background-position: 0 0; }
+    to   { background-position: 0 6px; }
+}
+
+/* Mobiilin vaakakuva: ikkuna mahtuu matalaan näyttöön */
+@media (orientation: landscape) and (max-height: 500px) {
+    #instructions-panel {
+        max-height: 92vh;
+        padding: 12px 12px;
+        font-size: 0.42rem;
+        line-height: 1.75;
+    }
+    #instructions-body h2.ins-line { font-size: 0.52rem; margin-bottom: 10px; }
+    #instructions-body p.ins-line { margin-bottom: 9px; }
+    .ins-hint { font-size: 0.36rem; margin-top: 10px; }
+    #chaos-menu .chaos-instructions { font-size: 0.44rem; }
+}
+
+/* Esteettömyys: liikkeen vähentäminen → teksti näkyy heti, ei efektejä */
+@media (prefers-reduced-motion: reduce) {
+    #instructions-overlay,
+    #instructions-overlay.ins-closing,
+    #instructions-panel,
+    #instructions-overlay.ins-closing #instructions-panel,
+    #instructions-overlay.ins-closing #instructions-panel::before,
+    #instructions-overlay.ins-closing .ins-line,
+    .ins-caret,
+    .ins-fun,
+    #chaos-menu .chaos-instructions,
+    #instructions-overlay::after {
+        animation: none !important;
+    }
+    #instructions-panel { transform: none; }
+    .ins-hint { transition: none; }
+}
+
+
+/* ═══ v10.28: INSTRUCTIONS-vilkunta, rivivälit ja mobiiliviilaus ═══════ */
+
+/* Rauhallinen vilkunta valikon INSTRUCTIONS-tekstille */
+@keyframes ins-link-blink {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.3; }
+}
+/* Kun kaaostaso on valittu, valikko himmenee (.faded → opacity 0).
+   Animaatio ohittaisi sen, joten vilkunta sammutetaan silloin. */
+#chaos-menu.faded .chaos-instructions { animation: none; }
+
+/* Ohjetekstin tyhjä rivi = riviväli (pari tyhjää riviä ennen loppuhuutoa):
+   1.9em = täsmälleen yksi tekstirivi (line-height 1.9). */
+#instructions-body p.ins-gap {
+    height: 1.9em;
+    margin: 0;
+}
+
+/* Paneeli ei koskaan ylitä näkyvää aluetta – dvh huomioi mobiilin
+   osoitepalkin (86vh jää varatieksi vanhoille selaimille). */
+#instructions-panel {
+    max-width: 100%;
+    max-height: 86vh;
+    max-height: 86dvh;
+}
+#instructions-overlay { -webkit-tap-highlight-color: transparent; }
+
+/* Mobiili, pystynäyttö: tiiviimpi laatikko, jotta koko teksti mahtuu */
+@media (max-width: 480px) {
+    #instructions-panel {
+        padding: 14px 12px;
+        font-size: 0.5rem;
+        line-height: 1.8;
+    }
+    #instructions-body h2.ins-line { font-size: 0.56rem; margin-bottom: 12px; }
+    #instructions-body p.ins-line { margin-bottom: 10px; }
+    #instructions-body p.ins-gap { height: 1.8em; }
+    .ins-hint { font-size: 0.4rem; margin-top: 10px; }
+    #chaos-menu .chaos-instructions { font-size: 0.48rem; }
+}
+
+/* Erittäin kapea pystynäyttö (esim. 320 px): tiiviimpi riviväli, jotta
+   koko ohje mahtuu kerralla eikä paneelia tarvitse vierittää. */
+@media (max-width: 360px) {
+    #instructions-panel { padding: 12px 10px; font-size: 0.46rem; line-height: 1.75; }
+    #instructions-body h2.ins-line { font-size: 0.52rem; margin-bottom: 10px; }
+    #instructions-body p.ins-line { margin-bottom: 8px; }
+    #instructions-body p.ins-gap { height: 1.75em; }
+    .ins-hint { font-size: 0.36rem; }
+}
+
+/* Mobiili, vaakanäyttö (matala ruutu): hieman isompi fontti kuin ennen,
+   koska paneeli vierittyy eikä sen tarvitse mahtua kerralla. */
+@media (orientation: landscape) and (max-height: 500px) {
+    #instructions-panel {
+        max-height: 92vh;
+        max-height: 92dvh;
+        font-size: 0.46rem;
+        line-height: 1.8;
+    }
+    #instructions-body p.ins-gap { height: 1.8em; }
+    #instructions-overlay { padding: 10px; }
+}
+
+
+/* ═══ v10.29/v10.30: "HAVE FUN!" vilkahtaa kerran kirjoituksen jälkeen ═ */
+
+/* "HAVE FUN!" vilkahtaa kerran heti kun kirjoitus on valmis –
+   sama rauhallinen tahti kuin INSTRUCTIONS-tekstillä
+   (samat keyframes: 2,4 s ease-in-out, opacity 1 → 0,3 → 1).
+   Vain opacity muuttuu → teksti ei siirry mihinkään. */
+.ins-fun.ins-blink {
+    animation: ins-link-blink 2.4s ease-in-out 350ms 1;
 }
 
