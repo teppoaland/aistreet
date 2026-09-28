@@ -9428,21 +9428,33 @@ window.addEventListener('DOMContentLoaded', () => {
         Street.init(canvas);
         return;
     }
-    /* ═══ Automaattinen hover-kierros (v11.03, ajoitus v11.04/v11.05) ═══════
+    /* ═══ Automaattinen hover-kierros (v11.03–v11.05b, mobiili + nopeutus v11.17) ═══
        Kun valikko ("CHOOSE YOUR CHAOS LEVEL") on auennut, hover-efekti liukuu
        kerran kaikkien viiden kaaosnapin yli ylhäältä alas: 1 s valikon
        avautumisesta, sen jälkeen 10 s välein (kierroksen alusta alkuun)
-       niin kauan kuin valikko on auki. Yksi nappi kerrallaan 450 ms, ja
-       viimeinen (FULL CHAOS) jää päälle 2 s – samalla koko näyttö tärisee.
+       niin kauan kuin valikko on auki. Yksi nappi kerrallaan 346 ms
+       (v11.17: 450 → 346 ms eli +30 % nopeampi), ja viimeinen (FULL CHAOS)
+       jää päälle 2 s – samalla koko näyttö tärisee.
        Efekti on pelkkä luokka .auto-hover (style.css = täsmälleen sama ulkoasu
        kuin :hover), joten oikea hiiri ja täppäys toimivat koko ajan
        normaalisti – oikea osoitin myös keskeyttää käynnissä olevan liu'un.
-       Esteettömyys: liikkeen vähentäminen (reduce-motion) sammuttaa efektin.
+       Esteettömyys (v11.17): liikkeen vähentäminen (reduce-motion) EI enää
+       sammuta koko kierrosta – nappi välähtää kuten ennenkin, mutta näytön
+       tärinä jää pois (motion=false). Sama linjaus kuin INSTRUCTIONS-
+       vilkunnassa (v10.31): pelkkä kirkkauden vaihtelu ei aiheuta
+       liikeherkkyyttä, ja moni Android raportoi reduce-motionin ollessa
+       "poista animaatiot" -tilassa → efekti katosi puhelimilta kokonaan.
+       Tärinän estää joka tapauksessa myös style.css:n
+       @media (prefers-reduced-motion: reduce) -sääntö (#chaos-menu.shaking).
+       Kosketuslaitteet (v11.17): mouseenter-peruutus kiinnitetään vain
+       laitteille, jotka oikeasti osaavat hoveroida ((hover: hover)), koska
+       puhelimen synteettinen mouseenter saattoi tappaa käynnissä olevan
+       liu'un; kosketuslaitteen vastine on nappialueen touchstart.
        Testikytkin: ?autohover=0 (ei tallennu). */
     const AUTO_HOVER_ON        = urlParams.get('autohover') !== '0';
     const AUTO_HOVER_START_MS  = 1000;    // viive siitä, kun valikko on auennut
     const AUTO_HOVER_REPEAT_MS = 10000;   // kierroksen alusta seuraavan alkuun = 10 s
-    const AUTO_HOVER_STEP_MS   = 450;     // yksi nappi kerrallaan (4 × 450 ms ennen FULL CHAOSia)
+    const AUTO_HOVER_STEP_MS   = 346;     // yksi nappi kerrallaan (4 × 346 ms ennen FULL CHAOSia)
     /* v11.05: viimeinen nappi (FULL CHAOS) jää päälle ja koko näyttö tärisee
        saman ajan (style.css: @keyframes chaos-shake – kesto pidettävä samana). */
     const AUTO_HOVER_HOLD_MS   = 2000;    // FULL CHAOS -pidon + tärinän kesto
@@ -9468,7 +9480,10 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!AUTO_HOVER_ON || started || document.hidden) return;             // peli käynnistynyt / välilehti piilossa
         if (menu.classList.contains('hidden') || menu.classList.contains('faded')) return;
         if (insOpen || insClosing) return;                                    // ohjeikkuna päällä
-        if (insReducedMotion()) return;                                       // liikkeen vähentäminen
+        /* v11.17: reduce-motion ei enää estä koko kierrosta – vain tärinä jää
+           pois (motion = false). Väri-/kirkkausvälähdys säilyy, koska se ei ole
+           liikettä (sama linjaus kuin INSTRUCTIONS-vilkunnassa v10.31). */
+        const motion = !insReducedMotion();
         clearAutoHover();
         const btns = autoHoverBtns();
         if (!btns.length) return;
@@ -9480,7 +9495,7 @@ window.addEventListener('DOMContentLoaded', () => {
             autoHoverTimers.push(setTimeout(() => btn.classList.add('auto-hover'), i * AUTO_HOVER_STEP_MS));
             autoHoverTimers.push(setTimeout(() => btn.classList.remove('auto-hover'),
                                             i * AUTO_HOVER_STEP_MS + (hold || AUTO_HOVER_STEP_MS)));
-            if (hold && autoHoverShakeEl) {   // v11.05: näytön tärinä pidon ajaksi
+            if (hold && motion && autoHoverShakeEl) {   // v11.05: näytön tärinä pidon ajaksi (v11.17: vain kun liike sallittu)
                 autoHoverTimers.push(setTimeout(() => autoHoverShakeEl.classList.add(AUTO_HOVER_SHAKE_CLASS), i * AUTO_HOVER_STEP_MS));
                 autoHoverTimers.push(setTimeout(() => autoHoverShakeEl.classList.remove(AUTO_HOVER_SHAKE_CLASS), i * AUTO_HOVER_STEP_MS + hold));
             }
@@ -9496,12 +9511,22 @@ window.addEventListener('DOMContentLoaded', () => {
         }, delay);
     }
     function startAutoHover() {
-        if (!AUTO_HOVER_ON || insReducedMotion() || autoHoverNext) return;
+        /* v11.17: reduce-motion ei enää estä kierrosta (vain tärinä jää pois,
+           ks. autoHoverSweep) – efekti käynnistyy nyt myös puhelimilla. */
+        if (!AUTO_HOVER_ON || autoHoverNext) return;
         scheduleAutoHover(AUTO_HOVER_START_MS);
     }
-    // Oikea osoitin valikkoon keskeyttää käynnissä olevan liu'un heti.
+    /* Oikea osoitin valikkoon keskeyttää käynnissä olevan liu'un heti.
+       v11.17: peruutus kiinnitetään vain hoveroiville laitteille ((hover: hover)),
+       koska kosketuslaitteen synteettinen mouseenter saattoi tappaa käynnissä
+       olevan liu'un; kosketuslaitteen vastine on nappialueen touchstart
+       (pelaajan oma täppäys voittaa aina, samoin kuin hiiri PC:llä). */
     const autoHoverZone = menu.querySelector('.chaos-buttons');
-    if (autoHoverZone) autoHoverZone.addEventListener('mouseenter', clearAutoHover);
+    const canHoverPointer = !!(window.matchMedia && window.matchMedia('(hover: hover)').matches);
+    if (autoHoverZone && canHoverPointer) {
+        autoHoverZone.addEventListener('mouseenter', clearAutoHover);
+    }
+    if (autoHoverZone) autoHoverZone.addEventListener('touchstart', clearAutoHover, { passive: true });
 
     menu.classList.remove('hidden');
     // Aloitusgate (v10.08): ensimmäinen ele avaa äänilukon ja näyttää chaos-valikon.

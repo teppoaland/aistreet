@@ -29,19 +29,29 @@
          v11.15: sädease ilmestyy aina samalle syvyysviivalle (teräs­aidan
          vieressä, pelaajan alin jalkapiste) – satunnainen y vei aseen
          toisinaan lampputolpan kohdalle, josta sitä ei voinut poimia →
-         kaikki ?v=-leimat samaan numeroon kuin #version-tag. -->
-    <link rel="stylesheet" href="style.css?v=11.15">
+         kaikki ?v=-leimat samaan numeroon kuin #version-tag.
+         v11.16: aloitusgaten (CLICK / PRESS) CHAOS-sanan O viivataan
+         fontin omalla Ø-merkillä (U+00D8) – pelkkää tekstiä, ei
+         piirrettyä viivaa.
+         v11.17: kaaosvalikon hover-kierto toimii nyt myös puhelimilla
+         (reduce-motion ei enää sammuta väriväläystä – vain näytön tärinä
+         jää pois), on 30 % nopeampi (450 → 346 ms / nappi) ja
+         mouseenter-peruutus on vain hoveroivilla laitteilla (kosketus:
+         touchstart) → kaikki ?v=-leimat samaan numeroon kuin
+         #version-tag. Sama yliviivattu O kuin aloitusgatessa (CHAØS)
+         myös hubin otsikossa, jotta alkunäkymät ovat yhtenevät. -->
+    <link rel="stylesheet" href="style.css?v=11.17">
 </head>
 <body>
     <!-- ═══ ALOITUSGATE (äänilukko auki ennen chaos-valikkoa) ═══ -->
     <div id="start-gate" class="hidden">
-        <h1>AI CHAOS STREET</h1>
+        <h1>AI CHAØS STREET</h1>
         <p class="press-start">CLICK / PRESS ANY KEY TO BEGIN</p>
     </div>
 
     <!-- ═══ AI CHAOS -ALKUHUBI (valitaan kaaostaso ennen peliä) ═══ -->
     <div id="chaos-menu" class="hidden">
-        <h1>AI CHAOS STREET</h1>
+        <h1>AI CHAØS STREET</h1>
         <p class="chaos-sub">CHOOSE YOUR CHAOS LEVEL</p>
         <div class="chaos-buttons">
             <button data-level="normal">NO CHAOS</button>
@@ -83,7 +93,7 @@
     <div id="chaos-blackout"></div>
 
     <!-- Versionumero (aina näkyvissä – myös alkunäkymässä) -->
-    <div id="version-tag">v11.15</div>
+    <div id="version-tag">v11.17</div>
 
     <!-- ═══ PÄÄNÄKYMÄ ═══════════════════════════════════ -->
     <div id="game-wrapper">
@@ -122,9 +132,9 @@
     </div>
 
     <!-- ═══ SKRIPTIT ═════════════════════════════════════ -->
-    <script src="gameState.js?v=11.15"></script>
-    <script src="audio.js?v=11.15"></script>
-    <script src="street.js?v=11.15"></script>
+    <script src="gameState.js?v=11.17"></script>
+    <script src="audio.js?v=11.17"></script>
+    <script src="street.js?v=11.17"></script>
 
     <!-- ✕-napit (alapeli + huone + reset) – yksi yhteinen toiminto -->
     <script>
