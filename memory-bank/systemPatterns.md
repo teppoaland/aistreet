@@ -1,9 +1,9 @@
 # 🧩 Järjestelmän arkkitehtuuri
 
 > **Tarkoitus:** Cline:n referenssi projektin rakenteesta ja siitä, mitä ei saa rikkoa.
-> **Kompaktoitu 23.9.2026 (v4.71) · tiivistetty 28.9.2026 (v11.00, 13,4 → 12,1 kt):** kaaos K0–K7 → `docs/chaos.md`.
+> **Kompaktoitu 23.9.2026 (v4.71) · tiivistetty 28.9.2026 (v11.00, 13,4 → 12,5 kt):** kaaos K0–K7 → `docs/chaos.md`.
 > Esiforkin (Pimeä Katu) koko historia: `D:\AI\Main` – tämän repon historia alkaa `b854771`.
-> ⚠️ **Vahti:** jos koko pankki > 60 kt → kompaktoi (vain uusi aines; esiforkin v4.x-historia säilyy).
+> **Rajat (28.9.2026, mitoitettu pelikoon mukaan):** tämä tiedosto **≤ 20 kt** · koko pankki **≤ 100 kt** – kokoa ei raportoida joka istunnossa; raja mainitaan vain, jos se ylittyy.
 
 ## ⭐ Yleisarkkitehtuuri
 

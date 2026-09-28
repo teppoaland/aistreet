@@ -342,6 +342,7 @@ const StreetAudio = (() => {
             return playJukeboxQueue(urls, 0);
         }
         cancelCycle();
+        stopIntro();                     // kaaos-intro ei saa soida jukebox-biisin päälle
         phase = 'jukebox';
         /* Lisätään nykyisen position jälkeen: kaikki ennen sitä on jo soitettu.
            Jos jukePos on -1 (ei soimassa), lisätään jonon loppuun. */
@@ -373,6 +374,7 @@ const StreetAudio = (() => {
         if (!ctx) return false;
         try { if (ctx.state === 'suspended') ctx.resume(); } catch (e) {}
         cancelCycle();
+        stopIntro();                     // kaaos-intro ei saa soida jukebox-biisin päälle
         phase = 'jukebox';   // ei 'playing' → canplay/onGesture eivät käynnistä taustamusiikkia
         if (!jukeEl) {
             try {

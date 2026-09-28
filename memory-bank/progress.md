@@ -1,9 +1,9 @@
 # 📊 Projektin edistyminen
 
-> **v11.02 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026.
+> **v11.08 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026.
 > **Kompaktoitu 28.9.2026 (v11.00, 29,5 → 20,7 kt):** tiivistettiin vain v10.x/uusi aines (v10.01–v11.00 -taulukko) + rakenteelliset viat (orvot taulukkorivit, tyhjät rivit, pitkät rivit).
 > **Esiforkin v3.8x–v5.02 -historia säilyy alla sellaisenaan** (koko historia: `D:\AI\Main`, 196 committia; ffb1dd9 · cc7046b · 44db9e7) – tämän repon historia alkaa `b854771`.
-> ⚠️ **Koko vahtina:** jos tämä tiedosto > 25 kt tai koko pankki > 60 kt → kompaktoi (vain uusi aines; esiforkin v4.x-historia säilyy).
+> **Rajat (28.9.2026, mitoitettu pelikoon mukaan):** tämä tiedosto **≤ 35 kt** · `activeContext.md` ≤ 45 kt · `systemPatterns.md` ≤ 20 kt · koko pankki **≤ 100 kt** – kokoa ei raportoida joka istunnossa; raja mainitaan vain, jos se ylittyy.
 
 ## 🏮 Pääportaali – AI CHAOS STREET
 
@@ -23,6 +23,8 @@
 | 🌐 Koko UI englanniksi | ✅ **v11.00** (28.9.2026) – kaikki pelaajalle näkyvä teksti englanniksi (`street.js`, `index.html`, `bm`, `digGame1/2`, `fruitgame`, `sinkship`); kommentit/dokumentit + sanomalehden ASCII-manuaalisivu suomeksi. Rajapinnat (`postMessage`, localStorage-avaimet), talousarvot ja kaaoslogiikka ennallaan; `lang="en"`; alapelien omat versiotagit ennallaan |
 | 🎵 Kaaos-intro + syntikkalukko pois | ✅ **v11.01** – tuoreesta valikosta (kaikki moodit) soitetaan kerran `jukebox/8_nickpanek-coffee-first-heavy-grunge-metal-instrumental-391308.mp3` (`StreetAudio.playChaosIntro`, `loop=false`), sitten wave (`INTRO_GAP 2000`). `synthUnlocked`-lukko poistettu → wave soi oletuksena kaikissa sessioissa; `setSynthUnlocked` + 3 kutsua poistettu. F5 ei introa |
 | 🎬 Kaaosvalinnan siirtymä | ✅ **v11.02** – valinnasta katu paljastuu 3 s siirtymällä: musta 2 s + valikkobiisin häivytys (`StreetAudio.fadeOutMenuMusic`, 50 ms portaat) → valikko piiloon + `init` + kaaos-intro **mustan alla** → 1 s häivytys pois (`.reveal`) → `hidden`. Nupit `CHAOS_BLACKOUT_MS 2000` / `CHAOS_REVEAL_MS 1000`; `#chaos-blackout` (z 9998) valikon ulkopuolella; F5/`?chaos=` ei siirtymää; NORMAL bitti-identtinen; ei uutta tekstiä (sääntö 06) |
+| 🖱️ Automaattinen hover-kierros + FULL CHAOS -tärinä | ✅ **v11.03 + v11.04 + v11.05/v11.05b** – kaaosvalikon auettua hover liukuu kerran 5 napin yli (1 s avautumisesta, sitten 10 s välein kierroksen alusta: ketjutettu `setTimeout`, 450 ms/nappi). **FULL CHAOS jää päälle 2 s** ja koko näyttö tärisee (`#chaos-menu.shaking` + `@keyframes chaos-shake`, 2 s `linear`; v11.05b: 2,5 % askel = 50 ms ≈ 20 värähdystä/s, 2–4 px). Luokka `.auto-hover` = sama ulkoasu kuin `:hover`; oikea hiiri/täppäys keskeyttävät heti (`mouseenter` → `clearAutoHover`, valinta → `stopAutoHover`). Nupit `AUTO_HOVER_*` (`START_MS 1000`, `REPEAT_MS 10000`, `STEP_MS 450`, `HOLD_MS 2000`); testikytkin `?autohover=0`; reduce-motion sammuttaa; ei uutta tekstiä; NORMAL bitti-identtinen (vain UI-ajoitus) |
+| 🎵 Jukebox pysäyttää intron | ✅ **v11.08** – `audio.js` `playJukeboxQueue()` + `appendJukeboxQueue()` kutsuvat nyt `stopIntro()` → kaaos-intro ei soi päällekkäin jukebox-biisin kanssa, kun pelaaja valitsee kappaleen intron aikana. Ei UI-/dialogimuutoksia (sääntö 06) |
 
 | Katunäkymä, hahmo, 9 lamppua, 9 ovea, ajoneuvot, eläimet, sää | ✅ |
 | Hahmon viilaus | ✅ v4.03–v4.05 – silmä + `lookY`, lipan/kasvojen/leuan varjot, maakosketusvarjo, hengitys, potkun ennakointi + nojaus, hit pause, dynaaminen lampunvalo |
@@ -91,7 +93,7 @@
 | Ominaisuus | Tila |
 |-----------|------|
 | `.clinerules/` (01–06) + `memory-bank/` + Git | ✅ |
-| Muistipankin kompaktio | ✅ 20.9.2026 (activeContext 83 → ~16 kt) · ✅ 23.9.2026 (v4.71: ac 53,7 → 15,8 kt / 631 → 199 rv, progress 18,5 → 10,3 kt, sys 11,8 → 10,5 kt) · ✅ **28.9.2026 (v11.00: ac 42,0 → 27,2 / 444 → 249 rv, progress 29,5 → 20,7 / 127 → 110 rv, sys 13,4 → 12,1 kt; pankki 84,9 → 60,0 kt)** – tiivistettiin vain v10.x/uusi aines, esiforkin v4.x-historia säilyy; täysi historia git-historiassa |
+| Muistipankin kompaktio | ✅ 20.9.2026 (activeContext 83 → ~16 kt) · ✅ 23.9.2026 (v4.71: ac 53,7 → 15,8 kt / 631 → 199 rv, progress 18,5 → 10,3 kt, sys 11,8 → 10,5 kt) · ✅ **28.9.2026 (v11.00: ac 42,0 → 27,2 / 444 → 249 rv, progress 29,5 → 20,7 / 127 → 110 rv, sys 13,4 → 12,1 kt; pankki 84,9 → 60,0 kt)** – tiivistettiin vain v10.x/uusi aines, esiforkin v4.x-historia säilyy; täysi historia git-historiassa · **28.9.2026 (v11.06/v11.07): v11.03–v11.05 kirjattu pankkiin (auto-hover + FULL CHAOS -tärinä) ja kokorajat mitoitettu pelikoon mukaan** – activeContext ≤ 45 · progress ≤ 35 · systemPatterns ≤ 20 · pankki ≤ 100 kt; **kompaktointia ei tehdä eikä kokoa raportoida joka istunnossa** |
 | 🔒 Talousbalanssi lukittu | ✅ v4.24 – sääntö 04 + `docs/economy-balance-memo.md`; rosvo/kaivo/🍔-vauhti kirjattu sääntöön (v4.68/v4.69/v4.70) · **🔓 SUPERSEDED 27.9.2026:** sääntö 04 EI enää päde AI CHAOS STREET -forkissa (kirjoitettu alkuperäistä Pimeä Katu -peliä varten) – talousarvot vapaita kaikilla tasoilla |
 | 🚫 Ei ylimääräisiä dialogeja | ✅ v4.68 – sääntö 06 (`.clinerules/06-ei-dialogeja.md`); rosvon rahaviesti poistettu |
 | Tekijänoikeudet | ✅ 20.9.2026 – juuren `LICENSE` (Copyright (c) 2024–2026 Teppo Ålander, All rights reserved) + README-osio; 22.9.2026 LICENSE/README mainitsevat myös jukeboxin kolmannen osapuolen raidat (raidat 4–6) |
@@ -106,6 +108,8 @@
 `%TEMP%\*.cjs` – `street-bar-test`, `street-bar-picture-test`, `street-jukebox-test`,
 `street-jukebox-layout-test`, `street-cheat-test`, `street-avenger-test`, `street-threshold-test`,
 `street-winframe-test`, `street-fruit-test`, `street-hunger-scope-test`, `street-bm-path-test`,
+`street-autohover-test` (49 tarkistusta: pito 2 s, tärinä 2 s, sykli 10 s), `street-chaos-fade-test` (24),
+`chaos-normal-check` (78 avainta, 0 eroa = NORMAL bitti-identtinen),
 `audio-music-test`, `audio-jukebox-test`, `ftest` (hedelmäpeli). Tekniikka: Node `vm` +
 canvas/document-stub, rAF käsin ohjattuna.
 Apuryhmät (eivät testejä): `newspaper-art` (generoi sanomalehden manuaalisivun ASCII-piirroksen –

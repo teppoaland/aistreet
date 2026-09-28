@@ -428,11 +428,81 @@ body::after {
     transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 
+/* v11.03: .auto-hover = ohjelmallinen "hover" (automaattinen hover-kierros,
+   street.js AUTO_HOVER_*) – sama ulkoasu kuin oikea :hover, joten efekti
+   näyttää täsmälleen samalta kuin käyttäjän oma hiiri. */
 #chaos-menu .chaos-buttons button:hover,
-#chaos-menu .chaos-buttons button:active {
+#chaos-menu .chaos-buttons button:active,
+#chaos-menu .chaos-buttons button.auto-hover {
     background: #22263a;
     border-color: #ffe066;
     color: #ffe066;
+}
+
+/* ═══ v11.05: FULL CHAOS -TÄRINÄ ══════════════════════════════════════
+   Auto-hoverin viimeinen askel: FULL CHAOS jää päälle 2 s (street.js
+   AUTO_HOVER_HOLD_MS) ja koko valikkonäyttö tärisee saman ajan. Voimakkuus
+   2–4 px vaakavärinä + pieni pystysuunta. Tahti on tasaisen nopea koko
+   pidon ajan: 2,5 % askel = 50 ms ≈ 20 värähdystä sekunnissa (aiempi 4–8 %
+   eli 80–160 ms tuntui laiskalta, koska askeleet harvenivat loppua kohti).
+   Kesto pidettävä samana kuin AUTO_HOVER_HOLD_MS.
+
+   Tärinä kohdistuu #chaos-menu:hun (koko ruudun musta kerros) eikä bodyyn:
+   transform tekee elementistä fixed-lastensa containing blockin, joten
+   valikkokerrokseen kohdistettuna mikään ei pääse heilumaan layoutissa.
+   Kerros peittää koko näytön → pelaajasta koko ruutu tärisee. */
+#chaos-menu.shaking {
+    animation: chaos-shake 2s linear both;
+}
+
+@keyframes chaos-shake {
+    0%    { transform: translate(0, 0); }
+    2.5%  { transform: translate(-4px, 1px); }
+    5%    { transform: translate(4px, -1px); }
+    7.5%  { transform: translate(-4px, 0); }
+    10%   { transform: translate(4px, 2px); }
+    12.5% { transform: translate(-3px, -1px); }
+    15%   { transform: translate(3px, 0); }
+    17.5% { transform: translate(-4px, 1px); }
+    20%   { transform: translate(4px, -1px); }
+    22.5% { transform: translate(-4px, 0); }
+    25%   { transform: translate(4px, 2px); }
+    27.5% { transform: translate(-3px, -1px); }
+    30%   { transform: translate(3px, 0); }
+    32.5% { transform: translate(-4px, 1px); }
+    35%   { transform: translate(4px, -1px); }
+    37.5% { transform: translate(-4px, 0); }
+    40%   { transform: translate(4px, 2px); }
+    42.5% { transform: translate(-3px, -1px); }
+    45%   { transform: translate(3px, 0); }
+    47.5% { transform: translate(-4px, 1px); }
+    50%   { transform: translate(4px, -1px); }
+    52.5% { transform: translate(-4px, 0); }
+    55%   { transform: translate(4px, 2px); }
+    57.5% { transform: translate(-3px, -1px); }
+    60%   { transform: translate(3px, 0); }
+    62.5% { transform: translate(-4px, 1px); }
+    65%   { transform: translate(4px, -1px); }
+    67.5% { transform: translate(-4px, 0); }
+    70%   { transform: translate(4px, 2px); }
+    72.5% { transform: translate(-3px, -1px); }
+    75%   { transform: translate(3px, 0); }
+    77.5% { transform: translate(-4px, 1px); }
+    80%   { transform: translate(4px, -1px); }
+    82.5% { transform: translate(-4px, 0); }
+    85%   { transform: translate(4px, 2px); }
+    87.5% { transform: translate(-3px, -1px); }
+    90%   { transform: translate(3px, 0); }
+    92.5% { transform: translate(-4px, 1px); }
+    95%   { transform: translate(4px, -1px); }
+    97.5% { transform: translate(-2px, 0); }
+    100%  { transform: translate(0, 0); }
+}
+
+/* Liikkeen vähentäminen: ei tärinää lainkaan (auto-hover ei muutenkaan
+   käynnisty, kun käyttäjä on pyytänyt vähemmän liikettä). */
+@media (prefers-reduced-motion: reduce) {
+    #chaos-menu.shaking { animation: none !important; }
 }
 
 /* v10.14: kaaostason valinnan jälkeen tekstit haihtuvat pois ennen pelin alkua */

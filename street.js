@@ -9247,12 +9247,88 @@ window.addEventListener('DOMContentLoaded', () => {
         Street.init(canvas);
         return;
     }
+    /* ═══ Automaattinen hover-kierros (v11.03, ajoitus v11.04/v11.05) ═══════
+       Kun valikko ("CHOOSE YOUR CHAOS LEVEL") on auennut, hover-efekti liukuu
+       kerran kaikkien viiden kaaosnapin yli ylhäältä alas: 1 s valikon
+       avautumisesta, sen jälkeen 10 s välein (kierroksen alusta alkuun)
+       niin kauan kuin valikko on auki. Yksi nappi kerrallaan 450 ms, ja
+       viimeinen (FULL CHAOS) jää päälle 2 s – samalla koko näyttö tärisee.
+       Efekti on pelkkä luokka .auto-hover (style.css = täsmälleen sama ulkoasu
+       kuin :hover), joten oikea hiiri ja täppäys toimivat koko ajan
+       normaalisti – oikea osoitin myös keskeyttää käynnissä olevan liu'un.
+       Esteettömyys: liikkeen vähentäminen (reduce-motion) sammuttaa efektin.
+       Testikytkin: ?autohover=0 (ei tallennu). */
+    const AUTO_HOVER_ON        = urlParams.get('autohover') !== '0';
+    const AUTO_HOVER_START_MS  = 1000;    // viive siitä, kun valikko on auennut
+    const AUTO_HOVER_REPEAT_MS = 10000;   // kierroksen alusta seuraavan alkuun = 10 s
+    const AUTO_HOVER_STEP_MS   = 450;     // yksi nappi kerrallaan (4 × 450 ms ennen FULL CHAOSia)
+    /* v11.05: viimeinen nappi (FULL CHAOS) jää päälle ja koko näyttö tärisee
+       saman ajan (style.css: @keyframes chaos-shake – kesto pidettävä samana). */
+    const AUTO_HOVER_HOLD_MS   = 2000;    // FULL CHAOS -pidon + tärinän kesto
+    const AUTO_HOVER_SHAKE_CLASS = 'shaking';
+    const autoHoverShakeEl = menu;        // koko valikkonäyttö (kattaa koko ruudun)
+    const autoHoverBtns = () => Array.prototype.slice.call(menu.querySelectorAll('.chaos-buttons button'));
+    let autoHoverNext = null;     // seuraavan kierroksen ajastin (ketjutettu setTimeout:
+                                  // tasan 10 s väli myös hitaalla laitteella)
+    let autoHoverTimers = [];     // käynnissä olevan liu'un ajastimet
+
+    function clearAutoHover() {
+        autoHoverTimers.forEach((t) => clearTimeout(t));
+        autoHoverTimers = [];
+        autoHoverBtns().forEach((b) => b.classList.remove('auto-hover'));
+        // v11.05: tärinä katkeaa aina samalla (oikea hiiri, valinta, stopAutoHover)
+        if (autoHoverShakeEl) autoHoverShakeEl.classList.remove(AUTO_HOVER_SHAKE_CLASS);
+    }
+    function stopAutoHover() {
+        if (autoHoverNext) { clearTimeout(autoHoverNext); autoHoverNext = null; }
+        clearAutoHover();
+    }
+    function autoHoverSweep() {
+        if (!AUTO_HOVER_ON || started || document.hidden) return;             // peli käynnistynyt / välilehti piilossa
+        if (menu.classList.contains('hidden') || menu.classList.contains('faded')) return;
+        if (insOpen || insClosing) return;                                    // ohjeikkuna päällä
+        if (insReducedMotion()) return;                                       // liikkeen vähentäminen
+        clearAutoHover();
+        const btns = autoHoverBtns();
+        if (!btns.length) return;
+        const under = document.querySelector('.chaos-buttons button:hover');  // oikea osoitin voittaa aina
+        const last = btns.length - 1;
+        btns.forEach((btn, i) => {
+            if (btn === under) return;
+            const hold = (i === last) ? AUTO_HOVER_HOLD_MS : 0;   // vain FULL CHAOS jää päälle (v11.05)
+            autoHoverTimers.push(setTimeout(() => btn.classList.add('auto-hover'), i * AUTO_HOVER_STEP_MS));
+            autoHoverTimers.push(setTimeout(() => btn.classList.remove('auto-hover'),
+                                            i * AUTO_HOVER_STEP_MS + (hold || AUTO_HOVER_STEP_MS)));
+            if (hold && autoHoverShakeEl) {   // v11.05: näytön tärinä pidon ajaksi
+                autoHoverTimers.push(setTimeout(() => autoHoverShakeEl.classList.add(AUTO_HOVER_SHAKE_CLASS), i * AUTO_HOVER_STEP_MS));
+                autoHoverTimers.push(setTimeout(() => autoHoverShakeEl.classList.remove(AUTO_HOVER_SHAKE_CLASS), i * AUTO_HOVER_STEP_MS + hold));
+            }
+        });
+    }
+    /* Kierros ajastetaan aina edellisen kierroksen alusta (ketjutettu setTimeout):
+       setInterval ehtisi vanheta hitaalla laitteella ja 1. väli menisi 9 sekuntiin. */
+    function scheduleAutoHover(delay) {
+        autoHoverNext = setTimeout(() => {
+            autoHoverNext = null;
+            autoHoverSweep();
+            if (AUTO_HOVER_ON && !started) scheduleAutoHover(AUTO_HOVER_REPEAT_MS);
+        }, delay);
+    }
+    function startAutoHover() {
+        if (!AUTO_HOVER_ON || insReducedMotion() || autoHoverNext) return;
+        scheduleAutoHover(AUTO_HOVER_START_MS);
+    }
+    // Oikea osoitin valikkoon keskeyttää käynnissä olevan liu'un heti.
+    const autoHoverZone = menu.querySelector('.chaos-buttons');
+    if (autoHoverZone) autoHoverZone.addEventListener('mouseenter', clearAutoHover);
+
     menu.classList.remove('hidden');
     // Aloitusgate (v10.08): ensimmäinen ele avaa äänilukon ja näyttää chaos-valikon.
     const gate = document.getElementById('start-gate');
     const showMenu = () => {
         if (gate) gate.classList.add('hidden');
         menu.classList.remove('hidden');
+        startAutoHover();   // v11.03: hover-kierto käyntiin, kun valikko on auennut
     };
     if (gate) {
         gate.classList.remove('hidden');
@@ -9287,6 +9363,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const start = (level) => {
         if (started) return;
         started = true;
+        stopAutoHover();                    // v11.03: hover-kierto pois (valikko himmenee)
         menu.classList.add('faded');        // v10.14: tekstit haihtuvat pois ennen pelin alkua
         if (blackout) blackout.classList.add('on');   // v11.02: näyttö mustenee
         // v11.02: valikkobiisi vaimenee mustumisen aikana. Funktio on aina

@@ -8,8 +8,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <!-- v11.02: ?v= -versioleima – mobiiliselaimet eivät jää jumiin vanhaan
-         CSS:ään/JS:ään. Nosta sama numero kuin #version-tag. -->
-    <link rel="stylesheet" href="style.css?v=11.02">
+         CSS:ään/JS:ään. Nosta sama numero kuin #version-tag.
+         v11.05b: tärinäanimaation arvon säätö (ei versionnostoa, sääntö 03) –
+         leima nostettiin "b":llä, jotta selain hakee uuden CSS:n.
+         v11.06/v11.07: muistipankin päivitys + kokorajojen mitoitus
+         (infrastruktuuri, sääntö 03) → kaikki leimat samaan numeroon.
+         v11.08: jukebox pysäyttää kaaos-intron (ei mp3-päällekkäisyyttä). -->
+    <link rel="stylesheet" href="style.css?v=11.08">
 </head>
 <body>
     <!-- ═══ ALOITUSGATE (äänilukko auki ennen chaos-valikkoa) ═══ -->
@@ -62,7 +67,7 @@
     <div id="chaos-blackout"></div>
 
     <!-- Versionumero (aina näkyvissä – myös alkunäkymässä) -->
-    <div id="version-tag">v11.02</div>
+    <div id="version-tag">v11.08</div>
 
     <!-- ═══ PÄÄNÄKYMÄ ═══════════════════════════════════ -->
     <div id="game-wrapper">
@@ -101,9 +106,9 @@
     </div>
 
     <!-- ═══ SKRIPTIT ═════════════════════════════════════ -->
-    <script src="gameState.js?v=11.02"></script>
-    <script src="audio.js?v=11.02"></script>
-    <script src="street.js?v=11.02"></script>
+    <script src="gameState.js?v=11.08"></script>
+    <script src="audio.js?v=11.08"></script>
+    <script src="street.js?v=11.08"></script>
 
     <!-- ✕-napit (alapeli + huone + reset) – yksi yhteinen toiminto -->
     <script>
