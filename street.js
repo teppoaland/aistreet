@@ -10123,17 +10123,66 @@ window.addEventListener('DOMContentLoaded', () => {
     /* Siirtymä (v11.02): kaaostason valinnasta näyttö mustenee 2 s
        (CHAOS_BLACKOUT_MS) ja valikkobiisi vaimenee samaan aikaan; peli
        käynnistyy mustan alla, minkä jälkeen katu paljastuu 1 s häivytyksellä
-       (CHAOS_REVEAL_MS) → koko siirtymä on 3 s. Nupit: alla. */
+       (CHAOS_REVEAL_MS) → koko siirtymä on 3 s. Nupit: alla.
+       v11.25: BAD CHAOS saa lisävarotuksen – mustaan ruutuun kirjoitetaan
+       keltainen teksti merkki merkiltä (sama klik-ääni kuin ohjeikkunassa),
+       minkä jälkeen musta häivytetään kuten muillakin tasoilla → BAD-siirtymä
+       on n. 2 s pidempi. Intro soi sen aikana kuten ennenkin; muut tasot
+       kulkevat täsmälleen entistä polkua. */
     const CHAOS_BLACKOUT_MS = 2000;   // mustuminen + valikkobiisin häivytys
     const CHAOS_REVEAL_MS = 1000;     // mustan häivytys pois → katu näkyy
+    /* BAD CHAOS -varoitus (v11.25): ajoitusnupit (vain BAD CHAOS). */
+    const BAD_WARN_LEVEL   = 'bad';
+    const BAD_WARN_TYPE_MS = 50;      // perusväli per merkki (ohjeissa 18 ms)
+    const BAD_WARN_HOLD_MS = 800;     // teksti valmis → tauko ennen häivytystä
     const blackout = document.getElementById('chaos-blackout');
+    const warnEl   = document.getElementById('chaos-warning');
+    /* Varoitusteksti luetaan kerran HTML:stä (kuten ohjeet
+       #instructions-source:sta) ja normalisoidaan, ettei sisennys päädy
+       kirjoitukseen. Tyhjä/ puuttuva teksti → varoitusta ei näytetä. */
+    const warnText = warnEl ? warnEl.textContent.replace(/\s+/g, ' ').trim() : '';
     let started = false;
+
+    /* Kirjoittaa varoitustekstin merkki merkiltä mustaan ruutuun.
+       Sama kuvio kuin typeInstructions(): tekstisolmu + vilkkuva kursori
+       (.ins-caret) ja naksahdus joka INS_TYPE_CLICK_EVERY merkki.
+       Teksti valmis → kursori pois → BAD_WARN_HOLD_MS → done(). */
+    function typeChaosWarning(done) {
+        if (!warnEl || !warnText) { if (done) done(); return; }
+        warnEl.textContent = '';
+        const node = document.createTextNode('');
+        const caret = document.createElement('span');
+        caret.className = 'ins-caret';
+        caret.textContent = '\u25AE';
+        warnEl.appendChild(node);
+        warnEl.appendChild(caret);
+        let i = 0, clicks = 0;
+        const step = () => {
+            if (i >= warnText.length) {                     // teksti valmis
+                if (caret.parentNode) caret.parentNode.removeChild(caret);
+                if (done) setTimeout(done, BAD_WARN_HOLD_MS);
+                return;
+            }
+            const ch = warnText.charAt(i++);
+            node.textContent += ch;
+            if (++clicks % INS_TYPE_CLICK_EVERY === 0 && StreetAudio.playTypeClick) StreetAudio.playTypeClick();
+            let pause = BAD_WARN_TYPE_MS;
+            if (ch === '.' || ch === '!' || ch === '?') pause += INS_TYPE_SENTENCE_MS;
+            setTimeout(step, pause);
+        };
+        step();
+    }
+
     const start = (level) => {
         if (started) return;
         started = true;
         stopAutoHover();                    // v11.03: hover-kierto pois (valikko himmenee)
         menu.classList.add('faded');        // v10.14: tekstit haihtuvat pois ennen pelin alkua
         if (blackout) blackout.classList.add('on');   // v11.02: näyttö mustenee
+        const warn = level === BAD_WARN_LEVEL && !!warnText;   // v11.25: vain BAD CHAOS
+        // v11.25: varoitusteksti tyhjennetään heti, ettei se ehdi näkyä mustan
+        // 2 s häivytyksen aikana – se kirjoitetaan vasta kun ruutu on musta.
+        if (warnEl) warnEl.textContent = '';
         // v11.02: valikkobiisi vaimenee mustumisen aikana. Funktio on aina
         // samassa versiossa – varmistus, ettei vanha välimuistiin jäänyt
         // audio.js kaada koko käynnistystä.
@@ -10145,15 +10194,20 @@ window.addEventListener('DOMContentLoaded', () => {
             Street.saveChaosSession();
             Street.init(canvas);
             StreetAudio.playChaosIntro(CHAOS_INTRO_TRACK);   // kaaos-intro: yksi kappale kerran, sitten wave-musiikki
-            // v11.02: paljastus – musta häivytetään pois, sitten elementti pois tieltä
-            if (blackout) {
+            // v11.02: paljastus – musta häivytetään pois, sitten elementti pois tieltä.
+            // v11.25: BAD CHAOS odottaa varoituksen valmiiksi; intro soi sen
+            // aikana kuten muillakin tasoilla, joten vain paljastus viivästyy.
+            const reveal = () => {
+                if (!blackout) return;
                 blackout.classList.remove('on');
                 blackout.classList.add('reveal');
                 setTimeout(() => {
                     blackout.classList.remove('reveal');
                     blackout.classList.add('hidden');
+                    if (warnEl) warnEl.textContent = '';   // ei jää jäänteitä seuraavaan näkymään
                 }, CHAOS_REVEAL_MS);
-            }
+            };
+            if (warn) typeChaosWarning(reveal); else reveal();
         }, CHAOS_BLACKOUT_MS);
     };
     menu.querySelectorAll('[data-level]').forEach(btn => {

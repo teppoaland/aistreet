@@ -557,6 +557,40 @@ body::after {
     transition: opacity 1s ease-out;
 }
 
+/* ═══ BAD CHAOS -VAROITUS (v11.25) ═════════════════════════════════════
+   Vain BAD CHAOS: mustan ruudun keskelle kirjoitetaan keltainen teksti
+   merkki merkiltä (street.js typeChaosWarning, sama klik-ääni kuin
+   INSTRUCTIONS-ikkunassa). Elementti on #chaos-blackoutin lapsi, joten se
+   perii mustumisen ja häivytyksen eikä näy missään muualla.
+   Ulkoasu = täsmälleen ohjeikkunan keltainen (#ffe066) + sama hehku.
+   Koko = clamp, jotta 17 merkin rivi mahtuu yhdelle riville myös 320 px
+   näytöllä (Press Start 2P on leveä); nupit ovat säätövapaita. */
+#chaos-warning {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    text-align: center;
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    font-size: clamp(0.7rem, 4.2vw, 1.6rem);
+    letter-spacing: 2px;
+    white-space: nowrap;
+    color: #ffe066;
+    text-shadow: 0 0 10px rgba(255, 224, 102, 0.65);
+    pointer-events: none;   /* musta hoitaa täppäysten eston */
+}
+
+/* Kapea näyttö: tiiviimpi välistys, jottei rivi leikkaudu */
+@media (max-width: 480px) {
+    #chaos-warning { letter-spacing: 1px; }
+}
+/* Matala vaakakuva: hieman pienempi, jotta varoitus hengittää */
+@media (orientation: landscape) and (max-height: 500px) {
+    #chaos-warning { font-size: clamp(0.6rem, 3.4vw, 1.1rem); }
+}
+
 /* v10.15: mobiilin vaakakuva – napit riviin, jotta koko valikko mahtuu matalaan näyttöön */
 @media (orientation: landscape) and (max-height: 500px) {
     #chaos-menu { gap: 12px; }

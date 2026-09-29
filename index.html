@@ -61,8 +61,11 @@
          jää rauniot horisonttiin (runko + 1–3 seinäpalaa), kongin/patarummun
          kumahdus pois osumahetkeltä ja BAD-avaus (yksi satunnainen eturivin
          talo – jopa BAR – tuhoutuu heti malliksi) → kaikki ?v=-leimat
-         samaan numeroon kuin #version-tag. -->
-    <link rel="stylesheet" href="style.css?v=11.24">
+         samaan numeroon kuin #version-tag.
+         v11.25: BAD CHAOS – mustaan siirtymäruutuun kirjoitetaan keltainen
+         varoitus "You will suffer!" merkki merkiltä (sama klik-ääni kuin
+         INSTRUCTIONS-ikkunassa); muut kaaostasot ennallaan. -->
+    <link rel="stylesheet" href="style.css?v=11.25">
 </head>
 <body>
     <!-- ═══ ALOITUSGATE (äänilukko auki ennen chaos-valikkoa) ═══ -->
@@ -108,14 +111,20 @@
 
     </div>
 
-    <!-- ═══ SIIRTYMÄMUSTA (v11.02) ═══════════════════════════
+    <!-- ═══ SIIRTYMÄMUSTA (v11.02) + BAD-VAROITUS (v11.25) ═══════════════
          Kaaostason valinnan jälkeen näyttö mustenee (2 s) ja
          katu paljastuu pehmeästi (1 s). Sijaitsee #chaos-menu:n
-         ULKOPUOLELLA, koska valikko piilotetaan kesken siirtymän. -->
-    <div id="chaos-blackout"></div>
+         ULKOPUOLELLA, koska valikko piilotetaan kesken siirtymän.
+         BAD CHAOS: mustaan ruutuun kirjoitetaan keltainen varoitus
+         merkki merkiltä (sama klik-ääni kuin INSTRUCTIONS-ikkunassa).
+         Teksti luetaan tästä ja tyhjennetään kirjoituksen ajaksi, joten
+         sitä voi vapaasti muuttaa. Muilla kaaostasoilla ei varoitusta. -->
+    <div id="chaos-blackout">
+        <div id="chaos-warning">You will suffer!</div>
+    </div>
 
     <!-- Versionumero (aina näkyvissä – myös alkunäkymässä) -->
-    <div id="version-tag">v11.24</div>
+    <div id="version-tag">v11.25</div>
 
     <!-- ═══ PÄÄNÄKYMÄ ═══════════════════════════════════ -->
     <div id="game-wrapper">
@@ -154,9 +163,9 @@
     </div>
 
     <!-- ═══ SKRIPTIT ═════════════════════════════════════ -->
-    <script src="gameState.js?v=11.24"></script>
-    <script src="audio.js?v=11.24"></script>
-    <script src="street.js?v=11.24"></script>
+    <script src="gameState.js?v=11.25"></script>
+    <script src="audio.js?v=11.25"></script>
+    <script src="street.js?v=11.25"></script>
 
     <!-- ✕-napit (alapeli + huone + reset) – yksi yhteinen toiminto -->
     <script>
