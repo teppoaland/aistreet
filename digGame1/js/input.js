@@ -6,6 +6,21 @@ class InputHandler {
         this.spaceHeld = false;
         this.setupKeyboard();
         this.setupTouch();
+        this.setupTouchVisibility();
+    }
+
+    // Tabletti/puhelin: ensisijainen osoitin on sormi (pointer: coarse).
+    // CSS:n min-width:769px-sääntö piilottaisi ohjaimet leveällä näytöllä,
+    // joten pakotetaan ne näkyviin force-show-luokalla (id + luokka voittaa
+    // !important-säännön). PC ja kosketusnäyttöläppäri (pointer: fine) eivät
+    // luokkaa saa → työpöytä-UI pysyy ennallaan.
+    setupTouchVisibility() {
+        const mq = window.matchMedia ? window.matchMedia('(pointer: coarse)') : null;
+        const touchPrimary = mq ? mq.matches
+            : (('ontouchstart' in window) || navigator.maxTouchPoints > 0);
+        if (!touchPrimary) return;
+        const tc = document.getElementById('touch-controls');
+        if (tc) tc.classList.add('force-show');
     }
 
     setupKeyboard() {

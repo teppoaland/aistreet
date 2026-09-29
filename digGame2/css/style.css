@@ -101,6 +101,13 @@ canvas {
     gap: 6px;
 }
 
+/* Kosketuslaite (tabletti/puhelin, pointer: coarse): input.js lisää force-show-luokan,
+   jotta ohjaimet näkyvät myös ≥769 px näytöillä. Id + luokka voittaa alla olevan
+   min-width:769px-säännön !importantista huolimatta → työpöytä-UI ei muutu. */
+#touch-controls.force-show {
+    display: flex !important;
+}
+
 .touch-pad-row {
     display: flex;
     align-items: center;

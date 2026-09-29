@@ -41,6 +41,19 @@ osapuolen heavy metal + Alex Morgan / NickPanek (kansikuvat `jukebox/covers/{1..
 mustenee 2 s (`#chaos-blackout`, `style.css` `.on`/`.reveal`, z 9998) ja valikkobiisi vaimenee
 (`fadeOutMenuMusic(ms)`, 50 ms portaat + `MUSIC_VOLUME`-palautus); valikko piilotetaan ja `Street.init()`
 käynnistyy **mustan alla**, minkä jälkeen katu paljastuu 1 s häivytyksellä → koko siirtymä 3 s.
+**Kaaosvalikon hover-kierto + otsikon Ø (v11.03–v11.05b, v11.16/v11.17):** hubin auettua luokka `.auto-hover`
+(`style.css`, = **täsmälleen `:hover`:n ulkoasu**) liukuu 5 napin yli ylhäältä alas **173 ms / nappi**
+(v11.17: 450 → 346 → 173) ketjutettuna `setTimeout`ina (`AUTO_HOVER_START_MS 1000` / `REPEAT_MS 10000` /
+`STEP_MS 173` / `HOLD_MS 2000`), ja **FULL CHAOS jää päälle 2 s** → samalla `#chaos-menu.shaking`
+(`@keyframes chaos-shake`, kesto = `HOLD_MS`) tärisee – tärinä kohdistuu valikon mustaan kerrokseen, ei
+`body`iin. **Oikea hiiri/täppäys voittavat aina** (valinta → `stopAutoHover`); `mouseenter`-peruutus
+kiinnitetään vain `(hover: hover)` -laitteille ja kosketus käyttää `touchstart`ia (v11.17), koska puhelimen
+synteettinen `mouseenter` saattoi tappaa liu'un. **Reduce-motion ei sammuta kierrosta** – vain näytön tärinä
+jää pois (`style.css` 504; sama linjaus kuin INSTRUCTIONS-vilkku v10.31). Alkunäkymien (gate + hubi) otsikko
+on **`AI CHAØS STREET`** fontin omalla Ø:llä (U+00D8, v11.16). Testikytkin `?autohover=0`; pelkkä UI-ajoitus
+→ NORMAL bitti-identtinen. **Säätönuppi jos välähdys tuntuu töksähtävältä:** napin CSS-transitio
+`background/border-color/color 0.12s` (`style.css` 428) ehtii 173 ms:ssä juuri ja juuri täyttyä → lyhennä se
+esim. 0.06 s:iin (vain arvo, ei versionostoa).
 
 **Kuvat:** `assets/justiina.png` (315×261) = BAR-huoneen seinätaulu (`BAR_PIC_SRC`, `barPicReady`,
 varapinta jos ei lataudu) · `fruitgame/assets/dude_mv.jpg` (672×400, MV) = hedelmäpelin huoneen seinäkuva
