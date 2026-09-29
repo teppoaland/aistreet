@@ -1,6 +1,6 @@
 # 📊 Projektin edistyminen
 
-> **v11.17 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026.
+> **v11.19 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026.
 > **Kompaktoitu 28.9.2026 (v11.00, 29,5 → 20,7 kt):** tiivistettiin vain v10.x/uusi aines (v10.01–v11.00 -taulukko) + rakenteelliset viat (orvot taulukkorivit, tyhjät rivit, pitkät rivit).
 > **Esiforkin v3.8x–v5.02 -historia säilyy alla sellaisenaan** (koko historia: `D:\AI\Main`, 196 committia; ffb1dd9 · cc7046b · 44db9e7) – tämän repon historia alkaa `b854771`.
 > **Rajat (28.9.2026, mitoitettu pelikoon mukaan):** tämä tiedosto **≤ 35 kt** · `activeContext.md` ≤ 45 kt · `systemPatterns.md` ≤ 20 kt · koko pankki **≤ 100 kt** – kokoa ei raportoida joka istunnossa; raja mainitaan vain, jos se ylittyy.
@@ -95,6 +95,7 @@
 | 💎 Dig Däsh (`digGame2/`) | ✅ valmis – 4 tasoa, kolikot 1/taso (4 kpl), avain → Blue Mäx; näkyvä nimi "Dig Däsh" (tunnisteet `boulder*` ennallaan) |
 | ✈️ Blue Mäx (`bm/`) | ✅ pelattava – lento, taistelu, mittari-HUD, wrap-around, mobiili-HUD; **TESTIMODE päällä** (viholliset minimissä) → palautettava 60 % aggressiolle |
 | 📱 Kosketusohjaimet tableteilla (DG1 + DG2) | ✅ **v11.18** – pelkkä leveysmedia (`@media (min-width: 769px)`) piilotti `#touch-controls`:in, joten 10" tabletti (viewport ≥ 769 px, esim. 800×1280) näytti työpöytä-UI:n **ilman navigointia**. Korjaus: `input.js` `setupTouchVisibility()` → `pointer: coarse` (fallback `ontouchstart` / `maxTouchPoints`) lisää `#touch-controls.force-show`-luokan ja CSS `#touch-controls.force-show { display: flex !important }` voittaa piilotuksen; **työpöytä (`pointer: fine`) ja kosketusnäyttöläppärit bitti-identtiset**, pelilogiikkaan/talouteen ei koskettu. Validoitu `%TEMP%\dg-touch-test.cjs` (22 tarkistusta, 0 virhettä) |
+| 📱 Tabletin kosketusohjaimet 2× (DG1, DG2, katu, bm, sinkship) | ✅ **v11.19** – 10" tabletti (kosketus + pysty + ≥769 px) saa nyt 2× napit uudella haaralla `@media (pointer: coarse) and (min-width: 769px) and (orientation: portrait)`: DG1/DG2 `.touch-btn` 60 → 120 px (fontti 1,7 → 3,2 rem), katu `.touch-btn` 55 → 110 px + `#action-btn` 52 → 104 px (hehku 14 → 28 px), bm `.touch-btn` 48 → 96 px (pommi 52 → 104 px, gun/land 96 px), sinkship `.touch-btn` + D-pad-grid 52 → 104 px. **PC (`pointer: fine`), puhelin (<769 px) ja vaakamoodi bitti-identtiset** – vanhat näkyvyyssäännöt (`force-show`, `min-width: 769px` -piilotus, mobiili-overlay) koskemattomina. Kadulla `street.js`:n `resize()` mittaa nyt ohjainrivin korkeuden kovakoodatun 185 px:n sijaan (`CONTROL_RESERVE = isLandscape ? 0 : Math.max(185, rowH + 12)`) → puhelimella 3 × 55 + 2 × 4 + 12 = **tasan entinen 185**, tabletilla **358**; canvas väistyy itsestään. Varasuoja `canvas { max-height: calc(100dvh − 380px) }` (DG) / `− 420px` (bm) ei kutista canvasia 1280 px näytöllä (DG1 sisältö ~1022 px / 1280). Validoitu `%TEMP%\tablet-controls-test.cjs` (97 tarkistusta, 0 löydöstä); sääntö 06: ei uusia dialogeja (näppäinvihjeet vain piilotetaan) |
 
 ## 🛠️ Infrastruktuuri
 

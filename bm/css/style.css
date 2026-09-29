@@ -388,3 +388,33 @@ canvas {
         align-items: center;
     }
 }
+
+/* ── Tabletti (kosketus + pysty + leveä näyttö): ohjaimet 2× (v11.19) ──
+   pointer: coarse = sormi → PC ja kosketusnäyttöläppäri (pointer: fine),
+   puhelin (<769 px) ja vaakamoodi pysyvät täsmälleen ennallaan. */
+@media (pointer: coarse) and (min-width: 769px) and (orientation: portrait) {
+    #keyboard-hints { display: none; }      /* tabletilta puuttuu näppäimistö */
+    #touch-controls { gap: 20px; }
+    .touch-actions { gap: 12px; }
+    .touch-dpad { gap: 8px; }
+    .touch-btn {
+        width: 96px;                        /* 48 → 96 = 2× */
+        height: 96px;
+        font-size: 2.4rem;
+        border-radius: 16px;
+    }
+    #bomb-btn { width: 104px; height: 104px; font-size: 2.8rem; }  /* 52 → 104 */
+    #gun-btn,
+    #land-btn { width: 96px; height: 96px; font-size: 2.6rem; border-radius: 16px; } /* 48 → 96 */
+    /* Varasuoja: canvas on leveysvetoinen (800×480). Tabletilla kiinteät osat
+       ovat ~416 px (otsikko 56 + ohjaimet 320 + välistykset) → tämä raja ei
+       kutista canvasia lainkaan 1280 px korkeudella eikä 1024 px:llä, mutta
+       matalammalla näytöllä canvas kutistuu sivusuhteen säilyttäen. */
+    canvas {
+        width: auto !important;
+        height: auto !important;
+        max-width: 100%;
+        max-height: calc(100vh - 420px);
+        max-height: calc(100dvh - 420px);
+    }
+}

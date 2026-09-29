@@ -9388,7 +9388,13 @@ const Street = (() => {
         // Mobiili: vaakakamera. Vaakamoodissa koko katu mahtuu (ei scrollausta);
         // pystymoodissa zoomataan täyttämään korkeus ja kamera seuraa pelaajaa.
         const isLandscape = window.innerWidth > window.innerHeight;
-        const CONTROL_RESERVE = isLandscape ? 0 : 185;   // D-padin korkeus + marginaali
+        // v11.19: tablettihaarassa ohjaimet voivat olla 2× (110 px napit) →
+        // varaus mitataan rivin todellisesta korkeudesta. Puhelimella rivi on
+        // 3 × 55 + 2 × 4 = 173 px → 173 + 12 = 185 eli täsmälleen entinen
+        // vakio, joten puhelin/vaakamoodi eivät muutu lainkaan.
+        const rowEl = document.getElementById('touch-row');
+        const rowH = rowEl ? rowEl.offsetHeight : 0;
+        const CONTROL_RESERVE = isLandscape ? 0 : Math.max(185, rowH + 12);
         const availH = Math.max(200, wrapper.clientHeight - hudH - CONTROL_RESERVE);
 
         // Tavoite: täytä käytettävissä oleva korkeus (maksimaalinen vertikaalitila)

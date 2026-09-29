@@ -377,6 +377,26 @@ body::after {
     }
 }
 
+/* ── Tabletti (kosketus + pysty + leveä näyttö): kadun ohjaimet 2× (v11.19) ──
+   pointer: coarse = sormi → PC ja kosketusnäyttöläppäri (pointer: fine),
+   puhelin (<769 px) ja vaakamoodi pysyvät täsmälleen ennallaan. Tabletilta
+   puuttuu myös mobiili-overlay, joten #touch-row on normaalissa asettelussa
+   canvaksen alla ja street.js:n resize() mittaa rivin korkeuden → canvas
+   väistyy automaattisesti (ei erillistä varasuojaa). */
+@media (pointer: coarse) and (min-width: 769px) and (orientation: portrait) {
+    #touch-row  { gap: 28px; }
+    .touch-dpad { gap: 8px; }
+    .touch-btn {
+        width: 110px;                       /* 55 → 110 = 2× */
+        height: 110px;
+        font-size: 2.8rem;
+        border-width: 3px;
+        border-radius: 16px;
+    }
+    #action-btn { width: 104px; height: 104px; }        /* 52 → 104 = 2× */
+    #action-btn::after { width: 28px; height: 28px; }   /* hehku 14 → 28 */
+}
+
 /* ═══ AI CHAOS -ALKUHUBI ═══════════════════════════════ */
 .hidden { display: none !important; }
 

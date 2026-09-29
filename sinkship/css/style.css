@@ -340,3 +340,26 @@ canvas {
         align-items: center;
     }
 }
+
+/* ── Tabletti (kosketus + pysty + leveä näyttö): ohjaimet 2× (v11.19) ──
+   pointer: coarse = sormi → PC ja kosketusnäyttöläppäri (pointer: fine),
+   puhelin (<769 px) ja vaakamoodi pysyvät täsmälleen ennallaan. Canvas
+   sovittuu itsestään (#canvas-wrapper flex: 1 + game.js:n rs()) → erillistä
+   varasuojaa ei tarvita. */
+@media (pointer: coarse) and (min-width: 769px) and (orientation: portrait) {
+    #keyboard-hints { display: none; }      /* tabletilta puuttuu näppäimistö */
+    #touch-controls { gap: 20px; }
+    .touch-actions { gap: 16px; }
+    .touch-dpad {
+        grid-template-columns: 104px 104px; /* 52 → 104 = 2× */
+        grid-template-rows: 104px 104px;
+        gap: 8px;
+    }
+    .touch-dpad .touch-btn,
+    .touch-actions .touch-btn {
+        width: 104px;
+        height: 104px;
+        font-size: 2.6rem;
+        border-radius: 20px;
+    }
+}

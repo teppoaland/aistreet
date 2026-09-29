@@ -43,8 +43,14 @@
          v11.18: digGame1/digGame2 näyttävät kosketusohjaimet myös tableteilla
          (pointer: coarse → #touch-controls.force-show), koska leveysmedia
          piilotti ne ≥769 px näytöillä; työpöytä-UI ennallaan →
-         kaikki ?v=-leimat samaan numeroon kuin #version-tag. -->
-    <link rel="stylesheet" href="style.css?v=11.18">
+         kaikki ?v=-leimat samaan numeroon kuin #version-tag.
+         v11.19: tabletin kosketusohjaimet 2× isommiksi kaikissa peleissä
+         (DG1, DG2, katu, bm, sinkship) uudella haaralla
+         @media (pointer: coarse) and (min-width: 769px) and (orientation: portrait)
+         → PC, puhelin ja vaakamoodi pysyvät täsmälleen ennallaan; kadulla
+         street.js:n resize() mittaa ohjainrivin korkeuden (aiempi kova
+         185 px) ja canvas väistyy itsestään. -->
+    <link rel="stylesheet" href="style.css?v=11.19">
 </head>
 <body>
     <!-- ═══ ALOITUSGATE (äänilukko auki ennen chaos-valikkoa) ═══ -->
@@ -97,7 +103,7 @@
     <div id="chaos-blackout"></div>
 
     <!-- Versionumero (aina näkyvissä – myös alkunäkymässä) -->
-    <div id="version-tag">v11.18</div>
+    <div id="version-tag">v11.19</div>
 
     <!-- ═══ PÄÄNÄKYMÄ ═══════════════════════════════════ -->
     <div id="game-wrapper">
@@ -136,9 +142,9 @@
     </div>
 
     <!-- ═══ SKRIPTIT ═════════════════════════════════════ -->
-    <script src="gameState.js?v=11.18"></script>
-    <script src="audio.js?v=11.18"></script>
-    <script src="street.js?v=11.18"></script>
+    <script src="gameState.js?v=11.19"></script>
+    <script src="audio.js?v=11.19"></script>
+    <script src="street.js?v=11.19"></script>
 
     <!-- ✕-napit (alapeli + huone + reset) – yksi yhteinen toiminto -->
     <script>
