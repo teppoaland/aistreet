@@ -569,16 +569,17 @@ puoliskoon ja efektit "vuotavat".
 
 ---
 
-### 8.6 Meteoriitin talotuhot (v11.22, jälkitila v11.24) – mekaniikka, ei kaaosakselia
+### 8.6 Meteoriitin talotuhot (v11.22, jälkitila v11.24, tahti v11.26) – mekaniikka, ei kaaosakselia
 
 Meteoriitteja syntyy **vain BADissa (25 %) ja FULLissa (aina)** → MILD/GOOD/NORMAL eivät voi
 tuhota taloja. Talotuhot eivät siis ole uusi kaaosakseli vaan **meteoriitin eskalaatio**:
 
-1. Osuma **raunioittaa** 3 taustataloa (`destroyBackdropHouses` → `ruinBackdropBlock`): lohko ei
+1. Osuma **raunioittaa** 3 taustataloa (**v11.26:** kohteeksi kelpaa vain ehjä lohko ja eteenpäin
+   kerätään vain ehjiä → osuma ei enää hukkaannu jo raunioituneeseen lohkoon): lohko ei
    enää katoa, vaan horisonttiin jää **runko** 55–80 % korkeudesta (2–4 pystypalkkia + 2–4
    laattaviivaa = seinät puuttuvat) sekä 1–3 **seinäpalaa**. Toinen osuma samaan lohkoon murentaa
    yhden seinäpalan, muttei enää laske runkoa (`drawBackdropRuin`).
-2. Kun **ehjiä** lohkoja on jäljellä ≤ 25 % (`BACKDROP_GONE_SHARE`, `backdrop.total`;
+2. Kun **ehjiä** lohkoja on jäljellä ≤ 60 % (v11.26; ennen 25 %) (`BACKDROP_GONE_SHARE`, `backdrop.total`;
    `backdropMostlyGone()` laskee `!b.ruin`), meteoriitti
    **tähdätään katuvarren taloon**: `pickBuildingTarget()` valitsee satunnaisen **ehjän** talon,
    mutta **BAR (idx 8) vasta kun muut 8 on tuhottu** (🍔-kauppa säilyy pisimpään).
@@ -608,10 +609,37 @@ Tila on **vain muistissa** (`buildingDmg`, `buildingRubble`, taustarivien `b.rui
 Ei talousmuutoksia (ei kolikoita eikä 🍔:tä tuhosta) eikä uusia dialogeja (sääntö 06).
 Testikytkimet: `?bldg=1` (eskalaatio heti), `?bldgtarget=N` (pakota kohdetalo N),
 `?baddemo=0/N` (BAD-avaus pois/pakotettu talo).
-Validointi: `%TEMP%\street-meteor-aftermath-test.cjs` (v11.24: 68 tarkistusta),
+Validointi (v11.26): `%TEMP%\street-meteor-tempo-test.cjs` (42 tarkistusta: tahti, portti, 0 hukkaosumaa,
+finaali, FULL/NORMAL-takuu), `%TEMP%\street-meteor-aftermath-test.cjs` (68 tarkistusta),
 `%TEMP%\street-building-collapse-test.cjs` (66 tarkistusta),
 `%TEMP%\street-meteor-coin-test.cjs` (23/23), `%TEMP%\street-beam-daylight-test.cjs` (22) +
 `chaos-normal-check` (78 avainta, 0 eroa).
+
+### 8.7 BAD CHAOS -tahti ja finaali (v11.26) - mekaniikka, ei kaaosakselia
+
+Käyttäjän havainto 29.9.2026: *"Olen 15 min plannut ja vain yksi pääkadun talo on nurin ... alakaupungin
+talot edelleen 1/3 osa pystyssä ja pääkadun talot odottavat tuhoaan, mikä on tylsää. Tuho pitäisi tulla
+nopeammin."* Ennen v11.26:ää portti vaati 75 % taustarivistä raunioina ja osumat saattoivat mennä hukkaan,
+joten portti aukesi vasta ~9-12 osumalla; lisäksi BADissa tuli vain ~1 meteoriitti / 50 s yötä (25 % arpa,
+arpaväli 3-13,5 s + lento 6-17 s) → koko tuho kesti ~30-40 min.
+
+| Nuppi | Ennen | Nyt (v11.26) |
+|---|---|---|
+| `BACKDROP_GONE_SHARE` | 0.25 (75 % raunioina) | **0.60** (~40 % raunioina) |
+| `destroyBackdropHouses` | lähin + 2 seuraavaa lohkoa (raunio saattoi niellä osuman) | **lähin EHJÄ + seuraavat ehjät** → aina 3 uutta rauniota |
+| `pickBuildingTarget` | ohitti vain `'gone'` | **ohittaa myös kesken olevan romahduksen** (muuten `startBuildingCollapse` hylkäsi osuman) |
+| `meteoriteChance()` BAD | 0.25 | **0.50** |
+| BAD-profiilin `meteorTempoMult` | 0.3 | **0.15** (arpaväli 1,5-6,75 s) |
+| BAD-finaali (`badFinalePhase()`) | - | **ei tähtiä lainkaan + väli `BAD_FINALE_GAP_MIN/MAX` 260-420 f** (4,3-7 s) |
+
+Uusi `nextSkyGap()` valitsee seuraavan taivaankappaleen välin: **FULL = 600 f** (ennallaan) ·
+**BAD-finaali = 260-420 f** · muuten entinen arpa `(600 + rand·2100) × meteorTempoMult`
+(arvontajärjestys ennallaan → NORMAL bitti-identtinen). FULL pysyy muutenkin entisellään (chance 1, 600 f,
+ammuttavissa alas); portin lasku koskee myös FULLia, koska kynnys on yhteinen.
+
+Mitattu (`%TEMP%\street-meteor-tempo-test.cjs`, 24 siementä × 4 yötä): osumia porttiin **8,4 → ka 4,5**,
+meteoriitteja **~1,7 → ka 5,6 / yö**, ensimmäinen katuvarren talo **ka 1,2 yössä (max 1,7)** ja kaikki
+9 taloa **ka 2,5 yössä (max 3,0)** ≈ **~8 min reaaliajassa** (yö = 90 s joka toinen jakso; ennen ~30-40 min).
 
 ---
 

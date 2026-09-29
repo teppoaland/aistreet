@@ -1762,7 +1762,7 @@ const Street = (() => {
        BADissa asetta ei ole → tuho on vääjäämätön (moodin ironia).
        Tila on vain muistissa (kuten rosvo/kaivo) → palautuu init()issä, ja
        kuolema/F5 lataa sivun uudelleen (talot ehjinä, kuten taustarivikin). */
-    const BACKDROP_GONE_SHARE = 0.25;   // eskalaatio, kun taustarivistä on jäljellä ≤ 25 %
+    const BACKDROP_GONE_SHARE = 0.60;   // v11.26: eskalaatio, kun taustarivistä on jäljellä ≤ 60 %
     const BLDG_DMG_FLASH   = 30;    // ~0,5 s: kaikki ikkunat keltaisiksi
     const BLDG_DMG_SHAKE   = 60;    // ~1,0 s: talo tärisee (pölyä irtoaa)
     const BLDG_DMG_BLACK   = 60;    // ~1,0 s: seinät ja ikkunat mustiksi
@@ -1789,6 +1789,12 @@ const Street = (() => {
     let standingDoorIdx = -1;
     const RUBBLE_H_MAX = Math.round(DOOR_H / 2);   // 16 px – kasa ei koskaan tätä korkeampi
     const BAD_DEMO_DELAY = 120;        // ~2 s kadulle tulosta
+    /* v11.26 – BAD-finaali: kun eskalaatio on päällä (`backdropMostlyGone`),
+       BADissa ei enää arvota tähtiä vaan jokainen meteoriitti tähdätään taloon
+       ja väli on kiinteän lyhyt → katuvarren talot sortuvat ~11–19 s välein
+       (~4,3–7 s väli + lento 6–12 s). FULL säilyy ennallaan (600 f, ammuttavissa alas). */
+    const BAD_FINALE_GAP_MIN = 260;    // ~4,3 s
+    const BAD_FINALE_GAP_MAX = 420;    // ~7,0 s
     const BAD_DEMO_PARAM = (typeof location !== 'undefined' && typeof URLSearchParams !== 'undefined')
         ? new URLSearchParams(location.search).get('baddemo') : null;
     const BAD_DEMO_OFF = (BAD_DEMO_PARAM === '0');
@@ -1810,9 +1816,10 @@ const Street = (() => {
 
     function buildingGone(idx) { return buildingDmg[idx] === 'gone'; }
 
-    /* Eskalaatio: taustarivistä ≥ 75 % tuhoutunut (tai testikytkin päällä). */
+    /* Eskalaatio: taustarivistä ≥ 40 % tuhoutunut (tai testikytkin päällä). */
     /* v11.24: lohkoja ei enää poisteta vaan ne merkitään raunioiksi (b.ruin) →
-       kynnys laskee EHJISTÄ lohkoista (raunio ei ole enää "jäljellä"). */
+       kynnys laskee EHJISTÄ lohkoista (raunio ei ole enää "jäljellä").
+       v11.26: kynnys 25 % → 60 % (ks. BACKDROP_GONE_SHARE). */
     function backdropMostlyGone() {
         if (BLDG_FORCE || BLDG_TARGET !== null) return true;
         if (!backdrop || !backdrop.total) return false;
@@ -1821,12 +1828,32 @@ const Street = (() => {
         return intact <= Math.ceil(backdrop.total * BACKDROP_GONE_SHARE);
     }
 
-    /* Kohdetalo: satunnainen ehjä talo – BAR vasta kun muut on tuhottu. */
+    /* v11.26: BAD-finaali = eskalaatio päällä BADissa. Silloin tähtiä ei enää
+       arvota lainkaan (aina tähdätty meteoriitti) ja väli on lyhyt (nextSkyGap).
+       FULL/MILD/GOOD/NORMAL eivät koskaan osu tähän haaraan. */
+    function badFinalePhase() {
+        return chaosLevel === 'bad' && backdropMostlyGone();
+    }
+
+    /* v11.26: seuraavan taivaankappaleen väli (frameä). FULL = 600 kuten ennen,
+       BAD-finaali = lyhyt kiinteä väli, muuten entinen arpa. Arvontajärjestys
+       säilyy muilla tasoilla täsmälleen ennallaan → NORMAL bitti-identtinen. */
+    function nextSkyGap() {
+        if (chaosLevel === 'full') return 600;
+        if (badFinalePhase()) {
+            return BAD_FINALE_GAP_MIN + Math.random() * (BAD_FINALE_GAP_MAX - BAD_FINALE_GAP_MIN);
+        }
+        return (600 + Math.random() * 2100) * meteorTempoMult;
+    }
+
+    /* Kohdetalo: satunnainen ehjä talo – BAR vasta kun muut on tuhottu.
+       v11.26: myös KESKEN oleva romahdus ohitetaan (`buildingDmg` olemassa),
+       koska startBuildingCollapse hylkäisi osuman → meteoriitti menisi hukkaan. */
     function pickBuildingTarget() {
-        if (BLDG_TARGET !== null) return buildingGone(BLDG_TARGET) ? -1 : BLDG_TARGET;
+        if (BLDG_TARGET !== null) return buildingDmg[BLDG_TARGET] ? -1 : BLDG_TARGET;
         const intact = [], others = [];
         for (let i = 0; i < buildings.length; i++) {
-            if (buildingGone(i)) continue;
+            if (buildingDmg[i]) continue;   // 'gone' TAI romahdus kesken
             intact.push(i);
             if (i !== BAR_BLDG_IDX) others.push(i);
         }
@@ -1862,7 +1889,7 @@ const Street = (() => {
             hpLeft: METEOR_HITS_TO_KILL,
             cracked: false, hitFlash: 0,
             trail: [],
-            timer: chaosLevel === 'full' ? 600 : (600 + Math.random() * 2100) * meteorTempoMult
+            timer: nextSkyGap()   // v11.26: FULL 600 · BAD-finaali lyhyt väli · muuten entinen arpa
         };
     }
 
@@ -2004,7 +2031,7 @@ const Street = (() => {
        MILD/GOOD/NORMAL = 0 (ei koskaan). */
     function meteoriteChance() {
         if (chaosLevel === 'full') return 1;       // aina (sädease testattavissa)
-        if (chaosLevel === 'bad') return 0.25;     // harvakseltaan tuhoavia, ei asetta
+        if (chaosLevel === 'bad') return 0.5;      // v11.26: 25 → 50 % (tuho nopeammaksi, ei asetta)
         return 0;
     }
 
@@ -2015,19 +2042,24 @@ const Street = (() => {
         if (!backdrop || !backdrop.blocks.length) return;
         const bgShift = camX * (1 - BACKDROP_PARALLAX);
         const target = impactX - bgShift;   // maailmakoordinaatti → tausta-avaruus
-        let best = 0, bestDist = Infinity;
-        for (let i = 0; i < backdrop.blocks.length; i++) {
-            const cx = backdrop.blocks[i].x + backdrop.blocks[i].w / 2;
+        const blocks = backdrop.blocks;
+        let best = -1, bestDist = Infinity;
+        for (let i = 0; i < blocks.length; i++) {
+            if (blocks[i].ruin) continue;   // v11.26: raunio ei kelpaa kohteeksi
+            const cx = blocks[i].x + blocks[i].w / 2;
             const d = Math.abs(cx - target);
             if (d < bestDist) { bestDist = d; best = i; }
         }
+        if (best < 0) return;   // v11.26: koko rivi jo raunioina
         // v11.24: lohkoja EI enää poisteta – lähin + seuraavat rapistuvat
         // raunioiksi (kierrä reunalla, jotta skyline sortuu osumakohdassa).
         const hit = [];
-        for (let k = 0; k < METEOR_BACKDROP_HOUSES && hit.length < backdrop.blocks.length; k++) {
-            hit.push((best + k) % backdrop.blocks.length);
+        for (let k = 0; k < blocks.length && hit.length < METEOR_BACKDROP_HOUSES; k++) {
+            const b = blocks[(best + k) % blocks.length];
+            if (b.ruin) continue;   // v11.26: vain ehjät lohkot -> aina 3 uutta rauniota
+            hit.push(b);
         }
-        for (const i of hit) ruinBackdropBlock(backdrop.blocks[i]);
+        for (const b of hit) ruinBackdropBlock(b);
     }
 
     /* v11.24: taustalohko → RAUNIO. Iso kerrostalo ei katoa kokonaan: horisonttiin
@@ -2179,7 +2211,7 @@ const Street = (() => {
         if (!shootingStar || !shootingStar.active) {
             if (shootingStar) { shootingStar.timer -= dt; }
             if (!shootingStar || shootingStar.timer <= 0) {
-                if (chaosLevel !== 'normal' && Math.random() < meteoriteChance()) {
+                if (chaosLevel !== 'normal' && (Math.random() < meteoriteChance() || badFinalePhase())) {
                     // Iso, hitaasti putoava meteoriitti (v10.15/v10.16) – tähdenlennon tilalla.
                     // v10.16: viisto laskeutumiskulma 40–60° vaakasuorasta (kuten tähdenlento),
                     // jotta ehtii nähdä ja säikähtää. Suunta oikealle/vasemmalle, lähtö vastakkaiselta reunalta.
@@ -2202,7 +2234,7 @@ const Street = (() => {
                         active: true, life: 0,
                         hpLeft: METEOR_HITS_TO_KILL,   // v11.14: 2 osumaa tuhoaa
                         cracked: false, hitFlash: 0,   // cracked = ottanut osuman → lämmin oranssi sävy
-                        trail: [], timer: chaosLevel === 'full' ? 600 : (600 + Math.random() * 2100) * meteorTempoMult
+                        trail: [], timer: nextSkyGap()   // v11.26: BAD-finaalissa lyhyt väli
                     };
                 } else {
                     const ang = -0.3 - Math.random() * 0.5;
@@ -2214,7 +2246,7 @@ const Street = (() => {
                         vx: Math.cos(ang) * spd,
                         vy: Math.sin(ang) * spd,
                         active: true, life: 120 + Math.random() * 180,
-                        trail: [], timer: cardState.meteorBurst ? (5 + Math.random() * 15) : (600 + Math.random() * 2100) * meteorTempoMult
+                        trail: [], timer: cardState.meteorBurst ? (5 + Math.random() * 15) : nextSkyGap()
                     };
                 }
             }
@@ -2498,7 +2530,7 @@ const Street = (() => {
                     dayFadeFrames: rndInt(400, 700), nightFadeFrames: rndInt(400, 700), cycleChangeDelayFrames: rndInt(200, 450),
                     nightLampFirst: 8, nightLampInterval: 4, spawnLampDelay: 60,
                     cabBlinkMin: 200, cabBlinkMax: 400, cabRerollMin: 500, cabRerollMax: 900,
-                    mosquitoDayDim: 0, meteorTempoMult: 0.3, sfxVolumeMult: rnd(1.15, 1.35),
+                    mosquitoDayDim: 0, meteorTempoMult: 0.15, sfxVolumeMult: rnd(1.15, 1.35),   // v11.26: 0.3 -> 0.15 (tiheämpi tahti)
                     // Kaaos v10.18 – BAD: ikävät päällä (lukitut ovet, hoipertelu, tärinä) + neutraalit rajummin
                     doorLockChance: rnd(0.4, 0.6),
                     staggerAmount: rnd(0.5, 1.0),
