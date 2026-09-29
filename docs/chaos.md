@@ -565,7 +565,53 @@ puoliskoon ja efektit "vuotavat".
 | `gameState.js` (tallennus, inventaario, migraatiot) | `gameState.js` | sääntö 01 – pääsivun suojatut tiedostot |
 | `index.html` (paitsi `#version-tag` koodimuutoksen yhteydessä) · `style.css` | – | sääntö 01 |
 | Alipelit `digGame1/` `digGame2/` `bm/` `fruitgame/` | – | sääntö 01/02 |
-| Testikytkimet `?day=`, `?hole=`, `?cabs=`, `?coins=`, `?burgers=`, cheat-nupit | `street.js` | työkaluja, ei pelisisältöä |
+| Testikytkimet `?day=`, `?hole=`, `?cabs=`, `?coins=`, `?burgers=`, `?bldg=`, `?bldgtarget=`, cheat-nupit | `street.js` | työkaluja, ei pelisisältöä |
+
+---
+
+### 8.6 Meteoriitin talotuhot (v11.22, jälkitila v11.24) – mekaniikka, ei kaaosakselia
+
+Meteoriitteja syntyy **vain BADissa (25 %) ja FULLissa (aina)** → MILD/GOOD/NORMAL eivät voi
+tuhota taloja. Talotuhot eivät siis ole uusi kaaosakseli vaan **meteoriitin eskalaatio**:
+
+1. Osuma **raunioittaa** 3 taustataloa (`destroyBackdropHouses` → `ruinBackdropBlock`): lohko ei
+   enää katoa, vaan horisonttiin jää **runko** 55–80 % korkeudesta (2–4 pystypalkkia + 2–4
+   laattaviivaa = seinät puuttuvat) sekä 1–3 **seinäpalaa**. Toinen osuma samaan lohkoon murentaa
+   yhden seinäpalan, muttei enää laske runkoa (`drawBackdropRuin`).
+2. Kun **ehjiä** lohkoja on jäljellä ≤ 25 % (`BACKDROP_GONE_SHARE`, `backdrop.total`;
+   `backdropMostlyGone()` laskee `!b.ruin`), meteoriitti
+   **tähdätään katuvarren taloon**: `pickBuildingTarget()` valitsee satunnaisen **ehjän** talon,
+   mutta **BAR (idx 8) vasta kun muut 8 on tuhottu** (🍔-kauppa säilyy pisimpään).
+3. `makeAimedMeteor(idx)` ratkaisee kulman `atan2(GROUND_Y − y0, |laidan x − kohteen x|)`
+   (käytännössä ~35–82°) ja lähtee lähimmältä laidalta hieman ruudun ulkopuolelta → osuma osuu
+   tarkalleen talon kohdalle; lento on sama fysiikka kuin ennen (näkyvissä ~5–22 s).
+4. Animaatio (`BLDG_DMG_PHASES`, 360 f ≈ 6 s): flash → shake → black → burn → outline → fade →
+   `'gone'`. **Jälkitila (v11.24):** talon paikalle jää randomi **musta romukasa**
+   (`buildingRubble`, korkeus **aina ≤ `DOOR_H/2` = 16 px**), ja **mustia ovia ei piirretä
+   lainkaan** – vain **yksi satunnainen talo** pitää ovensa pystyssä pelkkinä **ulkokarmina**
+   (`standingDoorIdx`, arpa kerran tuhoutumishetkellä). Kynnysvalo sammuu,
+   sähkökaappi katoaa, kuunvarjo ja K1-ikkunavalon jäävät pois ja **säde läpäisee** talon.
+   Osumaääni on pelkkä murskautuva kohina: soiva matala jyrinä (huippu 1,8 s) poistettiin
+   v11.24, koska se kuulosti kongin/patarummun kumahdukselta juuri osumahetkellä.
+5. **Meteoriitit putoavat talojen TAKANA (v11.24):** myös tähdätty meteoriitti piirretään samassa
+   taivas-/siluettikerroksessa kuin muut → pelaaja **ei näe itse iskua**, vain välähdyksen ja
+   tuhon alun. `meteoriteBehindBuilding()` estää osuman, kun meteoriitti on talon rungon kohdalla
+   → **FULLissa meteoriitti on ammuttavissa niin kauan kuin se on katon yläpuolella** (2 osumaa +
+   1 s lukko). **BAD = vääjämätön** (ei sädeasetta – moodin ironia).
+6. **BAD-avaus (v11.24):** BAD = BAD – noin 2 s kadulle tulosta (`BAD_DEMO_DELAY 120`,
+   `updateBadDemo`, vain kadulla ja vain yön haarassa) yksi **satunnainen talo 0–8 tuhoutuu
+   malliksi**. **BAR (8) on mukana arvassa**, joten BADissa voi menettää 🍔-kaupan heti. Kerran
+   per kierros; testikytkimet `?baddemo=0` (pois) / `?baddemo=N` (pakota talo N).
+
+Tila on **vain muistissa** (`buildingDmg`, `buildingRubble`, taustarivien `b.ruin`,
+`badDemoDone`) → `init()` palauttaa kaiken (kuolema/F5/✕).
+Ei talousmuutoksia (ei kolikoita eikä 🍔:tä tuhosta) eikä uusia dialogeja (sääntö 06).
+Testikytkimet: `?bldg=1` (eskalaatio heti), `?bldgtarget=N` (pakota kohdetalo N),
+`?baddemo=0/N` (BAD-avaus pois/pakotettu talo).
+Validointi: `%TEMP%\street-meteor-aftermath-test.cjs` (v11.24: 68 tarkistusta),
+`%TEMP%\street-building-collapse-test.cjs` (66 tarkistusta),
+`%TEMP%\street-meteor-coin-test.cjs` (23/23), `%TEMP%\street-beam-daylight-test.cjs` (22) +
+`chaos-normal-check` (78 avainta, 0 eroa).
 
 ---
 

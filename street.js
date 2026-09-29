@@ -179,11 +179,11 @@ const Street = (() => {
     const cabOn = () => CAB_FORCE === '1' ? true : (CAB_FORCE === '0' ? false : Math.random() < ELECTRIC_CABINET_ON);
     const cabRerollTimer = () => CAB_REROLL_MIN + Math.random() * (CAB_REROLL_MAX - CAB_REROLL_MIN);
     const electricCabinets = [
-        { x: 200, w: 8, h: 14, y: GROUND_Y - 16,
+        { x: 200, w: 8, h: 14, y: GROUND_Y - 16, bldgIdx: 2,
           on: cabOn(), phase: Math.random() * Math.PI * 2,
           period: CAB_BLINK_MIN + Math.random() * (CAB_BLINK_MAX - CAB_BLINK_MIN),
           timer: cabRerollTimer() },   // talo 3 – vasen seinä
-        { x: 560, w: 8, h: 14, y: GROUND_Y - 16,
+        { x: 560, w: 8, h: 14, y: GROUND_Y - 16, bldgIdx: 6,
           on: cabOn(), phase: Math.random() * Math.PI * 2,
           period: CAB_BLINK_MIN + Math.random() * (CAB_BLINK_MAX - CAB_BLINK_MIN),
           timer: cabRerollTimer() }    // talo 7 – vasen seinä
@@ -237,6 +237,7 @@ const Street = (() => {
     /* Makuuhuone (ex-palkintohuone, talo 7, ovi x 675, lamps[3]):
        ovi aina auki, ei lukkoa eikä kolikoita (v4.43) */
     const SLEEP_BLDG_IDX = 7;
+    const BAR_BLDG_IDX = 8;      // BAR-talo (tuhoutuu vasta viimeisenä, v11.22)
     /* Laivanupotus (talo 2, buildings[2]) – ei omaa lamppua,
        1. potku sytyttää ikkunat, 2. potku avaa oven. Aina auki yöllä ja päivällä. */
     const SINKSHIP_BLDG_IDX = 2;
@@ -1409,6 +1410,36 @@ const Street = (() => {
         } catch(e) {}
     }
 
+    /* ── Talon romahdusääni (v11.22, v11.24 ilman soivaa jyrinää): pelkkä
+       murskautuva massa. Kuuluu meteoriitin osuessa katuvarren taloon
+       (tuhoutumisen alkaessa). Ei uutta tekstiä (sääntö 06) – tuho kerrotaan
+       äänellä ja kuvalla. */
+    function playBuildingCollapse() {
+        try {
+            initAudio();
+            if (!audioCtx || audioCtx.state !== 'running') return;
+            const now = audioCtx.currentTime;
+            /* v11.24: soiva matala jyrinä (triangle 90 → 34 Hz) POISTETTU – se kuulosti
+               kongin/patarummun kumahdukselta juuri osumahetkellä. Jäljellä on vain
+               murskautuva massa: matala suodatettu kohina, hiukan pidempi ja vahvempi,
+               jotta isku ei tunnu tyhjältä. */
+            const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * 1.5), audioCtx.sampleRate);
+            const data = buf.getChannelData(0);
+            for (let i = 0; i < data.length; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.55));
+            }
+            const src = audioCtx.createBufferSource(); src.buffer = buf;
+            const lp = audioCtx.createBiquadFilter(); lp.type = 'lowpass';
+            lp.frequency.setValueAtTime(620, now);
+            lp.frequency.exponentialRampToValueAtTime(110, now + 1.5);
+            const ng = audioCtx.createGain();
+            ng.gain.setValueAtTime(0.21 * sfxVolumeMult, now);
+            ng.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+            src.connect(lp).connect(ng).connect(audioCtx.destination);
+            src.start(now); src.stop(now + 1.5);
+        } catch(e) {}
+    }
+
     /* ── Tyhjä laukaus (v11.14): kuiva klikki, kun ase on vielä lukossa.
        Kertoo, että klikkaus meni perille mutta laukaus ei lähde – ei uutta
        tekstiä (sääntö 06), vain ääni. */
@@ -1723,6 +1754,250 @@ const Street = (() => {
     const METEOR_FLASH_FRAMES = 60;   // meteoriitin taivasvälähdyksen kesto (frameä, ~1 s, v10.16)
     const METEOR_BACKDROP_HOUSES = 3; // meteoriitin osuma tuhoaa N taustataloa rivistä (v10.19)
 
+    /* ── Katuvarren talon tuhoutuminen meteoriitista (v11.22) ────────────────
+       BAD ja FULL: kun taustarivistä on tuhoutunut tarpeeksi (BACKDROP_GONE_SHARE),
+       meteoriitit alkavat osua KATUVARREN taloihin – kaikki 9 taloa, mutta BAR
+       (idx 8) vasta viimeisenä (siksi pelaaja voi ostaa 🍔:tä loppuun asti).
+       FULLissa pelaaja voi estää tuhon ampumalla meteoriitit alas (sädease);
+       BADissa asetta ei ole → tuho on vääjäämätön (moodin ironia).
+       Tila on vain muistissa (kuten rosvo/kaivo) → palautuu init()issä, ja
+       kuolema/F5 lataa sivun uudelleen (talot ehjinä, kuten taustarivikin). */
+    const BACKDROP_GONE_SHARE = 0.25;   // eskalaatio, kun taustarivistä on jäljellä ≤ 25 %
+    const BLDG_DMG_FLASH   = 30;    // ~0,5 s: kaikki ikkunat keltaisiksi
+    const BLDG_DMG_SHAKE   = 60;    // ~1,0 s: talo tärisee (pölyä irtoaa)
+    const BLDG_DMG_BLACK   = 60;    // ~1,0 s: seinät ja ikkunat mustiksi
+    const BLDG_DMG_BURN    = 90;    // ~1,5 s: musta massa hehkuu keltaiseksi
+    const BLDG_DMG_OUTLINE = 60;    // ~1,0 s: vain mustat ääriviivat jäljellä
+    const BLDG_DMG_FADE    = 60;    // ~1,0 s: ääriviivat häipyvät → talo katoaa
+    const BLDG_DMG_PHASES  = [BLDG_DMG_FLASH, BLDG_DMG_SHAKE, BLDG_DMG_BLACK,
+                              BLDG_DMG_BURN, BLDG_DMG_OUTLINE, BLDG_DMG_FADE];
+    const BLDG_DMG_TOTAL   = BLDG_DMG_FLASH + BLDG_DMG_SHAKE + BLDG_DMG_BLACK +
+                             BLDG_DMG_BURN + BLDG_DMG_OUTLINE + BLDG_DMG_FADE;
+    const BLDG_DMG_BLACK_C = '#0a0a0c';   // hiiltynyt seinä
+    const BLDG_DMG_YELLOW  = '#ffd23a';   // hehkuva massa
+    const AIM_ANGLE_MIN    = 20 * Math.PI / 180;   // tähdätyn meteoriitin kulma
+    const AIM_ANGLE_MAX    = 84 * Math.PI / 180;
+    let buildingDmg = {};              // idx → { phase, t } · 'gone' = tuhoutunut talo
+    /* v11.24 – tuhon jälkitila siivottiin:
+         buildingRubble  = tuhoutuneen talon paikalle jäävä musta romukasa
+                           (arvotaan kerran, kasa ≤ RUBBLE_H_MAX = DOOR_H/2)
+         standingDoorIdx = yksi satunnainen talo pitää ovensa pystyssä pelkkinä
+                           ulkokarmina; -1 = arpaa ei ole vielä heitetty
+       BAD-avaus: BAD = BAD – heti kadulle tullessa yksi satunnainen eturivin
+       talo tuhoutuu malliksi (jopa BAR). Testi: ?baddemo=0 / ?baddemo=N. */
+    let buildingRubble = {};           // idx → { w, h, x, lumps[], shade }
+    let standingDoorIdx = -1;
+    const RUBBLE_H_MAX = Math.round(DOOR_H / 2);   // 16 px – kasa ei koskaan tätä korkeampi
+    const BAD_DEMO_DELAY = 120;        // ~2 s kadulle tulosta
+    const BAD_DEMO_PARAM = (typeof location !== 'undefined' && typeof URLSearchParams !== 'undefined')
+        ? new URLSearchParams(location.search).get('baddemo') : null;
+    const BAD_DEMO_OFF = (BAD_DEMO_PARAM === '0');
+    const BAD_DEMO_IDX = (BAD_DEMO_PARAM !== null && /^[0-8]$/.test(BAD_DEMO_PARAM))
+        ? Number(BAD_DEMO_PARAM) : null;
+    let badDemoTimer = -1;             // >0 tikittää · 0 laukeaa · -1 ei viritetty
+    let badDemoDone = false;
+
+    /* Testityökalut (eivät tallenna mitään, kuten ?day / ?hole / ?cabs):
+         ?bldg=1        = eskalaatio pakotettu heti päälle
+         ?bldgtarget=N  = pakota kohdetalo N (0–8) ja eskalaatio */
+    const BLDG_PARAM = (typeof location !== 'undefined' && typeof URLSearchParams !== 'undefined')
+        ? new URLSearchParams(location.search).get('bldg') : null;
+    const BLDG_FORCE = (BLDG_PARAM === '1');
+    const BLDG_TARGET_PARAM = (typeof location !== 'undefined' && typeof URLSearchParams !== 'undefined')
+        ? new URLSearchParams(location.search).get('bldgtarget') : null;
+    const BLDG_TARGET = (BLDG_TARGET_PARAM !== null && /^\d$/.test(BLDG_TARGET_PARAM))
+        ? Number(BLDG_TARGET_PARAM) : null;
+
+    function buildingGone(idx) { return buildingDmg[idx] === 'gone'; }
+
+    /* Eskalaatio: taustarivistä ≥ 75 % tuhoutunut (tai testikytkin päällä). */
+    /* v11.24: lohkoja ei enää poisteta vaan ne merkitään raunioiksi (b.ruin) →
+       kynnys laskee EHJISTÄ lohkoista (raunio ei ole enää "jäljellä"). */
+    function backdropMostlyGone() {
+        if (BLDG_FORCE || BLDG_TARGET !== null) return true;
+        if (!backdrop || !backdrop.total) return false;
+        let intact = 0;
+        for (const b of backdrop.blocks) if (!b.ruin) intact++;
+        return intact <= Math.ceil(backdrop.total * BACKDROP_GONE_SHARE);
+    }
+
+    /* Kohdetalo: satunnainen ehjä talo – BAR vasta kun muut on tuhottu. */
+    function pickBuildingTarget() {
+        if (BLDG_TARGET !== null) return buildingGone(BLDG_TARGET) ? -1 : BLDG_TARGET;
+        const intact = [], others = [];
+        for (let i = 0; i < buildings.length; i++) {
+            if (buildingGone(i)) continue;
+            intact.push(i);
+            if (i !== BAR_BLDG_IDX) others.push(i);
+        }
+        if (!intact.length) return -1;
+        const pool = others.length ? others : intact;
+        return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    /* Tähdätty meteoriitti (v11.22): lähtee lähimmältä laidalta hieman ruudun
+       ulkopuolelta ja kulma ratkaistaan niin, että osuma tulee tarkalleen talon
+       kohdalle. Kulma vaihtelee luontevasti: keskitalo ~35° (viisto), laidan
+       talo (esim. BAR) ~82° (jyrkkä syöksy). Lento kestää ~6–12 s, joten
+       meteoriitin ehtii nähdä ja ampua alas (FULL). */
+    function makeAimedMeteor(idx) {
+        const b = buildings[idx];
+        const targetX = b.x + b.w / 2;
+        const fromRight = targetX > WORLD_W / 2;
+        const edgeX = fromRight ? (WORLD_W + 6) : -6;
+        const y0 = 10 + Math.random() * 40;
+        const want = Math.abs(edgeX - targetX);          // tarvittava vaakamatka
+        let ang = Math.atan2(GROUND_Y - y0, want);
+        ang = Math.max(AIM_ANGLE_MIN, Math.min(AIM_ANGLE_MAX, ang));
+        const spd = 0.45 + Math.random() * 0.4;
+        const dir = fromRight ? -1 : 1;
+        return {
+            kind: 'meteorite',
+            targetBldgIdx: idx,
+            x: edgeX, y: y0,
+            vx: Math.cos(ang) * spd * dir,
+            vy: Math.sin(ang) * spd,
+            r: 8 + Math.random() * 6,
+            active: true, life: 0,
+            hpLeft: METEOR_HITS_TO_KILL,
+            cracked: false, hitFlash: 0,
+            trail: [],
+            timer: chaosLevel === 'full' ? 600 : (600 + Math.random() * 2100) * meteorTempoMult
+        };
+    }
+
+    /* ── BAD-avaus (v11.24): BAD = BAD ──────────────────────────────────────
+       Heti kadulle tullessa (~2 s) yksi SATUNNAINEN eturivin talo tuhoutuu
+       malliksi siitä, mitä on luvassa – jopa BAR (idx 8) voi olla se talo,
+       koska BADissa ei ole asetta eikä armoa. Meteoriitti syntyy vain kadulla
+       ja yöllä (updateBadDemo yön haarassa) eikä koskaan kesken toisen
+       meteoriitin. Tuho kulkee täsmälleen samaa ketjua kuin tavallinen osuma
+       (välähdys + tärinä + startBuildingCollapse). Kerran per kierros. */
+    function makeBadDemoMeteor(idx) {
+        const b = buildings[idx];
+        const targetX = b.x + b.w / 2;
+        const fromRight = targetX > WORLD_W / 2;
+        const run = 150 + Math.random() * 120;          // lyhyt vaakamatka → nopea lento
+        const edgeX = Math.max(-6, Math.min(WORLD_W + 6, fromRight ? (targetX + run) : (targetX - run)));
+        const y0 = 8 + Math.random() * 24;
+        let ang = Math.atan2(GROUND_Y - y0, Math.max(20, Math.abs(edgeX - targetX)));
+        ang = Math.max(AIM_ANGLE_MIN, Math.min(AIM_ANGLE_MAX, ang));
+        const spd = 1.6 + Math.random() * 0.6;          // ~3 s osumaan
+        const dir = fromRight ? -1 : 1;
+        return {
+            kind: 'meteorite',
+            targetBldgIdx: idx,
+            x: edgeX, y: y0,
+            vx: Math.cos(ang) * spd * dir,
+            vy: Math.sin(ang) * spd,
+            r: 8 + Math.random() * 6,
+            active: true, life: 0,
+            hpLeft: METEOR_HITS_TO_KILL,
+            cracked: false, hitFlash: 0,
+            trail: [], timer: 600
+        };
+    }
+
+    function updateBadDemo(dt) {
+        if (badDemoTimer < 0 || badDemoDone) return;
+        if (shootingStar && shootingStar.active) return;   // taivas varattu
+        badDemoTimer -= dt;
+        if (badDemoTimer > 0) return;
+        let idx = (BAD_DEMO_IDX !== null) ? BAD_DEMO_IDX : Math.floor(Math.random() * buildings.length);
+        if (buildingGone(idx)) idx = pickBuildingTarget();   // ehti jo tuhoutua → mikä tahansa ehjä
+        if (idx < 0) { badDemoDone = true; badDemoTimer = -1; return; }
+        shootingStar = makeBadDemoMeteor(idx);
+        badDemoDone = true;
+        badDemoTimer = -1;
+    }
+
+    /* Tuhoutuminen alkaa: talo menettää toimintonsa heti (valot pois, ei uusia
+       ikkunavaloja, oviukko katoaa talon mukana). v11.24: ovi katoaa – vain yksi
+       satunnainen talo pitää ovensa pystyssä pelkkinä ulkokarmina (drawDoor). */
+    function startBuildingCollapse(idx) {
+        const b = buildings[idx];
+        if (!b || buildingGone(idx) || buildingDmg[idx]) return false;
+        buildingDmg[idx] = { phase: 0, t: 0 };
+        if (smallHouseLights[idx]) { smallHouseLights[idx].lit = false; smallHouseLights[idx].timer = 0; }
+        if (idx === 0) {
+            firstHouseWindowsLit = false;
+            firstHouseKickCount = 0; firstHouseKickTarget = 0; firstHouseWindowTimer = 0;
+        }
+        for (let i = litWindows.length - 1; i >= 0; i--) {
+            if (litWindows[i].bldgIdx === idx) litWindows.splice(i, 1);
+        }
+        if (avenger && avenger.bldgIdx === idx) avenger = null;   // oviukko katoaa talon mukana
+        const cx = b.x + b.w / 2;
+        playBuildingCollapse();
+        spawnParticles(cx, GROUND_Y - 8, '#cfc6b4', 18);
+        spawnParticles(cx, GROUND_Y - 8, '#8d8578', 10);
+        return true;
+    }
+
+    /* Animaation eteneminen: vaiheet 0–5 → lopulta 'gone'. */
+    function updateBuildingDamage(dt) {
+        for (const key in buildingDmg) {
+            const d = buildingDmg[key];
+            if (d === 'gone') continue;
+            d.t += dt;
+            while (d !== 'gone' && d.t >= BLDG_DMG_PHASES[d.phase]) {
+                d.t -= BLDG_DMG_PHASES[d.phase];
+                d.phase++;
+                const b = buildings[Number(key)];
+                const cx = b ? b.x + b.w / 2 : 0;
+                if (d.phase === 2) {          // seinät mustuivat: matala tömähdys + hiilipöly
+                    playKnock();
+                    spawnParticles(cx, GROUND_Y - 10, '#6e6a62', 12);
+                } else if (d.phase === 4) {   // ääriviivat esiin: kipinöitä ja tomua
+                    spawnParticles(cx, GROUND_Y - (b ? b.h * 0.6 : 60), '#ffd23a', 12);
+                    spawnParticles(cx, GROUND_Y - 6, '#ffb347', 14);
+                }
+                if (d.phase >= BLDG_DMG_PHASES.length) {
+                    buildingDmg[key] = 'gone';
+                    makeBuildingRubble(Number(key));   // v11.24: paikalle jää musta kasa
+                    // v11.24: yksi satunnainen talo pitää ovensa pystyssä pelkkinä
+                    // ulkokarmina – arpa heitetään vain kerran (ks. drawDoor).
+                    if (standingDoorIdx === -1) standingDoorIdx = Math.floor(Math.random() * buildings.length);
+                    spawnParticles(cx, GROUND_Y - 6, '#5c574f', 16);
+                }
+            }
+        }
+    }
+
+    /* Uusi peli / reset: kaikki talot takaisin ehjinä (vain muistissa).
+       v11.24: myös romukasat, pystyyn jäävä ovikehys ja BAD-avaus nollautuvat. */
+    function resetBuildingDamage() {
+        buildingDmg = {};
+        buildingRubble = {};
+        standingDoorIdx = -1;
+        badDemoTimer = -1;
+        badDemoDone = false;
+    }
+
+    /* v11.24: tuhoutuneen talon paikalle jäävä musta romukasa. Muoto arvotaan
+       KERRAN (ei per frame), jotta kasa ei välky. Kasa ei koskaan ylitä puolta
+       ovenkorkeudesta (RUBBLE_H_MAX = DOOR_H / 2 = 16 px). */
+    function makeBuildingRubble(idx) {
+        const b = buildings[idx];
+        if (!b) return;
+        const w = Math.round(b.w * (0.45 + Math.random() * 0.40));      // 45–85 % talon leveydestä
+        const h = 6 + Math.floor(Math.random() * (RUBBLE_H_MAX - 5));   // 6 … RUBBLE_H_MAX
+        const n = 2 + Math.floor(Math.random() * 3);                    // 2–4 möykkyä
+        const lumps = [];
+        for (let i = 0; i < n; i++) {
+            lumps.push({
+                f: (i + 0.5) / n + (Math.random() - 0.5) * 0.30,        // möykyn kohta (0–1)
+                h: Math.max(3, Math.round(h * (0.45 + Math.random() * 0.55))),
+                w: Math.round(w * (0.22 + Math.random() * 0.30))
+            });
+        }
+        buildingRubble[idx] = {
+            w, h, lumps,
+            x: Math.round((b.w - w) / 2),                               // keskitetty talon pohjalle
+            shade: 0.06 + Math.random() * 0.12                          // hiiltymän sävy
+        };
+    }
+
     /* Meteoriitin esiintymistodennäköisyys (v10.20/v10.24): tappavat meteoriitit
        tulevat FULL CHAOS -modessa aina ja BAD CHAOS -modessa harvakseltaan
        (BAD:ssa ei ole sädeasetta → pelaaja joutuu katsomaan kaupungin tuhoutuvan).
@@ -1746,13 +2021,46 @@ const Street = (() => {
             const d = Math.abs(cx - target);
             if (d < bestDist) { bestDist = d; best = i; }
         }
-        // Poista lähin + seuraavat (kierrä reunalla), suurimmasta indeksistä pienimpään
-        const remove = [];
-        for (let k = 0; k < METEOR_BACKDROP_HOUSES && remove.length < backdrop.blocks.length; k++) {
-            remove.push((best + k) % backdrop.blocks.length);
+        // v11.24: lohkoja EI enää poisteta – lähin + seuraavat rapistuvat
+        // raunioiksi (kierrä reunalla, jotta skyline sortuu osumakohdassa).
+        const hit = [];
+        for (let k = 0; k < METEOR_BACKDROP_HOUSES && hit.length < backdrop.blocks.length; k++) {
+            hit.push((best + k) % backdrop.blocks.length);
         }
-        remove.sort((a, b) => b - a);
-        for (const i of remove) backdrop.blocks.splice(i, 1);
+        for (const i of hit) ruinBackdropBlock(backdrop.blocks[i]);
+    }
+
+    /* v11.24: taustalohko → RAUNIO. Iso kerrostalo ei katoa kokonaan: horisonttiin
+       jää kohtuu korkea RUNKO (pystypalkit + laattaviivat = seinät puuttuvat) ja
+       lisäksi 1–3 seinäpalaa. Lohko pysyy rivissä (x/w ennallaan), joten skyline
+       ei saa aukkoa. Toinen osuma samaan lohkoon: runko ei enää laske, mutta
+       yksi seinäpala murenee → raunio rapistuu muttei katoa koskaan. */
+    const BD_RUIN_STUB_MIN = 0.55;    // rungon korkeus alkuperäisestä (min)
+    const BD_RUIN_STUB_MAX = 0.80;    // ... (max)
+    function ruinBackdropBlock(b) {
+        if (b.ruin) {
+            if (b.ruin.walls.length) b.ruin.walls.splice(Math.floor(Math.random() * b.ruin.walls.length), 1);
+            return;
+        }
+        const stub = Math.round(b.h * (BD_RUIN_STUB_MIN + Math.random() * (BD_RUIN_STUB_MAX - BD_RUIN_STUB_MIN)));
+        const ruin = { stub, cols: [], slabs: [], walls: [] };
+        const nCols = 2 + Math.floor(Math.random() * 3);      // 2–4 pystypalkkia
+        for (let i = 0; i < nCols; i++) {
+            const f = (i + 0.5) / nCols + (Math.random() - 0.5) * 0.10;
+            ruin.cols.push(Math.max(0, Math.min(b.w - 2, Math.round(b.w * f))));
+        }
+        const nSlabs = 2 + Math.floor(Math.random() * 3);     // 2–4 laattaviivaa
+        for (let i = 0; i < nSlabs; i++) {
+            ruin.slabs.push(Math.round(stub * (0.25 + 0.65 * (i + 1) / (nSlabs + 1))));
+        }
+        const nWalls = 1 + Math.floor(Math.random() * 3);     // 1–3 seinäpalaa
+        for (let i = 0; i < nWalls; i++) {
+            const w = Math.round(b.w * (0.25 + Math.random() * 0.35));
+            const x = Math.round(Math.random() * Math.max(0, b.w - w));
+            const h = Math.round(10 + Math.random() * Math.max(8, stub * 0.45));
+            ruin.walls.push({ x, w, h });                     // seinä nousee pohjasta
+        }
+        b.ruin = ruin;
     }
 
     /* ── Sädease: tähtäys + laukaisu (v10.20) ── */
@@ -1789,7 +2097,11 @@ const Street = (() => {
        estäisi kaikki osumat. v10.25 */
     function meteoriteBehindBuilding() {
         const mx = shootingStar.x, my = shootingStar.y;
+        // v11.24: tähdätty meteoriitti piirretään nyt talojen TAKANA kuten muutkin
+        // (ks. render), joten talon runko estää säteen myös siltä: osuma onnistuu
+        // vain, kun meteoriitti on katon yläpuolella. Tuhoutunut talo ei estä.
         for (const b of buildings) {
+            if (buildingGone(buildings.indexOf(b))) continue;   // v11.22: tuhoutunut talo ei estä sädettä
             if (mx >= b.x && mx <= b.x + b.w && my >= GROUND_Y - b.h && my <= GROUND_Y) {
                 return true;
             }
@@ -1871,6 +2183,12 @@ const Street = (() => {
                     // Iso, hitaasti putoava meteoriitti (v10.15/v10.16) – tähdenlennon tilalla.
                     // v10.16: viisto laskeutumiskulma 40–60° vaakasuorasta (kuten tähdenlento),
                     // jotta ehtii nähdä ja säikähtää. Suunta oikealle/vasemmalle, lähtö vastakkaiselta reunalta.
+                    // v11.22: eskalaation jälkeen meteoriitti tähdätään ehjään
+                    // katuvarren taloon (kaikki 9, mutta BAR viimeisenä) → tuho
+                    // etenee vääjäämättä, ellei pelaaja ammu meteoriittia alas
+                    // (FULL: sädease). Ennen eskalaatiota syntyy kuten ennen.
+                    const aimIdx = backdropMostlyGone() ? pickBuildingTarget() : -1;
+                    if (aimIdx >= 0) { shootingStar = makeAimedMeteor(aimIdx); return; }
                     const mAng = (40 + Math.random() * 20) * Math.PI / 180;
                     const mDir = Math.random() < 0.5 ? 1 : -1;
                     const mSpd = 0.45 + Math.random() * 0.4;
@@ -1911,6 +2229,8 @@ const Street = (() => {
                 meteorShakeTimer = METEOR_SHAKE_FRAMES;
                 meteorFlash = { t: METEOR_FLASH_FRAMES };   // v10.16: taivas välähtää (ei etualan palloa)
                 destroyBackdropHouses(shootingStar.x);      // v10.19: taustarivi sortuu osumakohdasta
+                // v11.22: eskalaation jälkeen osuma tuhoaa katuvarren talon
+                if (shootingStar.targetBldgIdx !== undefined) startBuildingCollapse(shootingStar.targetBldgIdx);
                 spawnParticles(shootingStar.x, GROUND_Y - 4, '#dbe6ff', 18);
                 spawnParticles(shootingStar.x, GROUND_Y - 4, '#f4f8ff', 10);
                 shootingStar.active = false;
@@ -2327,6 +2647,23 @@ const Street = (() => {
         try { sessionStorage.removeItem(CHAOS_SESSION_KEY); } catch (e) {}
     }
 
+    /* Poistaa sädeaseen inventorysta (v11.20): kutsutaan, kun peli palaa
+       Click/Press-aloitusnäytölle (ei kaaos-sessiota = uusi peli / kuolema /
+       ✕-resetti). Sädease on "kerran per run" -esine, joten se ei saa jäädä
+       käteen uudella kierroksella. F5-soft reset ei kutsu tätä → sädease
+       säilyy samassa runissa. */
+    function clearBeamWeapon() {
+        try {
+            const st = GameState.load();
+            if (st && st.beamWeaponCollected) {
+                st.beamWeaponCollected = false;
+                GameState.save(st);
+            }
+        } catch (e) {}
+        beamWeaponCollected = false;
+        beamPickup = null;
+    }
+
     /* ═══════════════════════════════════════════════════════════
        KAAOS v2 – portti (v10.02)
        Kaikki kaaosarvot kulkevat clampChaosCfg() → validateChaosCfg()
@@ -2585,6 +2922,7 @@ const Street = (() => {
         // Pikseliterävyys: ei pehmennystä skaalattaessa (sprite-piirto)
         ctx.imageSmoothingEnabled = false;
         randomizeBuildingColors();  // arvo taloille uudet sävyt joka kerta
+        resetBuildingDamage();      // v11.22: talot ehjinä uudessa pelissä (vain muistissa)
         state = GameState.load();
         /* Onko kyseessä aivan uusi peli (0-tila)? Kuun kello (moonClock)
            jätetään vertailusta pois: se tallentuu itsestään heti yön alettua,
@@ -2634,6 +2972,10 @@ const Street = (() => {
         beamWeaponCollected = state.beamWeaponCollected || false;
         spawnBeamPickup();
         beamCooldownTimer = 0;   // v11.14: uusi peli ei ala keskeneräisellä lukolla
+        /* v11.24 BAD-avaus: BAD = BAD – laskuri viritetään tässä, mutta meteoriitti
+           syntyy vasta kadulla ja yöllä (updateBadDemo yön haarassa). */
+        badDemoTimer = (chaosLevel === 'bad' && !BAD_DEMO_OFF) ? BAD_DEMO_DELAY : -1;
+        badDemoDone = false;
         /* Päivä/yö on tallennettu tila (state.isDay, v4.33):
              null  = ei vielä ratkaistu → 3 avainta nostaa päivän kerran
              true  = päivä, false = yö (makuuhuoneen Nuku-valinta)
@@ -2961,6 +3303,7 @@ const Street = (() => {
         // Ajoneuvon törmäyksen tärinä (vain visuaalinen – ei jäädytä pelilogiikkaa)
         if  (vehicleShakeTimer > 0) { vehicleShakeTimer -= dt; }
         if (meteorShakeTimer > 0) { meteorShakeTimer -= dt; }
+        updateBuildingDamage(dt);   // v11.22: tuhoutuvien talojen animaatio etenee
         if (beamFireTimer > 0) { beamFireTimer -= dt; }
         if (beamCooldownTimer > 0) { beamCooldownTimer -= dt; }   // v11.14: laukaisuväli
         if (meteorFlash) { meteorFlash.t -= dt; if (meteorFlash.t <= 0) meteorFlash = null; }
@@ -3610,6 +3953,7 @@ const Street = (() => {
 
         // ── Sähkökaapit: sähköisku ─────────────────
         for (const cab of electricCabinets) {
+            if (cab.bldgIdx !== undefined && buildingGone(cab.bldgIdx)) continue;   // v11.22: kaappi katosi talon mukana
             if (!cab.on) continue;           // sammuksissa oleva kaappi ei iske
             if (player.knockedDown) break;   // isku jo saatu – ei toista kaappia samalla kertaa
             // Vaakasuunnassa laatikon sisällä, pystysuunnassa pää kaapin
@@ -3788,6 +4132,7 @@ const Street = (() => {
         // Päivällä (dayT > 0) niitä ei enää spawnata; update() nollaa
         // kesken lennon olleet oliot päivän alkaessa.
         if (dayT <= 0) {
+            updateBadDemo(dt);       // v11.24: BAD-avaus laukeaa vain kadulla ja yöllä
             updateShootingStar(dt);
             updateSatellite(dt);
 
@@ -3986,6 +4331,7 @@ const Street = (() => {
         const fruitDoor = doorCenter(buildings[6]);
         const fdx = px - fruitDoor.x, fdy = py - fruitDoor.y;
         if (Math.sqrt(fdx * fdx + fdy * fdy) < DOOR_RADIUS) {
+            if (buildingGone(6)) return;   // v11.22: tuhoutunut talo – musta ovi ei toimi
             if (nightOnlyClosed()) { showNotification(CLOSED_SIGN); return; }
             if (doorLocked()) return;                       // kaaos v10.18: ovi satunnaisesti lukossa (ei ilmoitusta)
             enterGame('fruitgame/game_main.html');
@@ -3999,6 +4345,7 @@ const Street = (() => {
         const jkLights = smallHouseLights[JUKEBOX_BLDG_IDX];
         const jkdx = px - jkDoor.x, jkdy = py - jkDoor.y;
         const jkInReach = Math.sqrt(jkdx * jkdx + jkdy * jkdy) < DOOR_RADIUS;
+        if (jkInReach && buildingGone(JUKEBOX_BLDG_IDX)) return;   // v11.22: tuhoutunut talo
         if (jkInReach && nightOnlyClosed()) { showNotification(CLOSED_SIGN); return; }
         if (jkLights && jkLights.lit && jkInReach) {
             if (doorLocked()) return;                       // kaaos v10.18: ovi satunnaisesti lukossa (ei ilmoitusta)
@@ -4022,6 +4369,7 @@ const Street = (() => {
         const ssLights = smallHouseLights[SINKSHIP_BLDG_IDX];
         const ssdx = px - ssDoor.x, ssdy = py - ssDoor.y;
         const ssInReach = Math.sqrt(ssdx * ssdx + ssdy * ssdy) < DOOR_RADIUS;
+        if (ssInReach && buildingGone(SINKSHIP_BLDG_IDX)) return;   // v11.22: tuhoutunut talo
         if (ssLights && ssLights.lit && ssInReach) {
             enterGame('sinkship/game_main.html');
             return;
@@ -4033,6 +4381,7 @@ const Street = (() => {
             const dc = doorCenter(buildings[lamp.bldgIdx]);
             const dx = px - dc.x, dy = py - dc.y;
             if (Math.sqrt(dx*dx + dy*dy) < DOOR_RADIUS) {
+                if (buildingGone(lamp.bldgIdx)) return;   // v11.22: tuhoutunut talo – ovi ei toimi
                 // BAR – aina auki (talo 8, lamp[4])
                 if (i === 4) {
                     barRoom = true;
@@ -4075,6 +4424,7 @@ const Street = (() => {
         const dc0 = doorCenter(buildings[0]);
         const dx0 = px - dc0.x, dy0 = py - dc0.y;
         if (Math.sqrt(dx0*dx0 + dy0*dy0) < DOOR_RADIUS) {
+            if (buildingGone(0)) return;   // v11.22: tuhoutunut talo – potku ei tee mitään
             playKick();
             player.kicking = true;
             player.kickFrame = 0;
@@ -4102,6 +4452,7 @@ const Street = (() => {
             if (Math.sqrt(dx*dx + dy*dy) < DOOR_RADIUS) {
                 playKick(); player.kicking = true; player.kickFrame = 0;
                 hitPauseTimer = HIT_PAUSE;   // tuntuva osuma
+                if (buildingGone(i)) return;   // v11.22: tuhoutunut talo – ovi ei toimi
                 const sh = smallHouseLights[i];
                 if (sh.lit && !flowerPot && !kickCoin && !avenger) { spawnKickDrop(buildings[i]); }
                 else { sh.lit = true; sh.timer = 1200; spawnParticles(dc.x, dc.y, '#ffdd88', 6); }
@@ -4705,6 +5056,7 @@ const Street = (() => {
             }
             blockIdx++;
             backdrop.blocks.push(b);
+            backdrop.total = backdrop.blocks.length;   // v11.22: eskalaatiokynnys (BACKDROP_GONE_SHARE)
             x += w;   // talot kiinni toisissaan → yhtenäinen skyline
         }
     }
@@ -5253,6 +5605,10 @@ const Street = (() => {
         // Tähdenlento / meteoriitti (vain yöllä)
         if (dayT <= 0 && shootingStar && shootingStar.active) {
             if (shootingStar.kind === 'meteorite') {
+                // v11.24: KAIKKI meteoriitit piirretään tässä kerroksessa (taustasiluetti ja
+                // katuvarren talot piirretään päälle) → myös tähdätty meteoriitti katoaa
+                // talojen taakse juuri ennen osumaa. Pelaaja näkee vasta välähdyksen ja
+                // tuhon alun, ei itse iskua (v11.22 piirsi tähdätyn talojen EDELLÄ).
                 drawMeteorite();
             } else {
                 for (let t = 0; t < shootingStar.trail.length; t++) {
@@ -5289,6 +5645,8 @@ const Street = (() => {
         // Kaukainen kaupunkisiluetti (parallaksi 0.4×) – tähtien/taivaan päällä, talojen takana
         drawBackdrop(camX * (1 - BACKDROP_PARALLAX));
         drawBuildings();
+        // v11.24: meteoriitteja ei enää piirretä talojen edessä (ks. taivashaara yllä),
+        // joten tähdätty meteoriitti jää talojen ja taustasiluetin taakse.
         // Lepakot talojen EDELLÄ (v4.93)
         if (bats.length) { drawBats(); }
         drawGround();
@@ -5496,6 +5854,7 @@ const Street = (() => {
             const idx = w.bldgIdx;
             if (idx === 0 && firstHouseWindowsLit) return false;
             if (smallHouseLights[idx] && smallHouseLights[idx].lit) return false;
+            if (buildingGone(idx)) return false;   // v11.22: tuhoutuneessa talossa ei ole ikkunoita
             return true;
         });
     }
@@ -5656,6 +6015,11 @@ const Street = (() => {
     function drawBuildings() {
         for (const b of buildings) {
             const idx = buildings.indexOf(b);
+            // v11.24: tuhoutuneen talon paikalle jää musta romukasa (drawRubble),
+            // tuhoutuva piirretään omalla animaatiollaan (drawCollapsingBuilding).
+            const dmgState = buildingDmg[idx];
+            if (dmgState === 'gone') { drawRubble(b, idx); continue; }
+            if (dmgState) { drawCollapsingBuilding(b, idx, dmgState); continue; }
             // Runko – käytä talon omaa yönsävyä, fallback jos puuttuu
             const bodyC = b.bodyColor || '#1a1a2e';
             // Syvyysefekti: skaalaa talo pohjan keskipisteen ympäri (ovet pysyvät paikoillaan)
@@ -5740,6 +6104,140 @@ const Street = (() => {
         }
     }
 
+    /* ── Taloja koskevat apurit (v11.22) ─────────────────────────────────── */
+
+    /* Talon ikkunaruudukko (kopio drawBuildingsin silmukasta): kutsuu cb(wx, wy)
+       jokaiselle ikkunalle, ohittaen oven taakse jäävät. Ehjä talo piirretään
+       edelleen drawBuildingsin omalla koodillaan – tämä on tuhoutumispiirron
+       tarpeisiin eikä muuta ehjän talon ulkoasua mitenkään. */
+    function forEachBuildingWindow(b, cb) {
+        const dLeft = b.x + b.w / 2 - DOOR_W / 2 - 2;
+        const dTop = GROUND_Y - DOOR_H - 2;
+        const dRight = dLeft + DOOR_W + 4;
+        for (let wy = GROUND_Y - b.h + 25; wy < GROUND_Y - 35; wy += 32) {
+            for (let wx = b.x + 10; wx < b.x + b.w - 15; wx += 24) {
+                if (wx + 10 > b.x + b.w - 6) continue;
+                if (wx + 10 > dLeft && wx < dRight && wy + 14 > dTop) continue;
+                cb(wx, wy);
+            }
+        }
+    }
+
+    /* Tuhoutuvan talon piirto (v11.22): vaiheet
+         0 flash   – runko ennallaan, KAIKKI ikkunat keltaisina
+         1 shake   – sama, mutta talo tärisee (talokohtainen jitter)
+         2 black   – seinät ja ikkunat mustiksi (hiiltyy)
+         3 burn    – musta massa hehkuu keltaiseksi, ääriviivat alkavat erottua
+         4 outline – talo läpinäkyvä: jäljellä vain mustat ääriviivat
+         5 fade    – ääriviivat häipyvät → talo katoaa ('gone')
+       Kaikki piirretään talon omassa skaalassa (buildingScale), kuten muukin
+       talopiirto, jotta syvyysvaikutelma säilyy. */
+    function drawCollapsingBuilding(b, idx, d) {
+        const s = buildingScale(b);
+        const cx = b.x + b.w / 2;
+        const bodyC = b.bodyColor || '#1a1a2e';
+        const topY = GROUND_Y - b.h;
+        const phase = d.phase;
+        // Vaihe 1: talokohtainen tärinä (koko ruudun tärinä on erikseen osumahetkellä)
+        let jx = 0, jy = 0;
+        if (phase === 1) {
+            jx = Math.round(Math.sin(d.t * 1.7) * 2);
+            jy = Math.round(Math.cos(d.t * 2.3));
+        }
+        ctx.save();
+        ctx.translate(cx + jx, GROUND_Y + jy);
+        ctx.scale(s, s);
+        ctx.translate(-cx, -GROUND_Y);
+
+        if (phase <= 1) {
+            // 0–1: runko ennallaan, kaikki ikkunat keltaisina + hehku
+            ctx.fillStyle = bodyC;
+            ctx.fillRect(b.x, topY, b.w, b.h);
+            forEachBuildingWindow(b, (wx, wy) => {
+                const wc = getWindowColors('yellow', wx, wy);
+                ctx.fillStyle = wc.fill;
+                ctx.fillRect(wx, wy, 10, 14);
+                const glow = ctx.createRadialGradient(wx + 5, wy + 7, 1, wx + 5, wy + 7, 12);
+                glow.addColorStop(0, wc.glow0);
+                glow.addColorStop(1, wc.glow1);
+                ctx.fillStyle = glow;
+                ctx.fillRect(wx - 6, wy - 5, 22, 24);
+            });
+        } else if (phase === 2) {
+            // 2: seinät ja ikkunat mustiksi (hiiltyy), hiilloksen punerrus ikkunan alareunassa
+            ctx.fillStyle = BLDG_DMG_BLACK_C;
+            ctx.fillRect(b.x, topY, b.w, b.h);
+            forEachBuildingWindow(b, (wx, wy) => {
+                ctx.fillStyle = '#050507';
+                ctx.fillRect(wx, wy, 10, 14);
+                ctx.fillStyle = 'rgba(255,170,60,0.14)';
+                ctx.fillRect(wx, wy + 12, 10, 2);
+            });
+        } else if (phase === 3) {
+            // 3: musta massa alkaa hehkua keltaiseksi (koko massa, hehku pohjalta)
+            const k = Math.min(1, d.t / BLDG_DMG_BURN);
+            ctx.fillStyle = mixHex(BLDG_DMG_BLACK_C, BLDG_DMG_YELLOW, k);
+            ctx.fillRect(b.x, topY, b.w, b.h);
+            const gl = ctx.createLinearGradient(0, GROUND_Y, 0, topY);
+            gl.addColorStop(0, 'rgba(255,205,80,' + (0.30 * k).toFixed(3) + ')');
+            gl.addColorStop(1, 'rgba(255,150,30,0)');
+            ctx.fillStyle = gl;
+            ctx.fillRect(b.x - 8, topY, b.w + 16, b.h);
+            // Mustat ääriviivat alkavat erottua massan päältä
+            ctx.strokeStyle = 'rgba(0,0,0,' + (0.30 + 0.70 * k).toFixed(3) + ')';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(b.x + 0.5, topY + 0.5, b.w - 1, b.h - 1);
+            forEachBuildingWindow(b, (wx, wy) => ctx.strokeRect(wx + 0.5, wy + 0.5, 9, 13));
+        } else {
+            // 4–5: talo on läpinäkyvä – jäljellä vain mustat ääriviivat
+            // (ulkoreuna, kattolista ja ikkunaristikko), jotka häipyvät pois.
+            const k = (phase >= 5) ? Math.max(0, 1 - d.t / BLDG_DMG_FADE) : 1;
+            ctx.globalAlpha = k;
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(b.x + 0.5, topY + 0.5, b.w - 1, b.h - 1);
+            forEachBuildingWindow(b, (wx, wy) => ctx.strokeRect(wx + 0.5, wy + 0.5, 9, 13));
+            ctx.beginPath();
+            ctx.moveTo(b.x, topY + 3); ctx.lineTo(b.x + b.w, topY + 3);
+            ctx.moveTo(b.x + 2, topY); ctx.lineTo(b.x + b.w - 2, topY);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+        ctx.restore();
+    }
+
+    /* v11.24: tuhoutuneen talon romukasa – randomi musta kasa tuhkaharmaalla
+       ääriviivalla (erottuu kiveyksestä), korkeus enintään RUBBLE_H_MAX eli
+       puoli ovenkorkeudesta. Piirretään talon omassa syvyysskaalassa, kuten
+       muukin talopiirto. */
+    function drawRubble(b, idx) {
+        const r = buildingRubble[idx];
+        if (!r) return;
+        const s = buildingScale(b);
+        const cx = b.x + b.w / 2;
+        ctx.save();
+        ctx.translate(cx, GROUND_Y);
+        ctx.scale(s, s);
+        ctx.translate(-cx, -GROUND_Y);
+        const x0 = b.x + r.x;
+        ctx.fillStyle = mixHex('#08080a', '#2e2b27', r.shade);
+        ctx.beginPath();
+        ctx.moveTo(x0, GROUND_Y + 1);
+        for (const l of r.lumps) {
+            const lx = x0 + r.w * l.f;
+            ctx.lineTo(lx - l.w / 2, GROUND_Y - l.h * 0.45);
+            ctx.lineTo(lx, GROUND_Y - l.h);
+            ctx.lineTo(lx + l.w / 2, GROUND_Y - l.h * 0.45);
+        }
+        ctx.lineTo(x0 + r.w, GROUND_Y + 1);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(96,92,86,0.40)';   // tuhka: kasa luettavaksi
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
+    }
+
     /* ── Kaukaisen kaupungin siluetti – piirto ── */
     // bgShift = kameran "jälkeenjäävä" siirto kerrokselle (render antaa camX*(1-0.4)).
     function drawBackdrop(bgShift) {
@@ -5757,6 +6255,8 @@ const Street = (() => {
     }
 
     function drawBackdropBlock(b) {
+        // v11.24: meteoriitin osuma jättää raunion (ks. ruinBackdropBlock)
+        if (b.ruin) { drawBackdropRuin(b); return; }
         const topY = BACKDROP_BASE_Y - b.h;
         // Runko – litteä haalea sävy (ei gradienttia: kaukainen kohde)
         ctx.fillStyle = b.color;
@@ -5831,9 +6331,33 @@ const Street = (() => {
         }
     }
 
+    /* v11.24: taustarivin RAUNIO – iso kerrostalo ei katoa kokonaan. Seinät ovat
+       poissa, joten horisonttiin jää runko: pystypalkit + laattaviivat, ja
+       pohjassa 1–3 seinäpalaa. Sama litteä, kaukainen tyyli kuin ehjässä
+       lohkossa (ei ikkunaristikkoa, ei glowia, ei kattoa). */
+    function drawBackdropRuin(b) {
+        const r = b.ruin;
+        const baseY = BACKDROP_BASE_Y;
+        const topY = baseY - r.stub;
+        const frameC = lightenHex(b.color, 0x08);   // runko: hitusen vaaleampi sävy
+        // Seinäpalat (muutama osa seinistä jäi pystyyn) – talon oma sävy
+        for (const w of r.walls) {
+            ctx.fillStyle = b.color;
+            ctx.fillRect(b.x + w.x, baseY - w.h, w.w, w.h);
+            ctx.fillStyle = frameC;                 // murtunut yläreuna erottuu
+            ctx.fillRect(b.x + w.x, baseY - w.h, w.w, 1);
+        }
+        // Laattaviivat (kerrokset) – runko näkyy, kun seinät ovat poissa
+        ctx.fillStyle = frameC;
+        for (const f of r.slabs) ctx.fillRect(b.x, baseY - f, b.w, 1);
+        // Pystypalkit kantavat jäljellä olevan rungon
+        for (const c of r.cols) ctx.fillRect(b.x + c, topY, 2, r.stub);
+    }
+
     /* ── Sähkökaapit (talojen kyljissä, kerrostalon vas. seinä) ── */
     function drawElectricCabinet() {
         for (const c of electricCabinets) {
+            if (c.bldgIdx !== undefined && buildingGone(c.bldgIdx)) continue;   // v11.22: kaappi katosi talon mukana
             const cx = c.x, cy = c.y + 5, cw = c.w, ch = c.h;
             const centerX = cx + cw / 2;
 
@@ -6334,6 +6858,7 @@ const Street = (() => {
         if (dayT >= 1 || MOON_BLD_SHADOW_ALPHA <= 0) return;
         const fade = 1 - dayT;                            // kuun näkyvyys
         for (const b of buildings) {
+            if (buildingGone(buildings.indexOf(b))) continue;   // v11.22: tuhoutunut talo ei heitä varjoa
             const x0 = b.x, x1 = b.x + b.w;
             const L = b.h * MOON_BLD_SHADOW_LEN;          // varjon pituus
             const k = MOON_BLD_SHADOW_SKEW * (b.h / 100);
@@ -6414,8 +6939,9 @@ const Street = (() => {
             const sleepOpen = (t.bldgIdx === SLEEP_BLDG_IDX);
             const sinkshipLit = t.bldgIdx === SINKSHIP_BLDG_IDX &&
                                 !!(smallHouseLights[t.bldgIdx] && smallHouseLights[t.bldgIdx].lit);
-            const active = isBar || jukeboxLit || sleepOpen || sinkshipLit ||
-                           !!(ownerLamp && (ownerLamp.lit || lampFreeOpen()));
+            // v11.22: tuhoutuneen talon kynnysvalo sammuu (kiveys jää katutilaksi)
+            const active = !buildingGone(t.bldgIdx) && (isBar || jukeboxLit || sleepOpen || sinkshipLit ||
+                           !!(ownerLamp && (ownerLamp.lit || lampFreeOpen())));
             if (THRESH_LIGHT && active) {
                 ctx.save();
                 ctx.beginPath();
@@ -8366,6 +8892,28 @@ const Street = (() => {
         const dy = GROUND_Y - DOOR_H;
         const ownerLamp = lamps.find(l => l.bldgIdx === buildings.indexOf(bldg));
         const bldgIdx = buildings.indexOf(bldg);
+        /* v11.24: tuhoutuneen talon mustaa ovea EI enää piirretä (9 mustaa ovea
+           näytti epäloogiselta). Vain YKSI satunnainen talo saa pitää ovensa
+           pystyssä – ja siitäkin jää pelkät ulkokarmit: ei ovea, ei lehteä, ei
+           kahvaa, ei kynnysvaloa. Arpa on heitetty tuhoutumishetkellä
+           (updateBuildingDamage → standingDoorIdx). */
+        if (buildingGone(bldgIdx)) {
+            if (bldgIdx !== standingDoorIdx) return;
+            const sF = buildingScale(bldg);
+            ctx.save();
+            ctx.translate(dc.x, GROUND_Y);
+            ctx.scale(sF, sF);
+            ctx.translate(-dc.x, -GROUND_Y);
+            ctx.fillStyle = '#241d16';                              // hiiltynyt karmi
+            ctx.fillRect(dx - 2, dy - 2, 2, DOOR_H + 2);            // vasen karmi
+            ctx.fillRect(dx + DOOR_W, dy - 2, 2, DOOR_H + 2);       // oikea karmi
+            ctx.fillRect(dx - 2, dy - 4, DOOR_W + 4, 2);            // yläkarmi
+            ctx.strokeStyle = 'rgba(126,116,100,0.45)';             // kulunut reuna
+            ctx.lineWidth = 1;
+            ctx.strokeRect(dx - 2.5, dy - 4.5, DOOR_W + 5, DOOR_H + 5);
+            ctx.restore();
+            return;
+        }
         const isBar = (bldgIdx === 8);
         // Jukebox-talo (5): ovi näkyy auki vasta kun ikkunat on potkaistu valaistuiksi
         const isJukebox = (bldgIdx === JUKEBOX_BLDG_IDX);
@@ -9304,8 +9852,12 @@ const Street = (() => {
             ctx.fillRect(torsoX, py + 10 + bobY, 1, ph - 19);
             ctx.fillRect(headX, py + 7 + bobY, 1, 3);
         }
-        // Sädease kädessä (v10.21): harmaa kepakko 45° kulmassa etukädessä, osoittaa eteen-ylös
-        if (beamWeaponCollected) {
+        /* Sädease kädessä (v10.21): harmaa kepakko 45° kulmassa etukädessä, osoittaa eteen-ylös.
+           v11.21: ase näkyy vain yöllä (dayT <= 0). Päivällä se on piilossa, koska aseella ei
+           voi muutenkaan ampua (beamCanFire() vaatii dayT <= 0) eikä meteoriitteja synny.
+           Tallennettu tila (beamWeaponCollected) EI muutu → kerran napattu ase ilmestyy
+           itsestään takaisin käteen, kun yö ja meteoriitit palaavat. */
+        if (beamWeaponCollected && dayT <= 0) {
             ctx.save();
             ctx.translate(frontArmX + 1, frontArmY + 6);
             ctx.rotate(-Math.PI / 4);
@@ -9411,7 +9963,7 @@ const Street = (() => {
         camX = Math.max(0, Math.min(WORLD_W - viewW, camX));
     }
 
-    return { init, resize, closeGame, closeRoom, setChaos, saveChaosSession, loadChaosSession, clearChaosSession };
+    return { init, resize, closeGame, closeRoom, setChaos, saveChaosSession, loadChaosSession, clearChaosSession, clearBeamWeapon };
 })();
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -9545,6 +10097,8 @@ window.addEventListener('DOMContentLoaded', () => {
         startAutoHover();   // v11.03: hover-kierto käyntiin, kun valikko on auennut
     };
     if (gate) {
+        // v11.20: Click/Press-näytölle palattaessa sädease poistetaan inventorysta.
+        Street.clearBeamWeapon();
         gate.classList.remove('hidden');
         StreetAudio.setMenuActive(true);   // valikko aktiiviseksi jo gatessa → onGesture avaa musiikin
         const GATE_MENU_DELAY_MS = 2000;   // 2 s viive → sama napautus ei osu chaos-valikon nappiin (mobiilin ghost-click)

@@ -3,7 +3,7 @@
 > **Tarkoitus:** Cline:n referenssi projektin rakenteesta ja siitä, mitä ei saa rikkoa.
 > **Kompaktoitu 23.9.2026 (v4.71) · tiivistetty 28.9.2026 (v11.00, 13,4 → 12,5 kt):** kaaos K0–K7 → `docs/chaos.md`.
 > Esiforkin (Pimeä Katu) koko historia: `D:\AI\Main` – tämän repon historia alkaa `b854771`.
-> **Rajat (28.9.2026, mitoitettu pelikoon mukaan):** tämä tiedosto **≤ 20 kt** · koko pankki **≤ 100 kt** – kokoa ei raportoida joka istunnossa; raja mainitaan vain, jos se ylittyy.
+> **Rajat (päivitetty 29.9.2026, v11.23):** tämä tiedosto **≤ 25 kt** · koko pankki **≤ 135 kt** – kokoa ei raportoida joka istunnossa; raja mainitaan vain, jos se ylittyy.
 
 ## ⭐ Yleisarkkitehtuuri
 
@@ -20,7 +20,8 @@
 - **Kommunikaatio:** `window.parent.postMessage()` molempiin suuntiin.
 - **LocalStorage-avaimet:** `pimeakatu_gamestate` (portaali; sisältää myös **`isDay`** = päivä/yö-tila),
   `digKeyCollected`, `boulderKeyCollected`, `bmKeyCollected`, `pimeakatu_fruit_free` (hedelmäpelin oma).
-  Rosvo, kaivo, kuun rata, tankki ym. uudet tilat ovat **vain muistissa**.
+  Rosvo, kaivo, kuun rata, tankki ym. uudet tilat ovat **vain muistissa** –
+  samoin **tuhotut talot (v11.22: `buildingDmg`)** ja avoimen kaivon tila.
 
 **Salaiset cheatit kadulla (testityökalut, eivät tallennu):** vitoslamppu (x 720) 5 potkua putkeen →
 kaikki avaimet + koko valorivi; jatkona 20 potkua → **+20 kolikkoa** (hiljainen: ei popuppia/ääntä).
@@ -144,6 +145,7 @@ peli/
 | Pisteytys/vakiot + renderöinti | 🟡 NORMAALI | `constants.js` (arvoja voi säätää, avaimia ei poistaa), `renderer.js` (visuaaliset muutokset ok) |
 | Äänet / ohjaus | 🟢 MATALA | `audio.js`, `input.js` (voi lisätä näppäimiä, ei poistaa) |
 | Kadun liikenneputki (`updateTraffic`) | 🟠 KORKEA | Jokainen `update()`in varhainen `return` **ennen** liikennettä on bugi (ajoneuvo ja moottorin panorointi jäätyvät) – korjattu kolmesti: jukebox (v4.61), huoneet + kaivo (v11.09), tainnutus (v11.10). Kolarin putoamistaso `player.knockFallY` = osumakohta − 25 px (v11.12); muilla kaatajilla `GROUND_Y + 10` |
+| Talojen tuhoutuminen (v11.22, jälkitila v11.24) | 🟠 KORKEA | `buildingDmg[idx]` (`'gone'` = tuhoutunut) on tarkistettava **jokaisessa** taloon kytkeytyvässä reitissä: `handleAction` (hedelmäpeli 6, jukebox, laivanupotus, lamppuovet, talo 0, potkuvalot), `drawDoor`, `drawThresholdPaving` (kynnysvalo), `drawElectricCabinet` + isku, `drawMoonBuildingShadows`, `getAvailableWindows` (K1), `meteoriteBehindBuilding`, `drawBuildings` (tilalla romukasa `drawRubble(b, idx)`). **v11.24:** tähdätty meteoriitti (`targetBldgIdx`) piirretään **talojen TAKANA** kuten muutkin → `meteoriteBehindBuilding` estää osuman talon rungon kohdalla (ammuttavissa katon yläpuolella); jälkitila = `buildingRubble[idx]` (kasa ≤ `RUBBLE_H_MAX` = `DOOR_H/2` 16 px) ja mustia ovia ei piirretä – vain `standingDoorIdx` jää karmikehyksenä; taustalohkot eivät katoa (`b.ruin` → `ruinBackdropBlock`/`drawBackdropRuin`) ja `backdropMostlyGone` laskee **ehjistä** lohkoista; BAD-avaus `updateBadDemo` (vain BAD, kerran, talo 0–8 = myös BAR). LAMPUT ja niiden potku säilyvät aina, samoin kynnyskiveys ja BAR-kyltti |
 
 ## 💾 Tiedon tallennus
 
