@@ -10028,10 +10028,14 @@ window.addEventListener('DOMContentLoaded', () => {
         return;
     }
     /* ═══ Automaattinen hover-kierros (v11.03–v11.05b, mobiili + nopeutus v11.17) ═══
-       Kun valikko ("CHOOSE YOUR CHAOS LEVEL") on auennut, hover-efekti liukuu
-       kerran kaikkien viiden kaaosnapin yli ylhäältä alas: 1 s valikon
-       avautumisesta, sen jälkeen 10 s välein (kierroksen alusta alkuun)
-       niin kauan kuin valikko on auki. Yksi nappi kerrallaan 173 ms
+       Kun pelaaja avaa näkymän ("CLICK / PRESS ANY KEY"), hover-efekti liukuu
+       kerran kaikkien viiden kaaosnapin yli ylhäältä alas: 5 s NAPAUTUKSESTA
+       (v11.28: kello käy jo gaten 2 s viiveen aikana, joten efekti ehtii näkyä
+       heti kun valikko on auennut), sen jälkeen 10 s välein (kierroksen alusta
+       alkuun) niin kauan kuin valikko on auki. Jos kierros jää väliin (valikko
+       ei vielä näy / välilehti piilossa / ohjeikkuna), uusi yritys tehdään
+       AUTO_HOVER_RETRY_MS (0,5 s) päästä – ei vasta 10 s päästä.
+       Yksi nappi kerrallaan 173 ms
        (v11.17: 450 → 346 ms eli +30 %, sen jälkeen vielä puolet pois
        346 → 173 ms), ja viimeinen (FULL CHAOS)
        jää päälle 2 s – samalla koko näyttö tärisee. Pito ja tärinä ovat
@@ -10039,21 +10043,28 @@ window.addEventListener('DOMContentLoaded', () => {
        Efekti on pelkkä luokka .auto-hover (style.css = täsmälleen sama ulkoasu
        kuin :hover), joten oikea hiiri ja täppäys toimivat koko ajan
        normaalisti – oikea osoitin myös keskeyttää käynnissä olevan liu'un.
-       Esteettömyys (v11.17): liikkeen vähentäminen (reduce-motion) EI enää
-       sammuta koko kierrosta – nappi välähtää kuten ennenkin, mutta näytön
-       tärinä jää pois (motion=false). Sama linjaus kuin INSTRUCTIONS-
-       vilkunnassa (v10.31): pelkkä kirkkauden vaihtelu ei aiheuta
-       liikeherkkyyttä, ja moni Android raportoi reduce-motionin ollessa
-       "poista animaatiot" -tilassa → efekti katosi puhelimilta kokonaan.
-       Tärinän estää joka tapauksessa myös style.css:n
-       @media (prefers-reduced-motion: reduce) -sääntö (#chaos-menu.shaking).
-       Kosketuslaitteet (v11.17): mouseenter-peruutus kiinnitetään vain
-       laitteille, jotka oikeasti osaavat hoveroida ((hover: hover)), koska
-       puhelimen synteettinen mouseenter saattoi tappaa käynnissä olevan
-       liu'un; kosketuslaitteen vastine on nappialueen touchstart.
+       Esteettömyys (v11.17/v11.27): liikkeen vähentäminen (reduce-motion) ei
+       enää sammuta koko kierrosta eikä näytön tärinää – nappi välähtää ja
+       näyttö tärisee kaikilla laitteilla. Sama linjaus kuin INSTRUCTIONS-
+       vilkunnassa (v10.31), ja lisäksi pelin oma canvas-tärinä (BAD/FULL,
+       meteoriitti, kolari: ctx.translate) on aina toiminut jokaisella
+       laitteella → valikko oli ainoa reduce-motionilla lukittu efekti.
+       Moni Android raportoi reduce-motionin ollessa poista animaatiot
+       -tilassa, joten tärinä katosi puhelimilta kokonaan; v11.27 poisti
+       portin myös style.css:stä. Muoto ennallaan: yksi kierros / 10 s,
+       pito + tärinä 2 s (AUTO_HOVER_HOLD_MS), värinä 2–4 px.
+       Peruutus (v11.17/v11.29): kosketuslaitteella nappialueen touchstart
+       keskeyttää käynnissä olevan liu'un. PC:n mouseenter-peruutus POISTETTIIN
+       v11.29:ssä: selain laukaisee mouseenterin uudelleen, kun gate katoaa
+       osoittimen alta tai hover-ketju päivittyy, ja se pyyhkäisi koko
+       automaattikierroksen → seuraava tuli vasta 10 s päästä (pelaaja näki
+       ensimmäisen efektin ~17 s kohdalla, kun hiiri lepäsi valikon päällä).
+       Osoittimen alla oleva nappi ohitetaan värien osalta, mutta pito ja
+       tärinä ajetaan aina.
        Testikytkin: ?autohover=0 (ei tallennu). */
     const AUTO_HOVER_ON        = urlParams.get('autohover') !== '0';
-    const AUTO_HOVER_START_MS  = 1000;    // viive siitä, kun valikko on auennut
+    const AUTO_HOVER_START_MS  = 5000;    // viive näkymän avaavasta napautuksesta ("CLICK / PRESS")
+    const AUTO_HOVER_RETRY_MS  = 500;     // v11.28: väliin jäänyt kierros yritetään pian uudelleen
     const AUTO_HOVER_REPEAT_MS = 10000;   // kierroksen alusta seuraavan alkuun = 10 s
     const AUTO_HOVER_STEP_MS   = 173;     // yksi nappi kerrallaan (4 × 173 ms ennen FULL CHAOSia)
     /* v11.05: viimeinen nappi (FULL CHAOS) jää päälle ja koko näyttö tärisee
@@ -10066,6 +10077,7 @@ window.addEventListener('DOMContentLoaded', () => {
                                   // tasan 10 s väli myös hitaalla laitteella)
     let autoHoverTimers = [];     // käynnissä olevan liu'un ajastimet
 
+
     function clearAutoHover() {
         autoHoverTimers.forEach((t) => clearTimeout(t));
         autoHoverTimers = [];
@@ -10077,56 +10089,64 @@ window.addEventListener('DOMContentLoaded', () => {
         if (autoHoverNext) { clearTimeout(autoHoverNext); autoHoverNext = null; }
         clearAutoHover();
     }
+    /* Palauttaa true, jos kierros ajettiin; false = jäi väliin → uusi yritys pian. */
     function autoHoverSweep() {
-        if (!AUTO_HOVER_ON || started || document.hidden) return;             // peli käynnistynyt / välilehti piilossa
-        if (menu.classList.contains('hidden') || menu.classList.contains('faded')) return;
-        if (insOpen || insClosing) return;                                    // ohjeikkuna päällä
-        /* v11.17: reduce-motion ei enää estä koko kierrosta – vain tärinä jää
-           pois (motion = false). Väri-/kirkkausvälähdys säilyy, koska se ei ole
-           liikettä (sama linjaus kuin INSTRUCTIONS-vilkunnassa v10.31). */
-        const motion = !insReducedMotion();
+        if (!AUTO_HOVER_ON || started || document.hidden) return false;       // peli käynnistynyt / välilehti piilossa
+        if (menu.classList.contains('hidden') || menu.classList.contains('faded')) return false;
+        if (insOpen || insClosing) return false;                              // ohjeikkuna päällä
+        /* v11.27: reduce-motion ei enää estä kumpaakaan osaa – väri-
+           välähdys (v11.17) ja näytön tärinä (v11.05) ajetaan kaikilla
+           laitteilla, kuten pelin canvas-tärinä (BAD/FULL, meteoriitti,
+           kolari: ctx.translate) on aina tehnyt. */
         clearAutoHover();
         const btns = autoHoverBtns();
-        if (!btns.length) return;
+        if (!btns.length) return true;        // ei nappeja → ei jäädä 0,5 s:n uusintasilmukkaan
         const under = document.querySelector('.chaos-buttons button:hover');  // oikea osoitin voittaa aina
         const last = btns.length - 1;
         btns.forEach((btn, i) => {
-            if (btn === under) return;
+            const hovered = (btn === under);
             const hold = (i === last) ? AUTO_HOVER_HOLD_MS : 0;   // vain FULL CHAOS jää päälle (v11.05)
-            autoHoverTimers.push(setTimeout(() => btn.classList.add('auto-hover'), i * AUTO_HOVER_STEP_MS));
-            autoHoverTimers.push(setTimeout(() => btn.classList.remove('auto-hover'),
-                                            i * AUTO_HOVER_STEP_MS + (hold || AUTO_HOVER_STEP_MS)));
-            if (hold && motion && autoHoverShakeEl) {   // v11.05: näytön tärinä pidon ajaksi (v11.17: vain kun liike sallittu)
+            /* v11.29: osoittimen alla olevaa nappia ei väritetä (ulkoasu olisi
+               :hoverin kanssa identtinen), mutta pito + tärinä ajetaan AINA –
+               muuten valikon päällä lepäävä hiiri vei efektin kohokohdan. */
+            if (!hovered) {
+                autoHoverTimers.push(setTimeout(() => btn.classList.add('auto-hover'), i * AUTO_HOVER_STEP_MS));
+                autoHoverTimers.push(setTimeout(() => btn.classList.remove('auto-hover'),
+                                                i * AUTO_HOVER_STEP_MS + (hold || AUTO_HOVER_STEP_MS)));
+            }
+            if (hold && autoHoverShakeEl) {             // v11.05: näytön tärinä pidon ajaksi (v11.27: kaikilla laitteilla)
                 autoHoverTimers.push(setTimeout(() => autoHoverShakeEl.classList.add(AUTO_HOVER_SHAKE_CLASS), i * AUTO_HOVER_STEP_MS));
                 autoHoverTimers.push(setTimeout(() => autoHoverShakeEl.classList.remove(AUTO_HOVER_SHAKE_CLASS), i * AUTO_HOVER_STEP_MS + hold));
             }
         });
+        return true;
     }
     /* Kierros ajastetaan aina edellisen kierroksen alusta (ketjutettu setTimeout):
-       setInterval ehtisi vanheta hitaalla laitteella ja 1. väli menisi 9 sekuntiin. */
+       setInterval ehtisi vanheta hitaalla laitteella ja 1. väli menisi 9 sekuntiin.
+       v11.28: jos kierros jäi väliin (ran = false), uusi yritys tehdään pian –
+       muuten yksi ohitettu kierros siirtäisi efektin koko 10 s:n päähän. */
     function scheduleAutoHover(delay) {
         autoHoverNext = setTimeout(() => {
             autoHoverNext = null;
-            autoHoverSweep();
-            if (AUTO_HOVER_ON && !started) scheduleAutoHover(AUTO_HOVER_REPEAT_MS);
+            const ran = autoHoverSweep();
+            if (AUTO_HOVER_ON && !started) scheduleAutoHover(ran ? AUTO_HOVER_REPEAT_MS : AUTO_HOVER_RETRY_MS);
         }, delay);
     }
     function startAutoHover() {
-        /* v11.17: reduce-motion ei enää estä kierrosta (vain tärinä jää pois,
-           ks. autoHoverSweep) – efekti käynnistyy nyt myös puhelimilla. */
+        /* v11.17: reduce-motion ei enää estä kierrosta – efekti käynnistyy myös
+           puhelimilla. v11.28: kutsutaan jo gaten napautuksessa (kello käy
+           napautuksesta) ja varaksi uudelleen, kun valikko on auennut; jälkimmäinen
+           kutsu on no-op, koska autoHoverNext on jo asetettu. */
         if (!AUTO_HOVER_ON || autoHoverNext) return;
         scheduleAutoHover(AUTO_HOVER_START_MS);
     }
-    /* Oikea osoitin valikkoon keskeyttää käynnissä olevan liu'un heti.
-       v11.17: peruutus kiinnitetään vain hoveroiville laitteille ((hover: hover)),
-       koska kosketuslaitteen synteettinen mouseenter saattoi tappaa käynnissä
-       olevan liu'un; kosketuslaitteen vastine on nappialueen touchstart
-       (pelaajan oma täppäys voittaa aina, samoin kuin hiiri PC:llä). */
+    /* Kosketuslaite: täppäys nappialueelle keskeyttää käynnissä olevan liu'un
+       (pelaajan oma täppäys voittaa aina). v11.29: PC:n mouseenter-peruutus
+       POISTETTU – selain laukaisee mouseenterin uudelleen, kun gate katoaa
+       osoittimen alta tai hover-ketju päivittyy, jolloin se pyyhkäisi käynnissä
+       olevan automaattikierroksen (seuraava tuli vasta 10 s päästä ≈ 17 s).
+       Osoittimen alla oleva nappi ohitetaan joka tapauksessa värien osalta. */
     const autoHoverZone = menu.querySelector('.chaos-buttons');
-    const canHoverPointer = !!(window.matchMedia && window.matchMedia('(hover: hover)').matches);
-    if (autoHoverZone && canHoverPointer) {
-        autoHoverZone.addEventListener('mouseenter', clearAutoHover);
-    }
     if (autoHoverZone) autoHoverZone.addEventListener('touchstart', clearAutoHover, { passive: true });
 
     menu.classList.remove('hidden');
@@ -10151,6 +10171,11 @@ window.addEventListener('DOMContentLoaded', () => {
             window.removeEventListener('mousedown', unlock);
             window.removeEventListener('touchstart', unlock);
             gate.classList.add('faded');   // v10.13: tekstit haihtuvat pois 2 s viiveen aikana
+            /* v11.28: hover-kierroksen kello käy jo tästä napautuksesta, joten
+               efekti ehtii näkyä heti kun valikko on auennut (5 s napautuksesta
+               eikä 5 s valikon avautumisesta). showMenu()in oma
+               startAutoHover() on tämän jälkeen no-op (autoHoverNext asetettu). */
+            startAutoHover();
             setTimeout(showMenu, GATE_MENU_DELAY_MS);
         };
         window.addEventListener('keydown', unlock);
@@ -10168,14 +10193,15 @@ window.addEventListener('DOMContentLoaded', () => {
        v11.25: BAD CHAOS saa lisävarotuksen – mustaan ruutuun kirjoitetaan
        keltainen teksti merkki merkiltä (sama klik-ääni kuin ohjeikkunassa),
        minkä jälkeen musta häivytetään kuten muillakin tasoilla → BAD-siirtymä
-       on n. 2 s pidempi. Intro soi sen aikana kuten ennenkin; muut tasot
-       kulkevat täsmälleen entistä polkua. */
+       on n. 3,5 s pidempi (kirjoitus ~1,1 s + lukuaika; v11.27b: hold
+       0,8 → 2,3 s, jotta tekstin ehtii lukea). Intro soi sen aikana
+       kuten ennenkin; muut tasot kulkevat täsmälleen entistä polkua. */
     const CHAOS_BLACKOUT_MS = 2000;   // mustuminen + valikkobiisin häivytys
     const CHAOS_REVEAL_MS = 1000;     // mustan häivytys pois → katu näkyy
     /* BAD CHAOS -varoitus (v11.25): ajoitusnupit (vain BAD CHAOS). */
     const BAD_WARN_LEVEL   = 'bad';
     const BAD_WARN_TYPE_MS = 50;      // perusväli per merkki (ohjeissa 18 ms)
-    const BAD_WARN_HOLD_MS = 800;     // teksti valmis → tauko ennen häivytystä
+    const BAD_WARN_HOLD_MS = 2300;    // teksti valmis → lukuaika ennen häivytystä (v11.27b: 0,8 → 2,3 s)
     const blackout = document.getElementById('chaos-blackout');
     const warnEl   = document.getElementById('chaos-warning');
     /* Varoitusteksti luetaan kerran HTML:stä (kuten ohjeet

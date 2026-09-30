@@ -64,8 +64,25 @@
          samaan numeroon kuin #version-tag.
          v11.25: BAD CHAOS – mustaan siirtymäruutuun kirjoitetaan keltainen
          varoitus "You will suffer!" merkki merkiltä (sama klik-ääni kuin
-         INSTRUCTIONS-ikkunassa); muut kaaostasot ennallaan. -->
-    <link rel="stylesheet" href="style.css?v=11.26">
+         INSTRUCTIONS-ikkunassa); muut kaaostasot ennallaan.
+         v11.26: meteoriittitahti + BAD-finaali (tuho nopeammaksi).
+         v11.27: kaaosvalikon FULL CHAOS -tärinä ajetaan nyt myös
+         puhelimilla – reduce-motion-portit pois street.js:stä ja
+         style.css:stä, joten PC ja puhelin näyttävät saman efektin.
+         v11.27b (pelkkiä arvoja, ei versionnostoa – sääntö 03): valikon
+         hover-kierto alkaa 5 s valikon avautumisesta (oli 1 s) ja BAD-
+         varoitusteksti viipyy 2,3 s (oli 0,8 s) → vain street.js muuttui,
+         joten myös sen ?v=-leima nostettiin.
+         v11.28: hover-kierroksen kello käy jo "CLICK / PRESS" -napautuksesta
+         (efekti tulee 5 s napautuksesta, ei 7 s) ja väliin jäänyt kierros
+         yritetään 0,5 s päästä uudelleen (ennen: vasta 10 s päästä) → kaikki
+         ?v=-leimat samaan numeroon kuin #version-tag.
+         v11.29 (bugikorjaus): PC:n mouseenter-peruutus poistettu – selain
+         laukaisee mouseenterin uudelleen, kun gate katoaa osoittimen alta,
+         jolloin se pyyhkäisi käynnissä olevan kierroksen (ensimmäinen efekti
+         näkyi vasta ~17 s kohdalla, kun hiiri lepäsi valikon päällä); samalla
+         pito + tärinä ajetaan aina, myös osoittimen alla olevalla napilla. -->
+    <link rel="stylesheet" href="style.css?v=11.29">
 </head>
 <body>
     <!-- ═══ ALOITUSGATE (äänilukko auki ennen chaos-valikkoa) ═══ -->
@@ -124,7 +141,7 @@
     </div>
 
     <!-- Versionumero (aina näkyvissä – myös alkunäkymässä) -->
-    <div id="version-tag">v11.26</div>
+    <div id="version-tag">v11.29</div>
 
     <!-- ═══ PÄÄNÄKYMÄ ═══════════════════════════════════ -->
     <div id="game-wrapper">
@@ -163,9 +180,9 @@
     </div>
 
     <!-- ═══ SKRIPTIT ═════════════════════════════════════ -->
-    <script src="gameState.js?v=11.26"></script>
-    <script src="audio.js?v=11.26"></script>
-    <script src="street.js?v=11.26"></script>
+    <script src="gameState.js?v=11.29"></script>
+    <script src="audio.js?v=11.29"></script>
+    <script src="street.js?v=11.29"></script>
 
     <!-- ✕-napit (alapeli + huone + reset) – yksi yhteinen toiminto -->
     <script>

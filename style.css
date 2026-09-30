@@ -466,6 +466,7 @@ body::after {
    pidon ajan: 2,5 % askel = 50 ms ≈ 20 värähdystä sekunnissa (aiempi 4–8 %
    eli 80–160 ms tuntui laiskalta, koska askeleet harvenivat loppua kohti).
    Kesto pidettävä samana kuin AUTO_HOVER_HOLD_MS.
+   v11.27: ajetaan kaikilla laitteilla – reduce-motion ei enää estä tärinää.
 
    Tärinä kohdistuu #chaos-menu:hun (koko ruudun musta kerros) eikä bodyyn:
    transform tekee elementistä fixed-lastensa containing blockin, joten
@@ -519,11 +520,10 @@ body::after {
     100%  { transform: translate(0, 0); }
 }
 
-/* Liikkeen vähentäminen: ei tärinää lainkaan (auto-hover ei muutenkaan
-   käynnisty, kun käyttäjä on pyytänyt vähemmän liikettä). */
-@media (prefers-reduced-motion: reduce) {
-    #chaos-menu.shaking { animation: none !important; }
-}
+/* v11.27: tärinä ajetaan kaikilla laitteilla myös reduce-motionissa –
+   sama linjaus kuin pelin canvas-tärinässä (BAD/FULL, meteoriitti, kolari)
+   ja INSTRUCTIONS-vilkuissa (v10.31/v11.17). HUOM: ohjeikkunan oma
+   reduce-motion-lohko on edelleen alempana. */
 
 /* v10.14: kaaostason valinnan jälkeen tekstit haihtuvat pois ennen pelin alkua */
 #chaos-menu.faded h1,

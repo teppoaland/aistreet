@@ -49,8 +49,9 @@ käynnistyy **mustan alla**, minkä jälkeen katu paljastuu 1 s häivytyksellä 
 (`@keyframes chaos-shake`, kesto = `HOLD_MS`) tärisee – tärinä kohdistuu valikon mustaan kerrokseen, ei
 `body`iin. **Oikea hiiri/täppäys voittavat aina** (valinta → `stopAutoHover`); `mouseenter`-peruutus
 kiinnitetään vain `(hover: hover)` -laitteille ja kosketus käyttää `touchstart`ia (v11.17), koska puhelimen
-synteettinen `mouseenter` saattoi tappaa liu'un. **Reduce-motion ei sammuta kierrosta** – vain näytön tärinä
-jää pois (`style.css` 504; sama linjaus kuin INSTRUCTIONS-vilkku v10.31). Alkunäkymien (gate + hubi) otsikko
+synteettinen `mouseenter` saattoi tappaa liu'un. **Reduce-motion ei estä mitään osaa** – myöskään näytön tärinä ei enää jää pois
+(v11.27: `street.js`:n motion-lippu ja `style.css`:n `@media`-yliajo poistettu; sama linjaus kuin
+pelin canvas-tärinä BAD/FULLissa ja INSTRUCTIONS-vilkku v10.31). Alkunäkymien (gate + hubi) otsikko
 on **`AI CHAØS STREET`** fontin omalla Ø:llä (U+00D8, v11.16). Testikytkin `?autohover=0`; pelkkä UI-ajoitus
 → NORMAL bitti-identtinen. **Säätönuppi jos välähdys tuntuu töksähtävältä:** napin CSS-transitio
 `background/border-color/color 0.12s` (`style.css` 428) ehtii 173 ms:ssä juuri ja juuri täyttyä → lyhennä se
