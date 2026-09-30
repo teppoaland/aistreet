@@ -4936,8 +4936,7 @@ const Street = (() => {
     }
 
     function showSpawnHint() {
-        // Aloitusohje: pitempi lukuaika (+2s) kuin muilla popupeilla
-        showNotification('Tip: Kick everything – at your own risk!', 4500);
+    // Intentionally empty. was TIP: kick the doors to light the lamps! (v4.20)
     }
 
     function spawnParticles(x, y, color, count) {
