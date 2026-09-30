@@ -641,6 +641,42 @@ Mitattu (`%TEMP%\street-meteor-tempo-test.cjs`, 24 siementä × 4 yötä): osumi
 meteoriitteja **~1,7 → ka 5,6 / yö**, ensimmäinen katuvarren talo **ka 1,2 yössä (max 1,7)** ja kaikki
 9 taloa **ka 2,5 yössä (max 3,0)** ≈ **~8 min reaaliajassa** (yö = 90 s joka toinen jakso; ennen ~30-40 min).
 
+### 8.8 BAD CHAOS – katsojan syntymäpaketti (v11.26+, parametri)
+
+> **Markkinointimateriaali:** *"You will suffer! – mutta 100 kolikkoa ja 10 hampurilaista, jotta
+> ehdit nähdä koko shown."* 🙂
+
+Käyttäjän linjaus 30.9.2026: *"BAD CHAOS -pelivalinta. Laita pelaajalle fiksatut 100 kolikkoa ja
+10 hampurilaista. Tässä pelimoodissa katsellaan kun maailma tuhoituu, eikä pelata, niin pelihahmon
+täytyy pysyä hengissä. Ainakin että näkee tuohon. … Ei ver nostoa, koska vain parametrien säätö."*
+
+| Nuppi | Ennen | Nyt |
+|---|---|---|
+| BAD `startCoins` | periytyi `CHAOS_DEFAULTS2`:sta = **2** | **100** (klampin katto) |
+| BAD `startBurgers` | `rndInt(2, 3)` | **10** (klampin katto) |
+
+- **Voimassa vain uudessa pelissä / hard resetissä:** arvot luetaan `init()`:n `freshGame`-portissa
+  → koskee vain 0-tilaa: uusi välilehti, **kuolema** (`GameState.reset()`) ja **✕ "aloita alusta"**
+  (`localStorage.removeItem`). **F5-soft reset ei nollaa** – kaaossession + tallennettu saldo
+  voittavat (sama käytös kuin ennenkin).
+- **Mihinkään muuhun ei kosketa:** BADin `burgerInterval` (1200–2400), uhkat ja kaikki muut arvat sekä
+  **kaikki muut tasot (NORMAL bitti-identtinen)** säilyvät ennallaan. Ei uusia muuttujia eikä uutta
+  logiikkaa – vain kaksi arvoa `case 'bad'` -lohkossa. **Ei versionnostoa** (sääntö 03).
+- Sivuhuomio (C-indeksi, ei uusi arvo): 10 🍔 nostaa kyvykkyysindeksin **C = 0,67 → 2,0**, joten
+  (a) BADin arpa **läpäisee `validateChaosCfg()`in** (ennen oviukko 1,2–1,4 > 1,4 × C = 0,93) ja
+  (b) **klampit eivät enää pure alas** BADin omia uhka-arvoja: `robberSpeed` 0,93 → **1,5**,
+  `avengerSpeed` 0,93 → **1,30**, `avengerTelegraph` 32 → **19** (raa'at profiiliarvot ennallaan –
+  vain portti päästää ne nyt läpi). Kävelyvauhti on 2× (`hungerSpeedMult`), ja kun 🍔-saldo laskee
+  ≤ 3:een, C palaa 0,67:ään ja klampit purevat taas kuten ennen – uhka ja vauhti skaalautuvat vatsan mukaan.
+
+### Validoitu (30.9.2026)
+
+`%TEMP%\street-bad-katsomo-test3.cjs` – ajaa `street.js`:n **oikeat** kaaosfunktiot Node:ssa
+(`?seed=12345` + siemennetty `Math.random`) ja vertaa uutta koodia `git HEAD`:iin
+(20 tarkistusta, **0 löydöstä**): BAD = 100 🪙 + 10 🍔, portti 0 virhettä, BADin **raakoihin
+profiiliarvoihin koskettu vain 2×**, NORMAL/MILD/GOOD/FULL **0 eroa** (raaka + klampattu),
+NORMAL = `CHAOS_DEFAULTS2`, freshGame-portti (uusi/kuolema/✕ → 100 + 10, F5 → ei muutosta).
+
 ---
 
 ## 9. Testaus & validoinnin määritelmä (DoD)
@@ -755,4 +791,5 @@ min/max/keskiarvo per akseli + kvantiilit (näkee, ettei arpa ole "aina sama").
 |---|---|---|
 | 27.9.2026 | v10.01 (doc) | Suunnitelma v1 laadittu keskustelussa: kategoriat A–L, tasot NORMAL–FULL CHAOS, H-lohko (pelaaja/fysiikka/kamera) **poistettu käyttäjän pyynnöstä** |
 | 27.9.2026 | v10.01 (doc) | **v2 kirjattu tähän tiedostoon:** kaksi `!!!PÄÄSÄÄNTÖ!!!`-sääntöä, tasomanifesti, kategoriat **K0–K7** (vaikutuspohjainen jako), C-kyvykkyysindeksi + selviytymisinvariantti (🍔-intervallin lattia 1200 f), kielletyt yhdistelmät (10 kohtaa), parametrikatalogi K1–K7 varmennetuin arvoin ja rivinumeroin, MUST-kohteet (kova tuuli · paksut pilvet + myrskytaivas · vihreä aurinko), toteutusresepti portteineen ja siemenineen, testaus/DoD, 4 vaihetta, tiedostorajat ja avoimet päätökset (`❓`). Ei koodimuutoksia. |
+| 30.9.2026 | v11.26 (parametri) | **BAD CHAOS – katsojan syntymäpaketti** (käyttäjän pyyntö 30.9.2026: *"Laita pelaajalle fiksatut 100 kolikkoa ja 10 hampurilaista … pelihahmon täytyy pysyä hengissä"*): BAD alkaa kiinteällä **100 🪙 + 10 🍔** (ennen 2 🪙 + arpa 2–3 🍔), jotta ehtii nähdä koko maailmanlopun. Voimassa **vain `freshGame` / hard reset** (uusi peli, kuolema, ✕) – F5-soft reset ei nollaa. `burgerInterval`, uhkat ja muut tasot ennallaan; **ei versionnostoa**. |
 

@@ -2512,7 +2512,16 @@ const Street = (() => {
                     avengerChance: rnd(0.30, 0.50), avengerSpeed: rnd(1.2, 1.4),
                     avengerTelegraph: rndInt(12, 21), avengerFreeze: rndInt(60, 180),
                     avengerCooldown: rndInt(600, 1200), cabinetOnChance: rnd(0.70, 0.90),
-                    startBurgers: rndInt(2, 3), burgerInterval: rndInt(1200, 2400),
+                    /* v11.26+ (parametri, ei versionnostoa): BAD = katsojamoodi –
+                       maailmanloppu katsotaan, ei pelata → kiinteä syntymäpaketti
+                       100 🪙 + 10 🍔 (klampit sallivat tasan nämä). Arvot luetaan
+                       init():n freshGame-portissa → uusi peli / hard reset
+                       (kuolema, ✕ "aloita alusta"); F5-soft reset ei nollaa
+                       (session + tallennettu saldo voittaa). Vanha 🍔-arpa jää
+                       paikoilleen mutta sen tulos ohitetaan, jotta BADin MUUT
+                       arvat eivät siirry (arvontajärjestys = 0 eroa). */
+                    startCoins: 100, startBurgers: (rndInt(2, 3), 10),
+                    burgerInterval: rndInt(1200, 2400),
                     hungerWakeGrace: 600,
                     cloudCount: rndInt(28, 34), cloudOpacityMult: 2.0, cloudSizeMult: 1.4,
                     cloudBandTop: 10, cloudBandH: 70, cloudCirrusShare: 0.15, cloudDayAlpha: 9,
