@@ -318,6 +318,57 @@ const Street = (() => {
     let hamburgerCount = 5;
     let hamburgerTimer = 2400;  // 40s @ ~60fps – lukittu tahti (sääntö 04)
     let burgerInterval = 2400;  // 🍔-kulutustahti kaaosakselina (K4, v10.04); NORMAL 2400
+    /* ── Olut & humala (v11.31, VAIN FULL CHAOS) ─────────────────────────
+       FULLissa BAR myy olutta 🍺 hampurilaisten sijaan. Elämä on
+       KAKSIKERROKSINEN: 🍺 (ylin, ostettava, tuottaa humalan) kuluu ensin,
+       ja vasta kun oluet on juotu loppuun, klassinen 🍔-nälkä palaa.
+       Sama sääntö koskee törmäystä: se vie ylimmän kerroksen. Humalataso =
+       oluiden määrä (0–10): 1 = hieman horjuntaa, 10 ≈ lähes mahdoton;
+       haihtuu 1 taso / burgerInterval (sama tahti kuin 🍔:llä). MUUT MOODIT
+       eivät kosketa näitä muuttujia lainkaan. */
+    const DRUNK_MAX = 10;         // humalan katto (= oluiden katto)
+    const BAR_BEER_H = 58;        // oluttuopin korkeus BAR-huoneessa (px)
+    /* Humalan horjunnan voimakkuus tasolla 10 (helppo säätö yhdestä vakiosta).
+       Skaalautuu lineaarisesti 1 → 10; lopullinen amplitudi ≈ ×0,6 / ×0,45. */
+    const DRUNK_WOBBLE_MAX = 3.0;
+    /* Tästä humalatasosta ylöspäin pelaaja ottaa PAIKALLAAN hallitsemattomia
+       askeleita (v11.31b/c): seistessäkin keho horjahtaa suuntaan tai toiseen
+       – voi ajautua auton alle tekemättä mitään. Askeleen pituus ja tahti
+       kasvavat humalan mukana (10 ≈ lähes mahdoton ohjata). */
+    const DRUNK_IDLE_WOBBLE_MIN = 7;
+    const DRUNK_STEP_PX = 9;      // perusaskeleen pituus (px)
+    const DRUNK_STEP_MIN = 60;    // lyhin väli askeleiden välillä (1 s = 60 fr)
+    const DRUNK_STEP_MAX = 300;   // pisin väli (5 s = 300 fr) – aina satunnainen 1–5 s
+    const DRUNK_STEP_FRAMES = 9;  // askel liu'utetaan näin monen framen yli (ei nykäystä)
+    let drunkLevel = 0;           // 0–10 (vain FULL)
+    let drunkTimer = 0;           // humalan haihtumisajastin (vain FULL)
+    let drunkStepTimer = 0;       // seuraavaan hallitsemattomaan askeleeseen
+    let drunkLurchX = 0;          // jäljellä oleva hallitsematon siirtymä (px, liukuva)
+    let drunkLurchY = 0;
+    let drunkLurchFrames = 0;     // montako frameä liukua on jäljellä
+    /* v11.31d/f: humalassa ≥ DRUNK_AIM_MIN (3) sädeaseen TÄHTÄYS alkaa horjua
+       (ristikko + itse laukaus). 1–2 = ei virhettä; 8–10 = osuu enää tuurilla.
+       v11.31f: käyrä LOIVENNETTU – 3–5 🍺 vielä helppo (pieni heitto),
+       jyrkkenee vasta 6→10. Taulukko: siirtymä (px) per humalataso (0–10). */
+    const DRUNK_AIM_MIN = 3;
+    const DRUNK_AIM_PX = [0, 0, 0, 3, 5, 7, 10, 15, 30, 46, 60];
+    function drunkWobble() {
+        if (drunkLevel <= 0) return 0;
+        return (drunkLevel / DRUNK_MAX) * DRUNK_WOBBLE_MAX;
+    }
+    /* Tähtäysvirhe humalassa (v11.31d/f): horjuva siirtymä tähtäyspisteeseen. */
+    function drunkAimShift() {
+        if (chaosLevel !== 'full' || drunkLevel < DRUNK_AIM_MIN) return { x: 0, y: 0 };
+        const lvl = Math.max(0, Math.min(DRUNK_MAX, Math.round(drunkLevel)));
+        const amp = DRUNK_AIM_PX[lvl] || 0;
+        if (amp <= 0) return { x: 0, y: 0 };
+        const f = amp / DRUNK_AIM_PX[DRUNK_MAX];     // taajuus kasvaa humalan mukana
+        const t = Date.now() * 0.001;
+        return {
+            x: Math.sin(t * (1.6 + f * 3.0)) * amp,
+            y: Math.sin(t * (1.3 + f * 2.4) + 1.1) * amp * 0.8
+        };
+    }
     /* Herätysrauha (v4.41): nukkumisen jälkeen nälkäajastimelle jää vähintään
        tämä aika, ettei 1 🍔:lla nukkunut voi kuolla heti sängystä noustuaan.
        Ajastin ei nollaudu täyteen → ei ilmaista 40 s:ää eikä sängyssä
@@ -1067,7 +1118,27 @@ const Street = (() => {
         }
     }
 
-    /* ── Onnettomuus: tainnutus + 1 hampurilainen ───
+    /* ── Törmäysvaikutus (v11.31) ───────────────────────────────
+       FULLissa osuma vie YLIMMÄN kerroksen: −1 🍺 jos olutta on, muuten
+       −1 🍔 (0 → kuolema) – sama sääntö kuin aikapohjaisella nälällä.
+       MUUT MOODIT täsmälleen entinen: −1 🍔 ja 0 → kuolema.
+       Tainnutus asetetaan aina kutsujassa – tämä hoitaa vain "hinnan". */
+    function collisionCost() {
+        if (chaosLevel === 'full' && drunkLevel > 0) {
+            drunkLevel--;                 // olutkerros imee iskun
+            drunkTimer = burgerInterval;
+            saveChaosSession();           // v11.31e: F5 ei hukkaa humalaa
+            updateHUD();
+            return;
+        }
+        hamburgerCount--;
+        state.inventory.hamburgerCount = hamburgerCount;
+        GameState.save(state);
+        updateHUD();
+        if (hamburgerCount <= 0) { killPlayer(); }
+    }
+
+    /* ── Onnettomuus: tainnutus + 1 🍔 (FULL: −1 🪙) ───
        Sama vaikutus kuin kukkaruukulla/autolla/sähköiskulla.
        Käyttää vain uusi oviukko-koodi – vanhat haarat ennallaan. */
     function knockPlayerDown() {
@@ -1075,11 +1146,7 @@ const Street = (() => {
         player.knockdownTimer = AVENGER_STUN;
         player.kicking = false;
         player.kickFrame = 0;
-        hamburgerCount--;
-        state.inventory.hamburgerCount = hamburgerCount;
-        GameState.save(state);
-        updateHUD();
-        if (hamburgerCount <= 0) { killPlayer(); }
+        collisionCost();
     }
 
     /* ── Pelaajan kuolema (hampurilaiset loppu) ────── */
@@ -2159,12 +2226,14 @@ const Street = (() => {
         beamCooldownTimer = BEAM_COOLDOWN_FRAMES;
         beamFireTimer = BEAM_FIRE_FRAMES;
         const m = beamMuzzle();
+        const sh = drunkAimShift();          // v11.31d: humala horjuttaa tähtäystä
+        const ax = aimX + sh.x, ay = aimY + sh.y;
         beamStartX = m.x; beamStartY = m.y;
-        beamEndX = aimX; beamEndY = aimY;
+        beamEndX = ax; beamEndY = ay;
         playLaser();
         // v10.25: talon takana olevaan meteoriittiin ei voi osua (tarkistaa sijainnin, ei linjaa)
         if (meteoriteBehindBuilding()) return;
-        const d = distanceToSegment(shootingStar.x, shootingStar.y, m.x, m.y, aimX, aimY);
+        const d = distanceToSegment(shootingStar.x, shootingStar.y, m.x, m.y, ax, ay);
         if (d < shootingStar.r + BEAM_HIT_TOLERANCE) {
             // v11.14: meteoriitti kestää METEOR_HITS_TO_KILL osumaa. Ensimmäinen
             // osuma vain lämmittää sen (sävy vaihtuu tasaisesti oranssiksi: ydin,
@@ -2376,7 +2445,8 @@ const Street = (() => {
             startCoins: CHAOS_DEFAULTS2.startCoins,
             startBurgers: rndInt(2, 10),
             hungerWakeGrace: rndInt(600, 1800),
-            burgerInterval: rndInt(1200, 12000),
+            burgerInterval: 2400,   // v11.31: FULLin kulutustahti KIINTEÄ 40 s (oli rndInt(1200,12000)
+                                    //   = jopa ~200 s / taso → vaikutti siltä, ettei 🍺/🍔 kulu lainkaan)
             // K1 (v10.03) – visuaalinen
             cloudCount: rndInt(4, 34),
             cloudOpacityMult: rnd(0.6, 2.5),
@@ -2672,7 +2742,12 @@ const Street = (() => {
     const CHAOS_SESSION_KEY = 'aistreet_chaos_session';
     function saveChaosSession() {
         try {
-            sessionStorage.setItem(CHAOS_SESSION_KEY, JSON.stringify({ level: chaosLevel, cfg: chaosCfg }));
+            /* v11.31e: humala (🍺) tallennetaan session mukana, jotta F5-soft
+               reset ei hukkaa sitä – vain hard reset (✕ / kuolema / uusi
+               välilehti) tyhjentää koko session (clearChaosSession). */
+            sessionStorage.setItem(CHAOS_SESSION_KEY, JSON.stringify({
+                level: chaosLevel, cfg: chaosCfg, drunk: drunkLevel, drunkT: drunkTimer
+            }));
         } catch (e) {}
     }
     function loadChaosSession() {
@@ -3005,6 +3080,21 @@ const Street = (() => {
         coin.despawnTimer = coin.collected ? 0 : 600;
         hamburgerCount = state.inventory.hamburgerCount || 5;
         hamburgerTimer = burgerInterval;
+        drunkLevel = 0;              // v11.31: humala alkaa aina nollasta (vain FULL)
+        drunkTimer = burgerInterval;
+        /* v11.31e: F5-soft reset palauttaa humalan kaaos-sessiosta; hard reset
+           (✕ / kuolema / uusi välilehti) tyhjentää session → humala nollautuu. */
+        if (chaosLevel === 'full') {
+            const ds = loadChaosSession();
+            if (ds && typeof ds.drunk === 'number') {
+                drunkLevel = Math.max(0, Math.min(DRUNK_MAX, Math.round(ds.drunk)));
+                if (typeof ds.drunkT === 'number') drunkTimer = Math.max(1, ds.drunkT);
+            }
+        }
+        drunkStepTimer = DRUNK_STEP_MIN + Math.random() * (DRUNK_STEP_MAX - DRUNK_STEP_MIN);
+        drunkLurchX = 0;
+        drunkLurchY = 0;
+        drunkLurchFrames = 0;
         if (coin.collected) { coin.x = -100; coin.y = -100; }
         else { coin.x = randomCoinX(); coin.y = randomCoinY(); }
         digKeyCollected = state.digKeyCollected || false;
@@ -3326,12 +3416,8 @@ const Street = (() => {
                     spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#ffaa44', 15);
                     playKnock();   // "Smack"-tömähdys
                     vehicleShakeTimer = 90;  // ~1.5s tärinä
-                    hamburgerCount--;
-                    state.inventory.hamburgerCount = hamburgerCount;
-                    GameState.save(state);
-                    updateHUD();
+                    collisionCost();   // v11.31: FULL → −1 🪙, muuten −1 🍔
                     playerHit = true;
-                    if (hamburgerCount <= 0) { killPlayer(); }
                     break;
                 }
             }
@@ -3533,20 +3619,35 @@ const Street = (() => {
         // eikä peli näytä nollautuvan kesken pelaamisen.
         // Tahti (burgerInterval, kaaos K4) ja katto 10.
         if (!hungerOnHold()) {
-            if (hamburgerCount > 0) {
-                hamburgerTimer -= dt;
-                if (hamburgerTimer <= 0) {
-                    hamburgerCount--;
-                    state.inventory.hamburgerCount = hamburgerCount;
-                    GameState.save(state);
+            /* FULL (v11.31): JOS olutta on, se kuluu ensin (humala haihtuu,
+               🍔 säilyy). Vasta kun 🍺 = 0, klassinen 🍔-nälkä palaa. */
+            let burgerHungerActive = true;
+            if (chaosLevel === 'full' && drunkLevel > 0) {
+                burgerHungerActive = false;
+                drunkTimer -= dt;
+                if (drunkTimer <= 0) {
+                    drunkLevel--;
+                    drunkTimer = burgerInterval;
+                    saveChaosSession();   // v11.31e: F5 ei hukkaa humalaa
                     updateHUD();
-                    hamburgerTimer = hamburgerCount > 0 ? burgerInterval : 0;
                 }
             }
-            if (hamburgerCount <= 0) {              // 0 🍔 → kuolema
-                killPlayer();                       // kuolinsekvenssi alkaa heti
-                if (insideHiddenState()) leaveHiddenStateForDeath();
-                return;
+            if (burgerHungerActive) {
+                if (hamburgerCount > 0) {
+                    hamburgerTimer -= dt;
+                    if (hamburgerTimer <= 0) {
+                        hamburgerCount--;
+                        state.inventory.hamburgerCount = hamburgerCount;
+                        GameState.save(state);
+                        updateHUD();
+                        hamburgerTimer = hamburgerCount > 0 ? burgerInterval : 0;
+                    }
+                }
+                if (hamburgerCount <= 0) {              // 0 🍔 → kuolema
+                    killPlayer();                       // kuolinsekvenssi alkaa heti
+                    if (insideHiddenState()) leaveHiddenStateForDeath();
+                    return;
+                }
             }
         }
 
@@ -3604,7 +3705,8 @@ const Street = (() => {
                         state.isDay = isDay;
                         GameState.save(state);
                     }
-                    // +1 🍔 nukkumisesta (v4.44, käyttäjän pyyntö 21.9.2026)
+                    // +1 🍔 nukkumisesta (v4.44) – myös FULLissa (v11.31:
+                    // ainoa tapa hankkia 🍔 takaisin, koska BAR myy vain olutta)
                     if (!DAY_FORCE && hamburgerCount < 10) {
                         hamburgerCount++;
                         state.inventory.hamburgerCount = hamburgerCount;
@@ -3662,25 +3764,51 @@ const Street = (() => {
             const buyUp = !!(keys['ArrowUp'] || keys['w'] || keys['W']);
             const buyDown = !!(keys['ArrowDown'] || keys['s'] || keys['S']);
 
-            if (buyUp && !barBuyHeldUp && coinCount > 0 && hamburgerCount < 10) {
-                hamburgerCount++;
-                coinCount--;
-                barBuyQty++;
-                state.inventory.hamburgerCount = hamburgerCount;
-                state.inventory.coinCount = coinCount;
-                GameState.save(state);
-                updateHUD();
-                playCoin();
-            }
-            if (buyDown && !barBuyHeldDown && barBuyQty > 0) {
-                hamburgerCount--;
-                coinCount++;
-                barBuyQty--;
-                state.inventory.hamburgerCount = hamburgerCount;
-                state.inventory.coinCount = coinCount;
-                GameState.save(state);
-                updateHUD();
-                playCoin();
+            if (chaosLevel === 'full') {
+                /* FULL (v11.31): BAR myy olutta 🍺 (1 🪙), katto DRUNK_MAX.
+                   Olut nostaa humalaa ja nollaa haihtumisajastimen. */
+                if (buyUp && !barBuyHeldUp && coinCount > 0 && drunkLevel < DRUNK_MAX) {
+                    drunkLevel++;
+                    drunkTimer = burgerInterval;
+                    saveChaosSession();   // v11.31e: F5 ei hukkaa humalaa
+                    coinCount--;
+                    barBuyQty++;
+                    state.inventory.coinCount = coinCount;
+                    GameState.save(state);
+                    updateHUD();
+                    playCoin();
+                }
+                if (buyDown && !barBuyHeldDown && barBuyQty > 0) {
+                    drunkLevel--;
+                    saveChaosSession();   // v11.31e
+                    coinCount++;
+                    barBuyQty--;
+                    state.inventory.coinCount = coinCount;
+                    GameState.save(state);
+                    updateHUD();
+                    playCoin();
+                }
+            } else {
+                if (buyUp && !barBuyHeldUp && coinCount > 0 && hamburgerCount < 10) {
+                    hamburgerCount++;
+                    coinCount--;
+                    barBuyQty++;
+                    state.inventory.hamburgerCount = hamburgerCount;
+                    state.inventory.coinCount = coinCount;
+                    GameState.save(state);
+                    updateHUD();
+                    playCoin();
+                }
+                if (buyDown && !barBuyHeldDown && barBuyQty > 0) {
+                    hamburgerCount--;
+                    coinCount++;
+                    barBuyQty--;
+                    state.inventory.hamburgerCount = hamburgerCount;
+                    state.inventory.coinCount = coinCount;
+                    GameState.save(state);
+                    updateHUD();
+                    playCoin();
+                }
             }
             barBuyHeldUp = buyUp;
             barBuyHeldDown = buyDown;
@@ -3842,12 +3970,41 @@ const Street = (() => {
 
         player.x += player.vx * dt;
 
-        // Hoipertelu (kaaos K4 v10.18, vain BAD/FULL): normaali vauhti, mutta
-        // juopunut sivuttais-/pystyvärähtely → voi ajautua auton alle / kaappiin.
-        if (staggerAmount > 0 && (moveX !== 0 || moveY !== 0)) {
+        const wobble = (chaosLevel === 'full') ? drunkWobble() : staggerAmount;
+        const moving = (moveX !== 0 || moveY !== 0);
+        if (wobble > 0 && moving) {
             const t = Date.now() * 0.001;
-            player.x += Math.sin(t * 2.1) * staggerAmount * 0.6 * dt;
-            player.y += Math.sin(t * 1.5 + 0.8) * staggerAmount * 0.45 * dt;
+            player.x += Math.sin(t * 2.1) * wobble * 0.6 * dt;
+            player.y += Math.sin(t * 1.5 + 0.8) * wobble * 0.45 * dt;
+            player.y = Math.max(PLAYER_Y_MIN, Math.min(PLAYER_Y_MAX, player.y));
+        }
+        /* v11.31c: humalainen (≥ DRUNK_IDLE_WOBBLE_MIN 🍺) ottaa PAIKALLAAN
+           HALLITSEMATTOMIA askeleita suuntaan tai toiseen – myös ilman
+           ohjausta. Pituus ja tahti kasvavat humalan mukana. Askel LIPUU
+           pehmeästi DRUNK_STEP_FRAMES framen yli (ei nykäystä). */
+        if (chaosLevel === 'full' && !moving && drunkLevel >= DRUNK_IDLE_WOBBLE_MIN) {
+            drunkStepTimer -= dt;
+            if (drunkStepTimer <= 0) {
+                const strong = (drunkLevel - DRUNK_IDLE_WOBBLE_MIN) / (DRUNK_MAX - DRUNK_IDLE_WOBBLE_MIN);
+                const stepPx = DRUNK_STEP_PX * (0.7 + 0.6 * strong);
+                const dir = (Math.random() < 0.5) ? -1 : 1;
+                drunkLurchX += dir * stepPx;
+                drunkLurchY += (Math.random() - 0.5) * stepPx * 0.7;
+                drunkLurchFrames = DRUNK_STEP_FRAMES;
+                drunkStepTimer = DRUNK_STEP_MIN + Math.random() * (DRUNK_STEP_MAX - DRUNK_STEP_MIN);
+            }
+        }
+        // Pehmeä liuku: jaetaan askeleen siirtymä jäljellä oleville frameille
+        if (drunkLurchFrames > 0) {
+            const ax = drunkLurchX / drunkLurchFrames;
+            const ay = drunkLurchY / drunkLurchFrames;
+            player.x += ax;
+            player.y += ay;
+            drunkLurchX -= ax;
+            drunkLurchY -= ay;
+            drunkLurchFrames--;
+            if (drunkLurchFrames <= 0) { drunkLurchX = 0; drunkLurchY = 0; }
+            player.x = Math.max(0, Math.min(WORLD_W - player.w, player.x));
             player.y = Math.max(PLAYER_Y_MIN, Math.min(PLAYER_Y_MAX, player.y));
         }
 
@@ -4011,13 +4168,7 @@ const Street = (() => {
                 player.x = Math.max(0, Math.min(WORLD_W - player.w, player.x + pushDir * 30));
                 spawnParticles(ccx, cab.y + cab.h / 2, '#ffe066', 16);
                 playZap();
-                hamburgerCount--;
-                state.inventory.hamburgerCount = hamburgerCount;
-                GameState.save(state);
-                updateHUD();
-                if (hamburgerCount <= 0) {
-                    killPlayer();
-                }
+                collisionCost();   // v11.31: FULL → −1 🪙, muuten −1 🍔
             }
         }
 
@@ -4076,11 +4227,7 @@ const Street = (() => {
             if (Math.sqrt((fpx-ppx)*(fpx-ppx)+(fpy-ppy)*(fpy-ppy)) < 20) {
                 if (!player.knockedDown) {
                     player.knockedDown = true; player.knockdownTimer = 600; player.kicking = false; player.kickFrame = 0;
-                    hamburgerCount--;
-                    state.inventory.hamburgerCount = hamburgerCount;
-                    GameState.save(state);
-                    updateHUD();
-                    if (hamburgerCount <= 0) { killPlayer(); }
+                    collisionCost();   // v11.31: FULL → −1 🪙, muuten −1 🍔
                 }
                 spawnParticles(ppx, ppy, '#ff6644', 15); flowerPot = null;
             } else if (flowerPot.y > GROUND_Y + 20 || flowerPot.x < -30 || flowerPot.x > WORLD_W + 30) {
@@ -4623,7 +4770,16 @@ const Street = (() => {
             if (e.data === 'BM_KEY_COLLECTED') {
                 bmKeyCollected = true;
                 state.bmKeyCollected = true;
+                /* Loppupalkinto (v11.30): Blue Mäxin avaimesta täydet 🍔 (10)
+                   + 20 🪙. Toistuva – jokainen avaimen nappaus palkitsee
+                   uudelleen. Sääntö 06: ei uutta tekstiä, pelaaja näkee
+                   HUD:in lukemat kadulle palatessaan. */
+                coinCount += 20;
+                hamburgerCount = 10;              // "täydet 10" = katto täyteen
+                state.inventory.coinCount = coinCount;
+                state.inventory.hamburgerCount = hamburgerCount;
                 GameState.save(state);
+                updateHUD();
             }
             if (e.data === 'BOULDER_KEY_COLLECTED') {
                 boulderKeyCollected = true;
@@ -4964,15 +5120,27 @@ const Street = (() => {
         }
         status += ' | 💰 Coins: ' + coinCount;
         if (beamWeaponCollected) status += ' 🔫';   // sädease ansaittu (v10.20)
-        // Hampurilaiset (lives) – vilkkuva varoitus kun jäljellä <= HUNGER_WARN (3)
-        var burgerStr = '';
-        if (hamburgerCount <= HUNGER_WARN) {
-            for (var bi = 0; bi < hamburgerCount; bi++) burgerStr += '🍔';
-            burgerStr = '<span class="burger-warning">' + burgerStr + '</span>';
+        if (chaosLevel === 'full') {
+            /* FULL (v11.31): 🍔 = peruskerros (kuluu vasta kun 🍺 loppu),
+               🍺 = ylin kerros. Näytetään todelliset määrät; 🍔 vilkkuu
+               kuten ennenkin, kun ≤ HUNGER_WARN (3). */
+            var fBurg = '';
+            for (var fb = 0; fb < hamburgerCount; fb++) fBurg += '🍔';
+            if (hamburgerCount <= HUNGER_WARN) fBurg = '<span class="burger-warning">' + fBurg + '</span>';
+            var fBeer = '';
+            for (var bb = 0; bb < drunkLevel; bb++) fBeer += '🍺';
+            status += ' | ' + fBurg + fBeer;
         } else {
-            for (var bi = 0; bi < hamburgerCount; bi++) burgerStr += '🍔';
+            // Hampurilaiset (lives) – vilkkuva varoitus kun jäljellä <= HUNGER_WARN (3)
+            var burgerStr = '';
+            if (hamburgerCount <= HUNGER_WARN) {
+                for (var bi = 0; bi < hamburgerCount; bi++) burgerStr += '🍔';
+                burgerStr = '<span class="burger-warning">' + burgerStr + '</span>';
+            } else {
+                for (var bi = 0; bi < hamburgerCount; bi++) burgerStr += '🍔';
+            }
+            status += ' | ' + burgerStr;
         }
-        status += ' | ' + burgerStr;
         if (hudBar) hudBar.innerHTML = '<span style="display:block;text-align:center;margin-top:2px">' + status + '</span>';
     }
 
@@ -8451,6 +8619,45 @@ const Street = (() => {
     }
 
     /* ── BAR-huone (talo 8) ────────────────────── */
+    /* ── Oluttuoppi pöydällä (v11.31, VAIN FULL) ─────────────────
+       Korvaa hampurilaisen BAR-huoneessa FULLissa. Piirretään pöydän
+       pinnan (tableTop) päälle, keskitetty x = cx. Korkeus = BAR_BEER_H. */
+    function drawBarBeer(cx, tableTop) {
+        const w = 44, h = BAR_BEER_H;
+        const x = cx - w / 2, y = tableTop - h;
+        // Tuopin runko (tumma ääriviiva + olut)
+        ctx.fillStyle = '#3a2a12';
+        ctx.fillRect(x, y, w, h);
+        ctx.fillStyle = '#c98a1c';
+        ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';   // lasin kiilto
+        ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+        // Kahva
+        ctx.strokeStyle = '#3a2a12';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(x + w - 1, y + h * 0.45, 12, -Math.PI / 2, Math.PI / 2);
+        ctx.stroke();
+        // Vaahto
+        ctx.fillStyle = '#f7f2e6';
+        ctx.beginPath();
+        ctx.ellipse(cx, y + 3, w / 2 - 1, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fffdf5';
+        ctx.beginPath();
+        ctx.ellipse(cx - 6, y + 2, 10, 6, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx + 8, y + 3, 8, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Kuplat
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        const bubbles = [[-10, 20], [6, 14], [-4, 34], [12, 30], [0, 44]];
+        for (let i = 0; i < bubbles.length; i++) {
+            ctx.beginPath();
+            ctx.arc(cx + bubbles[i][0], y + bubbles[i][1], 1.6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
     function drawBarRoom() {
         // Täysin pimeä tausta
         ctx.fillStyle = '#100808';
@@ -8480,8 +8687,13 @@ const Street = (() => {
         const BURGER_SCALE = 2 / 3;
         const BURGER_H = 68;                 // alkuperäinen korkeus (by−26 … by+42)
         const bx = tx + tw / 2, by = ty - 42;
-        const burgerTop = ty - BURGER_H * BURGER_SCALE;
+        /* v11.31: FULLissa pöydällä on oluttuoppi (korkeampi kuin hampurilainen)
+           → ostorivi lasketaan todellisen ruuan yläreunasta, ettei se osu. */
+        const burgerTop = ty - (chaosLevel === 'full' ? BAR_BEER_H : BURGER_H * BURGER_SCALE);
 
+        if (chaosLevel === 'full') {
+            drawBarBeer(bx, ty);   // FULL: olut hampurilaisen tilalla
+        } else {
         ctx.save();
         ctx.translate(bx, ty);
         ctx.scale(BURGER_SCALE, BURGER_SCALE);
@@ -8577,6 +8789,7 @@ const Street = (() => {
         }
 
         ctx.restore();   // hampurilaisen skaalaus päättyy
+        }   // v11.31: (FULL = olut / muut moodit = hampurilainen)
 
         /* ── Asettelu: taulu + äidin lappu + ostotilanne ────────────────
            Kaikki mitoitetaan siitä ikkunasta, joka ruudulla oikeasti näkyy
@@ -8605,9 +8818,13 @@ const Street = (() => {
         };
 
         /* Äidin lappu – 3 riviä (varoitus hampurilaisten kulutuksesta) */
-        const hintLines = [
+        const hintLines = (chaosLevel === 'full') ? [
+            'WATCH YOUR DRINKING, DEAR',
+            'BEER GOES TO YOUR HEAD!',
+            'Love, Mum'
+        ] : [
             'WATCH YOUR BURGER INTAKE',
-            'REMEMBER TO EAT, MARKO!',
+            'REMEMBER TO EAT, DUDE!',
             'Love, Mum'
         ];
         const boxPad = 36;                    // laatikon sisämarginaali
@@ -8623,7 +8840,11 @@ const Street = (() => {
         const hintBoxH = hintLineH * 3 + 6;
 
         /* Ostotilanteen rivi – fontti pisimmän vaihtoehdon mukaan */
-        const infoRows = [
+        const infoRows = (chaosLevel === 'full') ? [
+            'You drank ' + Math.max(barBuyQty, 1) + 'x🍺 beers!',
+            '🍺 Beer quota full. Go home, drunkard!',
+            '🍺 No coins. Get some cash!'
+        ] : [
             'You bought ' + Math.max(barBuyQty, 1) + 'x🍔 burgers!',
             '🍔 Burger quota full. Buy something else!',
             '🍔 No coins. Get some cash!'
@@ -8693,7 +8914,15 @@ const Street = (() => {
         ctx.fillStyle = '#eeddcc';
         ctx.font = 'normal ' + infoFs + 'px "Courier New", monospace';
         ctx.textAlign = 'center';
-        if (barBuyQty > 0) {
+        if (chaosLevel === 'full') {
+            if (barBuyQty > 0) {
+                ctx.fillText('You drank ' + barBuyQty + 'x🍺 beers!', 400, infoBaseline);
+            } else if (drunkLevel >= DRUNK_MAX) {
+                ctx.fillText('🍺 Beer quota full. Go home, drunkard!', 400, infoBaseline);
+            } else if (coinCount <= 0) {
+                ctx.fillText('🍺 No coins. Get some cash!', 400, infoBaseline);
+            }
+        } else if (barBuyQty > 0) {
             ctx.fillText('You bought ' + barBuyQty + 'x🍔 burgers!', 400, infoBaseline);
         } else if (hamburgerCount >= 10) {
             ctx.fillText('🍔 Burger quota full. Buy something else!', 400, infoBaseline);
@@ -8704,7 +8933,9 @@ const Street = (() => {
         // Ohjevihje: ▲ osta / ▼ peru / (o) poistu
         var pulse = Math.sin(Date.now() / 800) * 0.3 + 0.7;
         ctx.fillStyle = 'rgba(255,255,255,' + pulse + ')';
-        var exitRow = '▲ = buy 1 🍔   ▼ = undo 1   EXIT: (o) / Space';
+        var exitRow = (chaosLevel === 'full')
+            ? '▲ = buy 1 🍺   ▼ = undo 1   EXIT: (o) / Space'
+            : '▲ = buy 1 🍔   ▼ = undo 1   EXIT: (o) / Space';
         ctx.font = Math.max(8, fitFs([exitRow], 'normal', 10, 8, 'Arial, sans-serif',
                                      winW - 24)) + 'px Arial, sans-serif';
         ctx.fillText(exitRow, 400, 370);
@@ -9197,14 +9428,16 @@ const Street = (() => {
     function drawBeam() {
         // Tähtäysristikko vain PC:llä (hiiri), kun tähtäys aktiivinen
         if (beamCanFire() && !isTouchDevice && aimActive) {
+            const sh = drunkAimShift();      // v11.31d: ristikko horjuu humalassa
+            const cx = aimX + sh.x, cy = aimY + sh.y;
             ctx.strokeStyle = 'rgba(150,210,255,0.9)';
             ctx.lineWidth = 1;
             const r = 4;
             ctx.beginPath();
-            ctx.moveTo(aimX - r, aimY); ctx.lineTo(aimX + r, aimY);
-            ctx.moveTo(aimX, aimY - r); ctx.lineTo(aimX, aimY + r);
+            ctx.moveTo(cx - r, cy); ctx.lineTo(cx + r, cy);
+            ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy + r);
             ctx.stroke();
-            ctx.beginPath(); ctx.arc(aimX, aimY, 6, 0, Math.PI * 2);
+            ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI * 2);
             ctx.strokeStyle = 'rgba(150,210,255,0.4)';
             ctx.stroke();
         }
