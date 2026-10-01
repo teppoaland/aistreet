@@ -1964,6 +1964,17 @@ const Street = (() => {
 
     function buildingGone(idx) { return buildingDmg[idx] === 'gone'; }
 
+    /* v11.36: kaikki 9 katuvarren taloa tuhoutuneet (vain BAD/FULL). */
+    function buildingsAllGone() {
+        for (let i = 0; i < buildings.length; i++) {
+            if (!buildingGone(i)) return false;
+        }
+        return true;
+    }
+    function chaosAllGone() {
+        return (chaosLevel === 'bad' || chaosLevel === 'full') && buildingsAllGone();
+    }
+
     /* Eskalaatio: taustarivistä ≥ 40 % tuhoutunut (tai testikytkin päällä). */
     /* v11.24: lohkoja ei enää poisteta vaan ne merkitään raunioiksi (b.ruin) →
        kynnys laskee EHJISTÄ lohkoista (raunio ei ole enää "jäljellä").
@@ -3504,8 +3515,9 @@ const Street = (() => {
                 spawnTimers[li] -= dt * (1 + (TRAFFIC_DAY_MULT - 1) * dayT);
                 if (spawnTimers[li] <= 0) {
                     const dir = lane.direction;
-                    const vehRnd = Math.random();
+                    let vehRnd = Math.random();
                     let type, w, h, speed;
+                    if (chaosAllGone()) vehRnd = 0.74;   // v11.36: BAD/FULL rauniot – vain ambulanssit
                     if (vehRnd < 0.37) {
                         type = 'car'; w = 80; h = 30; speed = (1.0 + Math.random() * 0.5) * trafficSpeedMult;
                     } else if (vehRnd < 0.74) {
@@ -4450,19 +4462,21 @@ const Street = (() => {
 
         // ── Katueläin ────────────────────────────────
         if (!groundAnimal) {
-            animalSpawnTimer -= dt;
-            if (animalSpawnTimer <= 0) {
-                const types = animalTypeWeights || ['mouse','mouse','rat','rat','rabbit']; const type = types[Math.floor(Math.random()*types.length)];
-                const dir = (Math.random() < animalDirBias) ? 1 : -1;
-                // Satunnainen juoksukorkeus: aidan juuresta (335) nykyiseen ylälaitaan (307, ei ihan seinään)
-                const baseY = GROUND_Y - 3 + Math.random() * (GROUND_Y + 25 - (GROUND_Y - 3));
-                let w,h,speed;
-                if (type==='mouse') { w=8; h=4; speed=(1.8+Math.random()*1.2)*animalSpeedMult; }
-                else if (type==='rat') { w=14; h=6; speed=(1.2+Math.random()*0.8)*animalSpeedMult; }
-                else { w=10; h=10; speed=(1.5+Math.random()*0.8)*animalSpeedMult; }
-                groundAnimal = { type,w,h,x:dir>0?-w:WORLD_W+w,y:baseY-h,vx:dir*speed,direction:dir,hopY:0,hopVel:0,animTimer:0,pauseTimer:0 };
-                if (cardState.animalParade > 0) { cardState.animalParade--; animalSpawnTimer = 60; }
-                else animalSpawnTimer = 900;
+            if (!chaosAllGone()) {   // v11.36: BAD/FULL rauniot – ei eläimiä kadulla
+                animalSpawnTimer -= dt;
+                if (animalSpawnTimer <= 0) {
+                    const types = animalTypeWeights || ['mouse','mouse','rat','rat','rabbit']; const type = types[Math.floor(Math.random()*types.length)];
+                    const dir = (Math.random() < animalDirBias) ? 1 : -1;
+                    // Satunnainen juoksukorkeus: aidan juuresta (335) nykyiseen ylälaitaan (307, ei ihan seinään)
+                    const baseY = GROUND_Y - 3 + Math.random() * (GROUND_Y + 25 - (GROUND_Y - 3));
+                    let w,h,speed;
+                    if (type==='mouse') { w=8; h=4; speed=(1.8+Math.random()*1.2)*animalSpeedMult; }
+                    else if (type==='rat') { w=14; h=6; speed=(1.2+Math.random()*0.8)*animalSpeedMult; }
+                    else { w=10; h=10; speed=(1.5+Math.random()*0.8)*animalSpeedMult; }
+                    groundAnimal = { type,w,h,x:dir>0?-w:WORLD_W+w,y:baseY-h,vx:dir*speed,direction:dir,hopY:0,hopVel:0,animTimer:0,pauseTimer:0 };
+                    if (cardState.animalParade > 0) { cardState.animalParade--; animalSpawnTimer = 60; }
+                    else animalSpawnTimer = 900;
+                }
             }
         } else {
             const a = groundAnimal;
