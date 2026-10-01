@@ -203,8 +203,14 @@ function dWN(){
 ctx.fillStyle='rgba(0,0,20,0.85)';ctx.fillRect(0,0,W,H);
 ctx.fillStyle='#fd0';ctx.font='bold 18px "Press Start 2P",monospace';ctx.textAlign='center';
 ctx.fillText('MISSION COMPLETE!',W/2,50);
+/* Voittoruudun palkintonäyttö: "KEY SECURED!" → iso bonus.
+   Summa = kadun BM_KEY_COLLECTED-palkinto (+20 🪙, 🍔 = 10). Emojit
+   piirretään fillTextillä kuten HUD (bmssä ei ole kuvatiedostoja). */
+ctx.fillStyle='#fd0';ctx.font='bold 10px "Press Start 2P",monospace';
+ctx.fillText('EARNED A BIG BONUS!',W/2,75);
 ctx.fillStyle='#fff';ctx.font='10px "Press Start 2P",monospace';
-ctx.fillText('KEY SECURED!',W/2,75);
+ctx.fillText('×20 🪙',W/2,110);
+ctx.fillText('10× '+'🍔'.repeat(10),W/2,132);
 let hx=W/2-35,hh=70,hw=70,gy=250;
 ctx.fillStyle='#4a3020';ctx.fillRect(hx,gy-hh,hw,hh);
 ctx.fillStyle='#6b4c3b';ctx.fillRect(hx+5,gy-hh+5,hw-10,hh-5);
