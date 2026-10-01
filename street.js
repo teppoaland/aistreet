@@ -44,6 +44,13 @@ const Street = (() => {
         { x: 730, w: 70, h: 195 }
     ];
 
+    /* Rakot talojen välissä (v11.32): kiinteä jono, jonka avulla talot
+       voidaan latoa uudelleen järjestykseen niin, että asettelu on AINA
+       täsmälleen 0…800 (leveydet 590 + rakot 210 = 800) eikä synny
+       päällekkäisyyksiä. Käytetään VAIN kaaosjärjestyksen arvonnassa
+       (shuffleBuildingOrder, BAD/FULL) – NORMAL käyttää omia x-arvoja. */
+    const BUILDING_GAPS = [10, 50, 10, 50, 10, 30, 30, 20];
+
     // Yölliset harmaansävyt – arvotaan taloille joka latauskerralla
     const BUILDING_PALETTE = [
         '#1a1a2e', '#1c1a1e', '#1a1f1c', '#1e1a1a', '#1a1c24',
@@ -67,6 +74,61 @@ const Street = (() => {
             const doorTypes = [0,1,3,5,6];
             buildings[i].doorType = doorTypes[Math.floor(Math.random() * doorTypes.length)];
         }
+    }
+
+    /* ── Kaaos: talojen järjestyksen arpominen (v11.32) ────────────────
+       VAIN BAD/FULL. Talot pysyvät KOKONAISINA – korkeus, kyltti, rooli,
+       ovi, väri ja lamppu kulkevat mukana – mutta niiden keskinäinen
+       järjestys kadulla arvotaan. Rakot (BUILDING_GAPS) säilyvät, joten
+       asettelu on aina täsmälleen 0…800 eikä päällekkäisyyksiä synny.
+       NORMAL/MILD/GOOD: funktiota ei kutsuta → peli bitti-identtinen.
+       chaosRng → ?seed= tekee arvonnasta toistettavan. */
+    function shuffleBuildingOrder() {
+        const n = buildings.length;
+        const order = [];
+        for (let i = 0; i < n; i++) order.push(i);
+        for (let i = n - 1; i > 0; i--) {                 // Fisher-Yates
+            const j = Math.floor(chaosRng() * (i + 1));
+            const t = order[i]; order[i] = order[j]; order[j] = t;
+        }
+        const posOf = [];
+        let x = 0;
+        for (let k = 0; k < n; k++) {
+            const idx = order[k];
+            posOf[idx] = k;
+            buildings[idx].x = x;                          // talo säilyttää oman w/h/roolin
+            x += buildings[idx].w + (BUILDING_GAPS[k] || 0);
+        }
+        /* Lamput: talon viereiseen rakoon (vasen ensin; jos rako on jo
+           varattu, oikea). Rakoindeksit 0..7 = talojen väliset raot → kaksi
+           lamppua ei koskaan päädy samaan (pieneen) rakoon. */
+        const usedGap = {};
+        const lampOrder = lamps.map(l => ({ l, k: posOf[l.bldgIdx] })).sort((a, b) => a.k - b.k);
+        for (const entry of lampOrder) {
+            const k = entry.k;
+            let gi;
+            if (k > 0 && !usedGap[k - 1]) gi = k - 1;
+            else if (k < n - 1 && !usedGap[k]) gi = k;
+            else if (k > 0) gi = k - 1;
+            else gi = 0;
+            usedGap[gi] = true;
+            const leftB = buildings[order[gi]];
+            entry.l.x = leftB.x + leftB.w + (BUILDING_GAPS[gi] || 0) / 2;
+        }
+        /* Sähkökaapit: talon vasen seinä (kuten alun perinkin). */
+        for (const c of electricCabinets) {
+            if (c.bldgIdx !== undefined) c.x = buildings[c.bldgIdx].x;
+        }
+        /* Puut: alun perin 2. ja 4. raossa (rako-indeksit 1 ja 3) → samat raot. */
+        if (trees.length >= 2) {
+            trees[0].x = buildings[order[1]].x + buildings[order[1]].w + (BUILDING_GAPS[1] || 0) / 2;
+            trees[1].x = buildings[order[3]].x + buildings[order[3]].w + (BUILDING_GAPS[3] || 0) / 2;
+        }
+        /* Esilasketut rakenteet (kynnysgeometria lasketaan initForegroundissa
+           uudelle asettelulle; ikkunavälimuisti ja -valot nollataan). */
+        _allWindows = null;
+        litWindows.length = 0;
+        buildingOrderShuffled = true;
     }
 
     /* ── Lamput (talojen väleissä) ──────────────────── */
@@ -188,6 +250,25 @@ const Street = (() => {
           period: CAB_BLINK_MIN + Math.random() * (CAB_BLINK_MAX - CAB_BLINK_MIN),
           timer: cabRerollTimer() }    // talo 7 – vasen seinä
     ];
+
+    /* v11.32: talojen/lamppujen/kaappien/puiden OLETUSPAIKAT talteen, jotta
+       NORMAL/MILD/GOOD palautuvat bitti-identtisiksi myös BAD/FULL-runin
+       jälkeen (shuffleBuildingOrder mutatoi x-arvot pysyvästi). */
+    const BUILDING_X_DEFAULT = buildings.map(b => b.x);
+    const LAMP_X_DEFAULT     = lamps.map(l => l.x);
+    const CAB_X_DEFAULT      = electricCabinets.map(c => c.x);
+    const TREE_X_DEFAULT     = trees.map(t => t.x);
+    let buildingOrderShuffled = false;   // onko edellinen init sekoittanut järjestyksen
+    function resetBuildingOrder() {
+        if (!buildingOrderShuffled) return;   // NORMAL/MILD/GOOD: ei kosketa (bitti-identtinen)
+        for (let i = 0; i < buildings.length; i++) buildings[i].x = BUILDING_X_DEFAULT[i];
+        for (let i = 0; i < lamps.length; i++) lamps[i].x = LAMP_X_DEFAULT[i];
+        for (let i = 0; i < electricCabinets.length; i++) electricCabinets[i].x = CAB_X_DEFAULT[i];
+        for (let i = 0; i < trees.length; i++) trees[i].x = TREE_X_DEFAULT[i];
+        _allWindows = null;
+        litWindows.length = 0;
+        buildingOrderShuffled = false;
+    }
 
     /* ── Avain (Dig Gamesta) ───────────────────────── */
     let digKeyCollected = false;
@@ -2025,6 +2106,18 @@ const Street = (() => {
         playBuildingCollapse();
         spawnParticles(cx, GROUND_Y - 8, '#cfc6b4', 18);
         spawnParticles(cx, GROUND_Y - 8, '#8d8578', 10);
+        /* v11.34: talon tuhoutuessa sen viereinen lamppu sammuu (kupu mustaksi,
+           ei enää hehkua). Hakee lampun joko bldgIdx- tai leftBldgIdx-kentästä. */
+        for (let i = 0; i < lamps.length; i++) {
+            if (lamps[i].leftBldgIdx === idx || lamps[i].bldgIdx === idx) {
+                if (lamps[i].lit) {
+                    lamps[i].lit = false;
+                    state.litLamps[i] = false;
+                    GameState.save(state);
+                }
+                break;
+            }
+        }
         return true;
     }
 
@@ -2325,7 +2418,7 @@ const Street = (() => {
             shootingStar.life += dt;
             if (shootingStar.hitFlash > 0) shootingStar.hitFlash -= dt;   // v11.14: osumavälähdys
             shootingStar.trail.push({x: shootingStar.x, y: shootingStar.y});
-            if (shootingStar.trail.length > 48) shootingStar.trail.shift();  // v10.16: 2x pidempi häntä
+            if (shootingStar.trail.length > 72) shootingStar.trail.shift();  // v11.34: 1.5x pidempi häntä (oli 48)
             if (shootingStar.y >= GROUND_Y) {
                 meteorShakeTimer = METEOR_SHAKE_FRAMES;
                 meteorFlash = { t: METEOR_FLASH_FRAMES };   // v10.16: taivas välähtää (ei etualan palloa)
@@ -2356,22 +2449,23 @@ const Street = (() => {
         // täysin ennallaan, vain sävy vaihtuu tasaisesti lämpimään oranssiin
         // (ei halkeamia eikä muita muotoyksityiskohtia: se näytti mustalta rastilta).
         const dmg = m.cracked === true;
-        const trailRGB = dmg ? '255,192,140' : '205,220,245';
-        // Kapea, vaalea, häipyvä vana (kalpea + hoikka, ei "joulupukin reki")
+        const trailRGB = dmg ? '255,155,50' : '205,220,245';
+        // v11.34: lämmenneen meteoriitin vana on hoikempi (0.5 + k*0.8, oli 0.7 + k*1.4)
+        // ja 1.5x pidempi (72 pistettä, oli 48) + kylläinen oranssi väri
         for (let t = 0; t < m.trail.length; t++) {
             const tr = m.trail[t];
             const k = t / m.trail.length;
             ctx.fillStyle = 'rgba(' + trailRGB + ',' + (k * 0.4) + ')';
-            ctx.beginPath(); ctx.arc(tr.x, tr.y, 0.7 + k * 1.4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(tr.x, tr.y, 0.5 + k * 0.8, 0, Math.PI * 2); ctx.fill();
         }
-        // Hoikka ydin + heikko hehku: kylmä jäänvalkoinen → lämmenneenä pehmeä oranssi
+        // Hoikka ydin + heikko hehku: kylmä jäänvalkoinen → lämmenneenä oranssi
         const pulse = 0.85 + Math.sin(m.life * 0.12) * 0.15;
         const r = m.r * pulse * 0.55;   // laihempi ydin
         const glow = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, r * 2.4);
         if (dmg) {
-            glow.addColorStop(0, 'rgba(255,206,150,' + (0.5 * pulse) + ')');
-            glow.addColorStop(0.55, 'rgba(255,152,78,0.20)');
-            glow.addColorStop(1, 'rgba(205,95,45,0)');
+            glow.addColorStop(0, 'rgba(255,180,60,' + (0.6 * pulse) + ')');
+            glow.addColorStop(0.55, 'rgba(255,130,30,0.25)');
+            glow.addColorStop(1, 'rgba(200,80,10,0)');
         } else {
             glow.addColorStop(0, 'rgba(240,246,255,' + (0.5 * pulse) + ')');
             glow.addColorStop(0.55, 'rgba(175,195,225,0.20)');
@@ -2379,8 +2473,8 @@ const Street = (() => {
         }
         ctx.fillStyle = glow;
         ctx.beginPath(); ctx.arc(m.x, m.y, r * 2.4, 0, Math.PI * 2); ctx.fill();
-        // Ydin (lämmenneenä pehmeä oranssi)
-        ctx.fillStyle = dmg ? '#ffcf95' : '#f4f8ff';
+        // Ydin (lämmenneenä kylläinen oranssi)
+        ctx.fillStyle = dmg ? '#ffa030' : '#f4f8ff';
         ctx.beginPath(); ctx.arc(m.x, m.y, r * 0.7, 0, Math.PI * 2); ctx.fill();
         // Osumavälähdys: lyhyt lämmin pop (~10 f) – pelkkä sävy, ei muotoa (v11.14)
         if (m.hitFlash > 0) {
@@ -3038,7 +3132,28 @@ const Street = (() => {
         // Pikseliterävyys: ei pehmennystä skaalattaessa (sprite-piirto)
         ctx.imageSmoothingEnabled = false;
         randomizeBuildingColors();  // arvo taloille uudet sävyt joka kerta
+        /* v11.32: palauta oletusasettelu (myös BAD/FULL-runin jälkeen), sitten
+           BAD/FULL arpoo talojen keskinäisen järjestyksen kadulla. Talot pysyvät
+           kokonaisina (korkeus/kyltti/rooli/ovi/lamppu mukana); NORMAL/MILD/GOOD
+           eivät kutsu arvontaa (bitti-identtiset). */
+        resetBuildingOrder();
+        if (chaosLevel === 'bad' || chaosLevel === 'full') shuffleBuildingOrder();
         resetBuildingDamage();      // v11.22: talot ehjinä uudessa pelissä (vain muistissa)
+        /* v11.34: laske jokaiselle lampulle sen vasemman puoleinen talo (naapuri).
+           Lamppu on aina kahden talon välissä – bldgIdx kertoo oikean puolen,
+           leftBldgIdx lasketaan tässä talojen nykyisten sijaintien perusteella. */
+        for (let i = 0; i < lamps.length; i++) {
+            const lx = lamps[i].x;
+            let bestIdx = -1, bestRight = -Infinity;
+            for (let j = 0; j < buildings.length; j++) {
+                const right = buildings[j].x + buildings[j].w;
+                if (right <= lx + 3 && right > bestRight) {
+                    bestRight = right;
+                    bestIdx = j;
+                }
+            }
+            lamps[i].leftBldgIdx = bestIdx;
+        }
         state = GameState.load();
         /* Onko kyseessä aivan uusi peli (0-tila)? Kuun kello (moonClock)
            jätetään vertailusta pois: se tallentuu itsestään heti yön alettua,
@@ -3062,6 +3177,7 @@ const Street = (() => {
             lamps[i].kickCount = lamps[i].kickCount || 0;
             lamps[i].overheat = lamps[i].overheat || false;
             lamps[i].overheatTimer = lamps[i].overheatTimer || 0;
+            lamps[i]._mosq = null;   // v11.33: BAD/FULL arpoo moskiittojen koon/värin uudelleen joka kierroksella
             if (!lamps[i].baseShade) {
                 const g = 35 + Math.random() * 30;  // 35–65 harmaan vaaleus
                 // Kaaos K1 (v10.03): lampHueShift värjää tolpan sävyn (0 = harmaa, kuten ennen)
@@ -9125,24 +9241,56 @@ const Street = (() => {
                 const mAlphaRange = isTouchDevice ? 0.2 : 0.063;
                 const mRadius = isTouchDevice ? 2.0 : 1.3;
                 const mGlow = isTouchDevice;
+                /* v11.33: BAD/FULL – jokaisella moskiitolla oma satunnainen koko
+                   (100–300 % nykyisestä) ja väri (sävy 0–360°). Arvotaan KERRAN
+                   per kierros (lamp._mosq; nollataan init()issä) → selkeä
+                   vaihtelu, ei per-frame-vilkkumista. NORMAL/MILD/GOOD: ei
+                   haaraa → entinen kiinteä koko/väri (bitti-identtinen). */
+                const mosqChaos = (chaosLevel === 'bad' || chaosLevel === 'full');
+                if (mosqChaos && !lamp._mosq) {
+                    lamp._mosq = [];
+                    for (let k = 0; k < 4; k++) {
+                        lamp._mosq.push({ sizeMult: 1 + 2 * Math.random(), hue: Math.floor(Math.random() * 360) });
+                    }
+                }
                 for (let m = 0; m < 4; m++) {
                     const mt = t * (1.1 + m * 0.25);
                     const mx = bx + Math.cos(mt + m * 2.3) * (10 + Math.sin(mt * 0.6) * 5);
                     const my = bulbY + 6 + Math.sin(mt * 1.2 + m * 1.7) * (8 + Math.cos(mt * 0.8) * 4);
                     const malpha = mAlphaMin + Math.sin(mt * 2.5 + m) * mAlphaRange;
+                    const attr = mosqChaos ? lamp._mosq[m] : null;
+                    const sizeF = attr ? (attr.sizeMult - 1) / 2 : 0;   // 0–1: kuinka iso (1 = 300 %)
+                    const r = attr ? mRadius * attr.sizeMult : mRadius;
+                    const dotCol  = attr ? ('hsla(' + attr.hue + ',95%,70%,') : 'rgba(255,240,170,';
+                    const glowCol = attr ? ('hsla(' + attr.hue + ',90%,62%,') : 'rgba(255,220,140,';
+                    /* v11.33b: isoilla moskiitoilla kevyempi ulkoreuna (ei "isoja
+                       palloja") ja tummempi keskuspiste (runko), joka kasvaa koon
+                       mukana → kokoero näkyy ilman liioittelua. NORMAL (attr=null):
+                       sizeF 0 → identtinen entisen kanssa (bitti-identtinen). */
+                    const edgeFade = 1 - 0.30 * sizeF;               // iso = hieman kevyempi
+                    const haloA = Math.min(1, malpha + (mGlow ? 0.15 : 0)) * edgeFade;
                     if (mGlow) {
-                        const glow = ctx.createRadialGradient(mx, my, 0, mx, my, mRadius * 2);
-                        glow.addColorStop(0, 'rgba(255,220,140,' + malpha + ')');
-                        glow.addColorStop(1, 'rgba(255,220,140,0)');
+                        const glow = ctx.createRadialGradient(mx, my, 0, mx, my, r * 2);
+                        glow.addColorStop(0, glowCol + (malpha * edgeFade) + ')');
+                        glow.addColorStop(1, glowCol + '0)');
                         ctx.fillStyle = glow;
                         ctx.beginPath();
-                        ctx.arc(mx, my, mRadius * 2, 0, Math.PI * 2);
+                        ctx.arc(mx, my, r * 2, 0, Math.PI * 2);
                         ctx.fill();
                     }
-                    ctx.fillStyle = 'rgba(255,240,170,' + Math.min(1, malpha + (mGlow ? 0.15 : 0)) + ')';
+                    ctx.fillStyle = dotCol + haloA + ')';
                     ctx.beginPath();
-                    ctx.arc(mx, my, mRadius, 0, Math.PI * 2);
+                    ctx.arc(mx, my, r, 0, Math.PI * 2);
                     ctx.fill();
+                    if (attr) {
+                        // Tummempi keskuspiste (runko): alfa kasvaa koon mukana,
+                        // jotta pienet pysyvät huomaamattomina ja isot erottuvat.
+                        const bodyA = Math.min(0.9, (malpha + 0.10) * (0.5 + sizeF));
+                        ctx.fillStyle = 'hsla(' + attr.hue + ',85%,30%,' + bodyA.toFixed(3) + ')';
+                        ctx.beginPath();
+                        ctx.arc(mx, my, r * 0.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
                 }
             }
             ctx.restore();

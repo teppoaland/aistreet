@@ -656,6 +656,36 @@ täytyy pysyä hengissä. Ainakin että näkee tuohon. … Ei ver nostoa, koska 
 | BAD `startBurgers` | `rndInt(2, 3)` | **10** (klampin katto) |
 
 - **Voimassa vain uudessa pelissä / hard resetissä:** arvot luetaan `init()`:n `freshGame`-portissa
+
+### 8.9 BAD/FULL – talojen järjestyksen arvonta (v11.32)
+
+Käyttäjän linjaus 1.10.2026: *"BAD CHAOS ja FULL CHAOS versioissa voisi arpoa pääkadun
+kerrostalojen järjestyksen. … rakennusten ovien viestit … eivät haittaa vaikka menevät ristiin,
+pelaaja ei tiedä missä koti on"* + tarkennus: *"Talojen korkeudet, kyltit jne pitää kulkea mukana,
+mutta järjestys sekaisin."*
+
+**Vain BAD ja FULL.** `shuffleBuildingOrder()` (`street.js`, kutsutaan `init()`issa ennen
+`initForeground()`ia) sekoittaa 9 talon keskinäisen järjestyksen, mutta **talo pysyy kokonaisena**:
+korkeus, kyltti, rooli/toiminto, ovi, väri ja lamppu kulkevat mukana. Talo säilyttää indeksinsä →
+kaikki indeksivetoinen logiikka (`drawDoor`, `handleAction`, `buildingDmg`, `smallHouseLights`)
+seuraa automaattisesti.
+
+| Kohta | Miten |
+|---|---|
+| Asettelu | Ladotaan uudelleen kiinteällä rako-jonolla `BUILDING_GAPS` (10/50/10/50/10/30/30/20) → **aina täsmälleen 0…800**, ei päällekkäisyyksiä (leveydet 590 + rakot 210) |
+| Lamput | Oman talon viereiseen rakoon (vasen ensin; jos varattu, oikea) → kaksi lamppua ei koskaan samaan rakoon |
+| Sähkökaapit | `c.x = buildings[c.bldgIdx].x` (talon vasen seinä) |
+| Puut | 50 px rakoihin (rako-indeksit 1 ja 3) |
+| Esilasketut | Kynnysgeometria (`initForeground`/`buildThresholds`) ja `_allWindows`-välimuisti lasketaan uusiksi |
+| Siemen | `chaosRng` → `?seed=N` tekee arvonnasta toistettavan |
+| Ajoitus | Arvotaan joka `init()`illa (kuten talovärit) – F5-soft reset arpoo uudelleen |
+| Paluu | `resetBuildingOrder()` palauttaa oletuspaikat **myös BAD/FULL-runin jälkeen** → **NORMAL/MILD/GOOD bitti-identtiset** (koskee välimuisteihin vain jos edellinen init sekoitti) |
+
+Ei uusia dialogeja (sääntö 06), ei talousmuutoksia. Validoitu
+`%TEMP%\street-building-order-test.cjs`: NORMAL 0 eroa, BAD/FULL permutaatio (asettelu 0…800, 9 eri
+x, ei päällekkäisyyksiä, lamput erillään ≥ 80 px, kaapit talojensa seinillä), BAD → NORMAL palautuu,
+300 satunnaisarpaa puhtaat (20 OK / 0 FAIL).
+
   → koskee vain 0-tilaa: uusi välilehti, **kuolema** (`GameState.reset()`) ja **✕ "aloita alusta"**
   (`localStorage.removeItem`). **F5-soft reset ei nollaa** – kaaossession + tallennettu saldo
   voittavat (sama käytös kuin ennenkin).
