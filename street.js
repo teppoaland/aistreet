@@ -2197,7 +2197,8 @@ const Street = (() => {
                (vain BAD/FULL). */ 
             bldgH: b.h,                                                 // talon alkuperäinen korkeus (savun max-korkeus = bldgH/3)
             smokeParticles: [],
-            smokeTimer: 200 + Math.random() * 200                       // aloitussyke ~3–7 s
+            smokeTimer: 200 + Math.random() * 200,                      // aloitussyke ~3–7 s
+            smokes: Math.random() < 0.33                                 // vain ~1/3 raunioista savuaa
         };
     }
 
@@ -3570,7 +3571,7 @@ const Street = (() => {
                 if (buildingDmg[key] !== 'gone') continue;
                 const idx = Number(key);
                 const r = buildingRubble[idx];
-                if (!r || !r.smokeTimer) continue;
+                if (!r || !r.smokeTimer || !r.smokes) continue;   // vain ~1/3:lla savu päällä
                 const b = buildings[idx];
                 if (!b) continue;
                 r.smokeTimer -= dt;
@@ -3581,10 +3582,10 @@ const Street = (() => {
                         r.smokeParticles.push({
                             x: cx + (Math.random() - 0.5) * r.w * 0.6,
                             y: GROUND_Y - r.h - Math.random() * 4,
-                            vx: (Math.random() - 0.5) * 0.12,
-                            vy: -0.08 - Math.random() * 0.12,
-                            r: 3 + Math.random() * 4,
-                            alpha: 0.12 + Math.random() * 0.08,
+                            vx: (Math.random() - 0.5) * 0.084,   // 0.12 * 0.7 (30 % hitaampi)
+                            vy: (-0.08 - Math.random() * 0.12) * 0.7,   // 30 % hitaampi
+                            r: 1.5 + Math.random() * 2,   // pienempi: 1.5–3.5 px (oli 3–7)
+                            alpha: 0.06 + Math.random() * 0.08,   // läpinäkyvämpi: 0.06–0.14 (alkuperäinen 0.12–0.20)
                             life: 90 + Math.random() * 90,
                             maxH: r.bldgH * 0.33
                         });
@@ -3596,7 +3597,7 @@ const Street = (() => {
                     const p = particles[i];
                     p.x += p.vx;
                     p.y += p.vy;
-                    p.r += 0.015 * dt;
+                    p.r += 0.008 * dt;   // laajenee noustessa (hitaammin, koska pienempiä)
                     p.life -= dt;
                     p.alpha *= 0.998;
                     const startY = GROUND_Y - r.h;
