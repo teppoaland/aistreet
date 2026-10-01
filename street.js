@@ -2150,6 +2150,52 @@ const Street = (() => {
             }
         }
     }
+    /* v11.33: savukiekurat tuhoutuneista taloista (vain BAD/FULL).
+       Hallitaan omassa silmukassa, jottei hukata dt:tä 'gone'-ohitukseen. */
+    if (chaosLevel === 'bad' || chaosLevel === 'full') {
+        for (const key in buildingDmg) {
+            if (buildingDmg[key] !== 'gone') continue;
+            const idx = Number(key);
+            const r = buildingRubble[idx];
+            if (!r || !r.smokeTimer) continue;   // vain uusi rubble jossa savutila
+            const b = buildings[idx];
+            if (!b) continue;
+            r.smokeTimer -= dt;
+            if (r.smokeTimer <= 0) {
+                // Spawnaa 1–3 kevyttä savupalloa
+                const count = 1 + Math.floor(Math.random() * 3);
+                const cx = b.x + b.w / 2;
+                for (let i = 0; i < count; i++) {
+                    r.smokeParticles.push({
+                        x: cx + (Math.random() - 0.5) * r.w * 0.6,
+                        y: GROUND_Y - r.h - Math.random() * 4,
+                        vx: (Math.random() - 0.5) * 0.12,
+                        vy: -0.08 - Math.random() * 0.12,
+                        r: 3 + Math.random() * 4,
+                        alpha: 0.12 + Math.random() * 0.08,
+                        life: 90 + Math.random() * 90,
+                        maxH: r.bldgH * 0.33    // enintään 1/3 talon korkeudesta
+                    });
+                }
+                r.smokeTimer = 200 + Math.random() * 200;   // ~3–7 s väli
+            }
+            // Päivitä olemassa olevat savupallot
+            const particles = r.smokeParticles;
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.r += 0.015 * dt;          // laajenee noustessa
+                p.life -= dt;
+                p.alpha *= 0.998;           // hiipuu pehmeästi
+                // Poista jos elinaika loppu, liian haalea, tai noussut liian korkealle
+                const startY = GROUND_Y - r.h;
+                if (p.life <= 0 || p.alpha < 0.01 || (startY - p.y) > p.maxH) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+    }
 
     /* Uusi peli / reset: kaikki talot takaisin ehjinä (vain muistissa).
        v11.24: myös romukasat, pystyyn jäävä ovikehys ja BAD-avaus nollautuvat. */
@@ -2181,7 +2227,12 @@ const Street = (() => {
         buildingRubble[idx] = {
             w, h, lumps,
             x: Math.round((b.w - w) / 2),                               // keskitetty talon pohjalle
-            shade: 0.06 + Math.random() * 0.12                          // hiiltymän sävy
+            shade: 0.06 + Math.random() * 0.12,                         // hiiltymän sävy
+            /* v11.33: tuhoutuneesta talosta nousevat vaaleat savukiekurat
+               (vain BAD/FULL). */ 
+            bldgH: b.h,                                                 // talon alkuperäinen korkeus (savun max-korkeus = bldgH/3)
+            smokeParticles: [],
+            smokeTimer: 200 + Math.random() * 200                       // aloitussyke ~3–7 s
         };
     }
 
@@ -6559,6 +6610,18 @@ const Street = (() => {
         ctx.strokeStyle = 'rgba(96,92,86,0.40)';   // tuhka: kasa luettavaksi
         ctx.lineWidth = 1;
         ctx.stroke();
+        /* v11.33: vaaleat savukiekurat tuhoutuneen talon päältä (vain BAD/FULL).
+           Piirretään skaalatussa koordinaatistossa (ctx.save jo tehty). */
+        if (r.smokeParticles && r.smokeParticles.length) {
+            for (const p of r.smokeParticles) {
+                const a = Math.max(0, Math.min(p.alpha, 0.5));
+                if (a < 0.01) continue;
+                ctx.fillStyle = 'rgba(195,205,215,' + a.toFixed(3) + ')';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
         ctx.restore();
     }
 
