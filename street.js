@@ -2161,52 +2161,6 @@ const Street = (() => {
             }
         }
     }
-    /* v11.33: savukiekurat tuhoutuneista taloista (vain BAD/FULL).
-       Hallitaan omassa silmukassa, jottei hukata dt:tä 'gone'-ohitukseen. */
-    if (chaosLevel === 'bad' || chaosLevel === 'full') {
-        for (const key in buildingDmg) {
-            if (buildingDmg[key] !== 'gone') continue;
-            const idx = Number(key);
-            const r = buildingRubble[idx];
-            if (!r || !r.smokeTimer) continue;   // vain uusi rubble jossa savutila
-            const b = buildings[idx];
-            if (!b) continue;
-            r.smokeTimer -= dt;
-            if (r.smokeTimer <= 0) {
-                // Spawnaa 1–3 kevyttä savupalloa
-                const count = 1 + Math.floor(Math.random() * 3);
-                const cx = b.x + b.w / 2;
-                for (let i = 0; i < count; i++) {
-                    r.smokeParticles.push({
-                        x: cx + (Math.random() - 0.5) * r.w * 0.6,
-                        y: GROUND_Y - r.h - Math.random() * 4,
-                        vx: (Math.random() - 0.5) * 0.12,
-                        vy: -0.08 - Math.random() * 0.12,
-                        r: 3 + Math.random() * 4,
-                        alpha: 0.12 + Math.random() * 0.08,
-                        life: 90 + Math.random() * 90,
-                        maxH: r.bldgH * 0.33    // enintään 1/3 talon korkeudesta
-                    });
-                }
-                r.smokeTimer = 200 + Math.random() * 200;   // ~3–7 s väli
-            }
-            // Päivitä olemassa olevat savupallot
-            const particles = r.smokeParticles;
-            for (let i = particles.length - 1; i >= 0; i--) {
-                const p = particles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.r += 0.015 * dt;          // laajenee noustessa
-                p.life -= dt;
-                p.alpha *= 0.998;           // hiipuu pehmeästi
-                // Poista jos elinaika loppu, liian haalea, tai noussut liian korkealle
-                const startY = GROUND_Y - r.h;
-                if (p.life <= 0 || p.alpha < 0.01 || (startY - p.y) > p.maxH) {
-                    particles.splice(i, 1);
-                }
-            }
-        }
-    }
 
     /* Uusi peli / reset: kaikki talot takaisin ehjinä (vain muistissa).
        v11.24: myös romukasat, pystyyn jäävä ovikehys ja BAD-avaus nollautuvat. */
@@ -3610,6 +3564,48 @@ const Street = (() => {
         if  (vehicleShakeTimer > 0) { vehicleShakeTimer -= dt; }
         if (meteorShakeTimer > 0) { meteorShakeTimer -= dt; }
         updateBuildingDamage(dt);   // v11.22: tuhoutuvien talojen animaatio etenee
+        // ── Savukiekurat tuhoutuneista taloista (v11.33, v11.36: siirretty tänne) ──
+        if (chaosLevel === 'bad' || chaosLevel === 'full') {
+            for (const key in buildingDmg) {
+                if (buildingDmg[key] !== 'gone') continue;
+                const idx = Number(key);
+                const r = buildingRubble[idx];
+                if (!r || !r.smokeTimer) continue;
+                const b = buildings[idx];
+                if (!b) continue;
+                r.smokeTimer -= dt;
+                if (r.smokeTimer <= 0) {
+                    const count = 1 + Math.floor(Math.random() * 3);
+                    const cx = b.x + b.w / 2;
+                    for (let i = 0; i < count; i++) {
+                        r.smokeParticles.push({
+                            x: cx + (Math.random() - 0.5) * r.w * 0.6,
+                            y: GROUND_Y - r.h - Math.random() * 4,
+                            vx: (Math.random() - 0.5) * 0.12,
+                            vy: -0.08 - Math.random() * 0.12,
+                            r: 3 + Math.random() * 4,
+                            alpha: 0.12 + Math.random() * 0.08,
+                            life: 90 + Math.random() * 90,
+                            maxH: r.bldgH * 0.33
+                        });
+                    }
+                    r.smokeTimer = 200 + Math.random() * 200;
+                }
+                const particles = r.smokeParticles;
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.r += 0.015 * dt;
+                    p.life -= dt;
+                    p.alpha *= 0.998;
+                    const startY = GROUND_Y - r.h;
+                    if (p.life <= 0 || p.alpha < 0.01 || (startY - p.y) > p.maxH) {
+                        particles.splice(i, 1);
+                    }
+                }
+            }
+        }
         if (beamFireTimer > 0) { beamFireTimer -= dt; }
         if (beamCooldownTimer > 0) { beamCooldownTimer -= dt; }   // v11.14: laukaisuväli
         if (meteorFlash) { meteorFlash.t -= dt; if (meteorFlash.t <= 0) meteorFlash = null; }

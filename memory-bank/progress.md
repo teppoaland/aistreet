@@ -171,6 +171,8 @@ NORMAL/MILD/GOOD 0 meteoriittia, FULL ennallaan). Regressiot päivitetty uusiin 
 
 **v11.36 – BAD/FULL rauniot – liikenne ja eläimet pysähtyvät:** `buildingsAllGone()`/`chaosAllGone()`-apufunktiot lisätty. Kun kaikki 9 taloa tuhoutuneet BAD/FULLissa, katueläinten spawnaus ohitetaan ja liikenteen spawnauksessa vain ambulansseja sallitaan (`vehRnd = 0.74` pakottaa ambulance-haaran). Olemassa olevat autot/eläimet ajavat/juoksevat loppuun normaalisti. Ei uusia dialogeja (sääntö 06), ei talousmuutoksia. `index.html` v11.36.
 
+**v11.37 – BAD/FULL savukoodin korjaus (bugikorjaus):** v11.33 savukoodi (savukiekurat tuhoutuneista taloista BAD/FULL) oli vahingossa `updateBuildingDamage`-funktion ulkopuolella IIFE:n top levelillä → suoritettiin vain moduulin latautuessa (`chaosLevel === 'normal'` → skip, `dt` undefined) → ei koskaan ajon aikana. Siirretty `update(dt)`:n sisään `updateBuildingDamage(dt)`-kutsun jälkeen. Nyt vaaleat savupallot nousevat tuhoutuneista taloista BAD/FULLissa (spawn 1–3/3–7 s, nousevat max 1/3 talon korkeudesta, hiipuvat pehmeästi). `index.html` v11.37.
+
 **v11.27 – päivitetty penkki:** `street-autohover-test` (korjattu): G (reduce-motion) ja M (puhelin + reduce-motion) odottavat nyt **tärinää**, ja lähdevahti varmistaa, ettei kumpikaan portti palaa (`street.js` motion-lippu / `style.css` `@media`-yliajo), että tärinä-animaatio ja ohjeikkunan oma reduce-motion-lohko ovat ennallaan ja että versioleimat ovat v11.27. Samalla penkin vanhentuneet ajoitusodotukset päivitettiin 346/450 ms → **173 ms** (9 löydöstä poistui). Regressiot: `chaos-normal-check` (78 avainta, 0 eroa), `street-chaos-fade-test` (24/0).
 
 Vanhat penkit joissa on ennestään tunnettuja / vanhentuneita löydöksiä (eivät liity v11.26:een):
