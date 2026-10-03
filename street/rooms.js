@@ -7,9 +7,12 @@
    `drawBarRoom` + `drawBarBeer` (olut, VAIN FULL) sekä BAR-taulun
    kuva-tila (BAR_PIC_SRC / barPic / barPicReady – ei käytetä muualla).
 
-   Huoneiden TILA ja syöttölogiikka (updateSleepRoom/updateBarRoom/
-   updateJukeboxRoom, closeXxxRoom, oven avaus) ovat yhä street.js:ssä –
-   tässä on vain piirto, kuten osissa 3–5.
+   Lisäksi HUONEIDEN LOGIIKKA (Vaihe 5 osa 8, v11.44): updateSleepRoom /
+   updateBarRoom / updateJukeboxRoom, jukeboxExitAndPlay + apurit ja
+   closeSleepRoom / closeBarRoom / closeJukeboxRoom. Huoneiden tilamuuttujat
+   (sleep-, bar- ja juke-) pysyvät street.js:n sulkeumassa ja sidotaan get+set
+   -pareina; huonerekisteri `rooms[]`, closeNewsRoom ja closeRoom (silmukka)
+   jäävät street.js:ään.
 
    Ulkopuolelta sidotaan (bind): live-getterit street.js:n sulkeuman
    arvoille + vakiot:
@@ -19,7 +22,13 @@
        ENV.chaosFlags (olio) ·
        ENV.WORLD_W · ENV.WORLD_H · ENV.VIEWW_MIN · ENV.GROUND_Y · ENV.JUKEBOX_TRACKS ·
        ENV.SLEEP_DARK_FRAMES · ENV.SLEEP_ZZZ_FRAMES · ENV.SLEEP_FADE_FRAMES ·
-       ENV.DRUNK_MAX · ENV.BAR_BEER_H
+       ENV.DRUNK_MAX · ENV.BAR_BEER_H · (osa 8) get+set sleep-, bar- ja
+       juke-muuttujille, coinCount, hamburgerCount, hamburgerTimer, drunkLevel,
+       drunkTimer, isDay, dayT, cycleChangeTimer, actionJustPressed, jukeQueue,
+       jukeSavedPos + getterit jukePick, keys, state, burgerInterval,
+       SLEEP_FADE_FRAMES, HUNGER_WAKE_GRACE, CYCLE_CHANGE_DELAY_FRAMES, DAY_FORCE
+       ja apurit updateHUD / playCoin / saveChaosSession / resetMoon / resetSun /
+       showNotification / StreetAudio
 
    Ladataan ENNEN street.js:iä (index.html). Testipenkit liittävät samat
    osat samassa järjestyksessä: tools/tests/street-src.cjs.
@@ -1043,11 +1052,365 @@ var StreetRooms = (function () {
         ENV.ctx.textAlign = 'start';
     }
 
+    /* Makuuhuone (talo 7): liikenne jatkaa taustalla (v11.09), nukkumisen pimennys vaihtaa päivä/yö-tilan ja antaa +1 🍔 (katto 10), Poistu ei muuta mitään. */
+    function updateSleepRoom(dt) {
+        // ── Makuuhuone (ex-palkintohuone, talo 7) ──
+        //   ▲ / W = Nuku     ▼ / S = Poistu   (valinta liikkuu reunoilla)
+        //   (o) / Space / Enter / ⚡ = vahvista valinta
+        //   Poistuminen ilman nukkumista ei muuta päivä/yö-tilaa mihinkään.
+        //   Nuku → pimennys (ENV.SLEEP_FADE_FRAMES) → tila vaihtuu → takaisin kadulle.
+        if (ENV.sleepRoom) {
+            /* LIIKENNE EI PYSÄHDY (v11.09): kadun autot ajavat taustalla myös
+               makuuhuoneessa ja nukkumisen pimennyksen aikana – sama periaate
+               kuin jukebox-huoneessa (v4.61). Muuten ajoneuvo jäisi jyrräämään
+               paikalleen (moottoriäänen panorointi seuraa v.x:ää) ja palaisi
+               kadulle täsmälleen samasta kohdasta. Pelaaja on sisällä talossa
+               → `playerSafe = true` (ei törmäystä, ei tainnutusta eikä
+               🍔-menetystä). Ei talousmuutoksia. */
+            StreetTraffic.update(dt, true);
+
+            // Nukkumisen pimennys: tila vaihtuu vasta pimennyksen lopussa
+            if (ENV.sleepPhase > 0) {
+                ENV.sleepPhase -= dt;
+                if (ENV.sleepPhase <= 0) {
+                    ENV.sleepPhase = 0;
+                    // Tila vaihtuu siitä, miltä katu parhaillaan näyttää
+                    // (toimii myös keskellä hämärtymistä ja ?day-testityökalulla)
+                    ENV.isDay = !(ENV.dayT >= 0.5);        // päivä → yö  TAI  yö → päivä
+                    // Uusi yö → kuu nousee uudelleen vasemmalta (v4.65), ei arvota.
+                    ENV.cycleChangeTimer = ENV.CYCLE_CHANGE_DELAY_FRAMES + 1;  // uusi jakso alkaa (v4.89)
+                    if (!ENV.isDay) ENV.resetMoon();
+                    if (ENV.isDay) ENV.resetSun();              // aurinko alkuun (v4.89)
+                    if (!ENV.DAY_FORCE) {              // testityökalut eivät tallenna
+                        ENV.state.isDay = ENV.isDay;
+                        GameState.save(ENV.state);
+                    }
+                    // +1 🍔 nukkumisesta (v4.44) – myös FULLissa (v11.31:
+                    // ainoa tapa hankkia 🍔 takaisin, koska BAR myy vain olutta)
+                    if (!ENV.DAY_FORCE && ENV.hamburgerCount < 10) {
+                        ENV.hamburgerCount++;
+                        ENV.state.inventory.hamburgerCount = ENV.hamburgerCount;
+                        GameState.save(ENV.state);
+                    }
+                    // Herätysrauha (v4.41): ajastin jatkuu siitä mihin se jäi,
+                    // mutta vähintään ENV.HUNGER_WAKE_GRACE-verran – muuten 1 🍔:lla
+                    // nukkunut voisi kuolla heti herätessään.
+                    ENV.hamburgerTimer = Math.max(ENV.hamburgerTimer, ENV.HUNGER_WAKE_GRACE);
+                    ENV.sleepRoom = false;
+                    ENV.sleepSel = 0;
+                    ENV.sleepHeldUp = false;
+                    ENV.sleepHeldDown = false;
+                    ENV.updateHUD();
+                }
+                ENV.actionJustPressed = false;
+                return true;
+            }
+
+            const selUp = !!(ENV.keys['ArrowUp'] || ENV.keys['w'] || ENV.keys['W']);
+            const selDown = !!(ENV.keys['ArrowDown'] || ENV.keys['s'] || ENV.keys['S']);
+            if (selUp && !ENV.sleepHeldUp) ENV.sleepSel = Math.max(0, ENV.sleepSel - 1);
+            if (selDown && !ENV.sleepHeldDown) ENV.sleepSel = Math.min(1, ENV.sleepSel + 1);
+            ENV.sleepHeldUp = selUp;
+            ENV.sleepHeldDown = selDown;
+
+            if (ENV.actionJustPressed) {
+                if (ENV.sleepSel === 0) {
+                    ENV.sleepPhase = ENV.SLEEP_FADE_FRAMES;   // nukahdus käynnissä
+                } else {
+                    // Poistu: ei muutosta päivä/yö-tilaan
+                    ENV.sleepRoom = false;
+                    ENV.sleepSel = 0;
+                    ENV.sleepHeldUp = false;
+                    ENV.sleepHeldDown = false;
+                }
+            }
+            ENV.actionJustPressed = false;
+            return true;
+        }
+        return false;
+    }
+
+    /* BAR (talo 8): FULL myy olutta 🍺 (ENV.drunkLevel), muut tasot hampurilaisia; ▼ peruu vierailun ostot, (o)/Space poistuu. */
+    function updateBarRoom(dt) {
+        // BAR room – ostomäärää säädetään nuolilla, poistuminen toimintonapista
+        //   ▲ / W = osta 1 hampurilainen (1 kolikko)      ▼ / S = peru viimeisin osto
+        //   (o) / Space / Enter = poistu
+        if (ENV.barRoom) {
+            /* LIIKENNE EI PYSÄHDY (v11.09): sama periaate kuin jukebox-huoneessa
+               (v4.61) – kadun autot ajavat taustalla normaalisti, jotta
+               yksikään ajoneuvo ei jää jyrräämään paikalleen (moottoriäänen
+               panorointi seuraa v.x:ää) eikä palaa kadulle samasta kohdasta.
+               Pelaaja on sisällä talossa → `playerSafe = true` (ei törmäystä,
+               ei tainnutusta eikä 🍔-menetystä kesken ostosten). Ei
+               talousmuutoksia (ostot ja hinnat ennallaan). */
+            StreetTraffic.update(dt, true);
+
+            const buyUp = !!(ENV.keys['ArrowUp'] || ENV.keys['w'] || ENV.keys['W']);
+            const buyDown = !!(ENV.keys['ArrowDown'] || ENV.keys['s'] || ENV.keys['S']);
+
+            if (ENV.chaosFlags.beer) {
+                /* FULL (v11.31): BAR myy olutta 🍺 (1 🪙), katto ENV.DRUNK_MAX.
+                   Olut nostaa humalaa ja nollaa haihtumisajastimen. */
+                if (buyUp && !ENV.barBuyHeldUp && ENV.coinCount > 0 && ENV.drunkLevel < ENV.DRUNK_MAX) {
+                    ENV.drunkLevel++;
+                    ENV.drunkTimer = ENV.burgerInterval;
+                    ENV.saveChaosSession();   // v11.31e: F5 ei hukkaa humalaa
+                    ENV.coinCount--;
+                    ENV.barBuyQty++;
+                    ENV.state.inventory.coinCount = ENV.coinCount;
+                    GameState.save(ENV.state);
+                    ENV.updateHUD();
+                    ENV.playCoin();
+                }
+                if (buyDown && !ENV.barBuyHeldDown && ENV.barBuyQty > 0) {
+                    ENV.drunkLevel--;
+                    ENV.saveChaosSession();   // v11.31e
+                    ENV.coinCount++;
+                    ENV.barBuyQty--;
+                    ENV.state.inventory.coinCount = ENV.coinCount;
+                    GameState.save(ENV.state);
+                    ENV.updateHUD();
+                    ENV.playCoin();
+                }
+            } else {
+                if (buyUp && !ENV.barBuyHeldUp && ENV.coinCount > 0 && ENV.hamburgerCount < 10) {
+                    ENV.hamburgerCount++;
+                    ENV.coinCount--;
+                    ENV.barBuyQty++;
+                    ENV.state.inventory.hamburgerCount = ENV.hamburgerCount;
+                    ENV.state.inventory.coinCount = ENV.coinCount;
+                    GameState.save(ENV.state);
+                    ENV.updateHUD();
+                    ENV.playCoin();
+                }
+                if (buyDown && !ENV.barBuyHeldDown && ENV.barBuyQty > 0) {
+                    ENV.hamburgerCount--;
+                    ENV.coinCount++;
+                    ENV.barBuyQty--;
+                    ENV.state.inventory.hamburgerCount = ENV.hamburgerCount;
+                    ENV.state.inventory.coinCount = ENV.coinCount;
+                    GameState.save(ENV.state);
+                    ENV.updateHUD();
+                    ENV.playCoin();
+                }
+            }
+            ENV.barBuyHeldUp = buyUp;
+            ENV.barBuyHeldDown = buyDown;
+
+            if (ENV.actionJustPressed) {
+                ENV.barRoom = false;
+                ENV.barBuyQty = 0;
+                ENV.barBuyHeldUp = false;
+                ENV.barBuyHeldDown = false;
+            }
+            ENV.actionJustPressed = false;
+            return true;
+        }
+        return false;
+    }
+
+    /* Jukebox-huone (talo 5): monivalinta (v4.46), kursori vapaa myös soiton aikana (v4.99), poistuminen soittaa valitut (jukeboxExitAndPlay). */
+    function updateJukeboxRoom(dt) {
+        // JUKEBOX-huone (talo 5) – monivalinta (v4.46)
+        //   ▲ / W = kursori ylös   ▼ / S = kursori alas (0 = Poistu-rivi, 1..N = kappale)
+        //   (o) / Space / ⚡ = ota kappale listalle tai poista se
+        //   (o) / Space / ⚡ rivillä 0 = soita valitut & poistu
+        //   Enter = soita valitut & poistu mistä tahansa
+        //   Kun jono soi (valinta vapaana) Space/(o)/⚡ lisää jonoon, Enter = lisää & poistu
+        //   Ei valintoja → poistuminen ei veloita eikä soita mitään
+        //   Valitut soitetaan poistuttaessa yksi kerrallaan (1 → N), 1 🪙 / kappale
+        if (ENV.jukeboxRoom) {
+            /* Liikenne ei pysähdy (v4.61): kadun autot ajavat taustalla
+               normaalisti, jotta yksikään ajoneuvo ei jää jyrräämään
+               paikalleen huoneeseen mentäessä. Pelaaja on sisällä talossa →
+               `playerSafe = true` (ei törmäystestiä, ei tainnutusta eikä
+               🍔-menetystä kesken musiikin valinnan). Ei talousmuutoksia
+               (sääntö 04); nälkä kuluu kuten ennenkin (v4.49/v4.50). */
+            StreetTraffic.update(dt, true);
+
+            const selUp = !!(ENV.keys['ArrowUp'] || ENV.keys['w'] || ENV.keys['W']);
+            const selDown = !!(ENV.keys['ArrowDown'] || ENV.keys['s'] || ENV.keys['S']);
+            const trackCount = ENV.JUKEBOX_TRACKS.length;
+            // Space ja ⚡ asettavat saman keyn (' ') → sama reuna molemmille
+            const toggleDown = !!(ENV.keys[' '] || ENV.keys['o'] || ENV.keys['O']);
+            const enterDown = !!ENV.keys['Enter'];
+
+            // Kursori aina vapaana (v4.99): valinta onnistuu myös soiton aikana,
+            // jolloin uudet valinnat lisätään soivan jonon perään.
+            if (selUp && !ENV.jukeHeldUp) ENV.jukeSel = Math.max(0, ENV.jukeSel - 1);
+            if (selDown && !ENV.jukeHeldDown) ENV.jukeSel = Math.min(trackCount, ENV.jukeSel + 1);
+            ENV.jukeHeldUp = selUp;
+            ENV.jukeHeldDown = selDown;
+
+            // Ota / poista kappale (rivi 0 = Poistu: lisää valinnat jonoon & poistu).
+            // Soiton aikana Space/(o)/⚡ kappalerivillä togglaa valintaa (kuten normaalisti).
+            if (toggleDown && !ENV.jukeSpaceHeld) {
+                if (ENV.jukeSel === 0) jukeboxExitAndPlay();
+                else ENV.jukePick[ENV.jukeSel - 1] = !ENV.jukePick[ENV.jukeSel - 1];
+            }
+            ENV.jukeSpaceHeld = toggleDown;
+
+            // Enter: lisää valinnat jonoon & poistu mistä tahansa riviltä
+            if (enterDown && !ENV.jukeEnterHeld) jukeboxExitAndPlay();
+            ENV.jukeEnterHeld = enterDown;
+
+            ENV.actionJustPressed = false;
+            return true;
+        }
+        return false;
+    }
+
+    /* ═══ JUKEBOX: valinnat ja poistuminen (v4.46) ═════════════
+       Rivi 0 = Poistu, rivit 1..N = kappaleet. (o) / Space / ⚡ ottaa kappaleen
+       listalle tai poistaa sen; rivillä 0 sama nappi soittaa valitut ja poistuu.
+       Enter soittaa valitut ja poistuu mistä tahansa riviltä. Valitut soitetaan
+       yksi kerrallaan (1 → N), hinta ennallaan 1 🪙 / kappale. Jos kolikot eivät
+       riitä kaikkiin, soitetaan niin monta kuin niillä saa. */
+
+    /* Nollaa huoneen tila: kursori, valinnat ja reunanilmaisut.
+       HUOM: jukeQueuea ei nollata – jono saa soida loppuun huoneen ulkopuolella. */
+    function resetJukeboxRoom() {
+        ENV.jukeboxRoom = false;
+        ENV.jukeSel = 0;
+        ENV.jukeHeldUp = false;
+        ENV.jukeHeldDown = false;
+        ENV.jukeSpaceHeld = false;
+        ENV.jukeEnterHeld = false;
+        for (let i = 0; i < ENV.jukePick.length; i++) ENV.jukePick[i] = false;
+    }
+
+    /* Valitut kappaleet nousevassa järjestyksessä (1 → N) */
+    function jukePickedTracks() {
+        const out = [];
+        for (let i = 0; i < ENV.JUKEBOX_TRACKS.length; i++) {
+            if (ENV.jukePick[i]) out.push(i + 1);
+        }
+        return out;
+    }
+
+    /* Poistu ja soita valitut: veloitus 1 🪙 / kappale.
+       Jos jono soi jo → valinnat lisätään jonon perään (v4.99).
+       Jos ei → uusi soitto alkaa valituista. */
+    function jukeboxExitAndPlay() {
+        const picks = jukePickedTracks();
+        if (picks.length === 0) { resetJukeboxRoom(); return; }
+
+        // Veloitus vain niistä kappaleista, joihin kolikot riittävät
+        const play = [];
+        for (let i = 0; i < picks.length && ENV.coinCount > 0; i++) {
+            ENV.coinCount--;
+            play.push(picks[i]);
+        }
+        if (play.length === 0) {
+            ENV.showNotification('💰 No coins!');
+            resetJukeboxRoom();
+            return;
+        }
+        ENV.state.inventory.coinCount = ENV.coinCount;
+        GameState.save(ENV.state);
+        ENV.updateHUD();
+
+        const urls = [];
+        for (let i = 0; i < play.length; i++) urls.push(ENV.JUKEBOX_TRACKS[play[i] - 1].url);
+
+        const alreadyPlaying = ENV.StreetAudio.isJukeboxPlaying();
+
+        if (alreadyPlaying) {
+            // Liitetään soivan jonon perään
+            if (ENV.StreetAudio.appendJukeboxQueue(urls)) {
+                // Päivitä street.js:n ENV.jukeQueue: lisää uudet nykyisen perään
+                const qPos = ENV.StreetAudio.getJukeboxQueuePos();
+                const before = (qPos >= 0) ? ENV.jukeQueue.slice(0, qPos + 1) : [];
+                const after = (qPos >= 0) ? ENV.jukeQueue.slice(qPos + 1) : ENV.jukeQueue;
+                ENV.jukeQueue = before.concat(play).concat(after);
+                ENV.state.jukeQueue = ENV.jukeQueue.slice();
+                ENV.state.jukePos = qPos;
+                ENV.state.jukeboxPlayedOnce = true;
+                GameState.save(ENV.state);
+                ENV.playCoin();
+                if (play.length < picks.length) {
+                    ENV.showNotification('💰 Not enough coins for all – playing ' +
+                                     play.length + '/' + picks.length);
+                }
+            } else {
+                // Ääntä ei saatu → kolikot takaisin
+                ENV.coinCount += play.length;
+                ENV.state.inventory.coinCount = ENV.coinCount;
+                GameState.save(ENV.state);
+                ENV.updateHUD();
+                ENV.showNotification('🔇 No audio – coins refunded.');
+            }
+        } else {
+            // Uusi soitto
+            if (ENV.StreetAudio.playJukeboxQueue(urls)) {
+                ENV.jukeQueue = play.slice();
+                ENV.state.jukeQueue = ENV.jukeQueue.slice();
+                ENV.state.jukePos = 0;
+                ENV.state.jukeboxPlayedOnce = true;
+                GameState.save(ENV.state);
+                ENV.jukeSavedPos = 0;
+                ENV.playCoin();
+                if (play.length < picks.length) {
+                    ENV.showNotification('💰 Not enough coins for all – playing ' +
+                                     play.length + '/' + picks.length);
+                }
+            } else {
+                ENV.coinCount += play.length;
+                ENV.state.inventory.coinCount = ENV.coinCount;
+                GameState.save(ENV.state);
+                ENV.updateHUD();
+                ENV.showNotification('🔇 No audio – coins refunded.');
+            }
+        }
+        resetJukeboxRoom();
+    }
+
+    /* Sulkee BARin; peruu tämän vierailun ostot (ENV.barBuyQty = 0). true = oli auki. */
+    function closeBarRoom() {
+        if (ENV.barRoom) {
+            ENV.barRoom = false;
+            ENV.barBuyQty = 0;
+            ENV.barBuyHeldUp = false;
+            ENV.barBuyHeldDown = false;
+            return true;
+        }
+        return false;
+    }
+
+    /* Sulkee makuuhuoneen; kesken nukkumisen pimennys katkeaa (ENV.sleepPhase = 0). true = oli auki. */
+    function closeSleepRoom() {
+        if (ENV.sleepRoom) {
+            ENV.sleepRoom = false;
+            ENV.sleepSel = 0;
+            ENV.sleepHeldUp = false;
+            ENV.sleepHeldDown = false;
+            if (ENV.sleepPhase > 0) { ENV.sleepPhase = 0; }  // kesken nukkumisen → herätä
+            return true;
+        }
+        return false;
+    }
+
+    /* Sulkee jukebox-huoneen: valinnat pois ILMAN veloitusta (v4.46). true = oli auki. */
+    function closeJukeboxRoom() {
+        if (ENV.jukeboxRoom) {
+            // ✕ = peruuta: valinnat pois ilman veloitusta (v4.46)
+            resetJukeboxRoom();
+            return true;
+        }
+        return false;
+    }
     /* ── Julkinen rajapinta (street.js:n huonerekisteri käyttää näitä) ── */
     return {
         bind: bind,
         drawSleep: drawSleepRoom,
         drawJukebox: drawJukeboxRoom,
-        drawBar: drawBarRoom
+        drawBar: drawBarRoom,
+        updateSleepRoom: updateSleepRoom,
+        updateBarRoom: updateBarRoom,
+        updateJukeboxRoom: updateJukeboxRoom,
+        closeSleepRoom: closeSleepRoom,
+        closeBarRoom: closeBarRoom,
+        closeJukeboxRoom: closeJukeboxRoom,
+        resetJukeboxRoom: resetJukeboxRoom
     };
 })();

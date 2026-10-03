@@ -116,7 +116,7 @@ tuotannosta. Testit: NORMAL 78 avainta / 0 eroa · render-smoke 30/30 · 22 penk
 16 puhdasta / 6 = sama kuin baseline. Versio pysyy **v11.38** (sama julkaisematon refaktorointi).
 
 
-## Vaihe 5 – tiedostojako (osat 1–7 tehty, v11.42)
+## Vaihe 5 – tiedostojako (osat 1–8 tehty, v11.44)
 
 **Ratkaiseva rajoite:** koko peli on yhdessä IIFE-closuressa (~200 tilamuuttujaa). Sulkeuman
 yli ei voi siirtää koodia tiedostosta toiseen ilman joko (a) tilan ryhmittelyä (Vaihe 4) tai
@@ -132,11 +132,15 @@ tilariippumatonta**.
 | `street/news.js` | 494 rv (438 siirretty) | lehden sisältödata (`NEWSPAPER_PAGES` + `NEWS_MANUAL_WIDE/-NARROW`), `wrapNewsText`, `fitNewsFont`, `newsLayout` (+ välimuisti), kadun lehti (`drawNewspaper`), poimintavihje (`drawNewspaperHint`) ja koko ruudun näkymä (`drawNewspaperView`) | `bind(host)`: live-getterit `ctx/canvas/viewW/foreground/player/vehicles/newsRoom/iframeOpen` + `WORLD_W/WORLD_H/VIEWW_MIN`; oma tila `screen`/`cache` API:n takana (`layout/index/next/prev/reset/near/drawOnStreet/drawHint/drawView`) |
 | `street/traffic.js` | 668 rv (248 + 124 siirrettyä) | **piirto + logiikka:** `drawVehicle(v)` (auto, mopo+kuski, ambulanssi, panssarivaunu + ajovalokiila) **ja `updateTraffic(dt, playerSafe)`** (spawnit, liike, törmäys → tainnutus). Osa 4 = pelkkä piirto; **osa 7 lisäsi logiikan samaan moduuliin.** Kadun tila (`playerSafe`, huoneet) lasketaan yhä street.js:ssä | `bind(host)` (**nimi `H`**, tarkistettu ettei lohko määrittele paikallista `H`:ta): `ctx` · `dayT` · `VEHICLE_HEADLIGHT_DIM` · `vehicles` · `spawnTimers` · `player` · `vehicleShakeTimer` (get+set) · `trafficSpeedMult` · `trafficSpawnMult` · **`PLAYER_DEPTH_MAX_Y` (getteri! – määritelty vasta rivillä ~8023 → TDZ jos arvona)** · `LANE_DEFS` · `TRAFFIC_DAY_MULT` · `chaosAllGone` · `spawnParticles` · `collisionCost` · `H.sfx.*` (playKnock + moottorin start/update/stop). API: `drawVehicle` · `update` |
 | `street/chaos-cards.js` | 213 rv (134 siirretty) | **K7-korttipakka:** `cardState` (enabled/timer/left/active/meteorBurst/lightsOut/animalParade), `CARD_*`-vakiot, `chaosCardsReset`, `chaosCardDefs` (10 korttia), `cardFlashWindows`, `updateCards`. **Testikytkin `?card=<id>`** pitää yhden kortin päällä (0 → ei muuta mitään) | `bind(host)`: **get+set -parit** 12 tilamuuttujalle (`sunColor`, `sunGlow`, `daySkyTop/Mid/Hor`, `fogAlpha`, `windSpeed`, `buildingPalette`, `animalSpawnTimer`, `starCount`, `starSizeMult`) + taulukko-getterit (`stars`, `litWindows`) + `H.anyChaos`, `H.rng`, `H.consts`, `H.fx`. API: `reset/update/meteorBurst/lightsOut/animalParade/consumeAnimalParade/defs/setForcedCard` |
-| `street/rooms.js` | 1053 rv (1013 siirretty) | **huoneiden piirto:** `drawSleepRoom` (sänky + Nuku/Poistu + Zzz-pimennys), `drawJukeboxRoom` + `drawJukeboxCabinet`, `drawBarRoom` + `drawBarBeer` **sekä BAR-taulun kuva-tila** (`BAR_PIC_SRC`/`barPic`/`barPicReady` – ei käytetä muualla, joten ne siirtyivät mukana). Huoneiden tila ja syöttölogiikka (`updateXxxRoom`, `closeXxxRoom`, oven avaus) ovat yhä street.js:ssä | `bind(host)` (**host-nimi `ENV`**, ks. ansa alla): live-getterit `ctx/canvas/viewW/camX/isDay/coinCount/hamburgerCount/drunkLevel/barBuyQty/jukeQueue/jukePick/jukeSel/jukeCovers/sleepPhase/sleepSel` + `chaosFlags`-olio + vakiot `WORLD_W/WORLD_H/VIEWW_MIN/GROUND_Y/JUKEBOX_TRACKS/SLEEP_*/DRUNK_MAX/BAR_BEER_H`. API: `drawSleep/drawJukebox/drawBar` |
+| `street/rooms.js` | 1417 rv (1013 piirtoa + 345 logiikkaa) | **huoneiden piirto JA logiikka:** `drawSleepRoom` (sänky + Nuku/Poistu + Zzz-pimennys), `drawJukeboxRoom` + `drawJukeboxCabinet`, `drawBarRoom` + `drawBarBeer` **sekä BAR-taulun kuva-tila** (`BAR_PIC_SRC`/`barPic`/`barPicReady` – ei käytetä muualla, joten ne siirtyivät mukana). **Osa 8 (v11.44) lisäsi logiikan:** `updateSleepRoom` / `updateBarRoom` / `updateJukeboxRoom`, `resetJukeboxRoom` + `jukePickedTracks` + `jukeboxExitAndPlay`, `closeSleepRoom` / `closeBarRoom` / `closeJukeboxRoom`. **POIS JÄIVÄT:** oven avaus (`tryXxxDoor`), `closeNewsRoom` ja `closeRoom` (rekisterisilmukka) – `rooms[]` kokoaa kaikki neljä huonetta (myös lehden) | `bind(host)` (**host-nimi `ENV`**, ks. ansa alla): piirron live-getterit + **osan 8 get+set -parit** (`sleepRoom/sleepPhase/sleepSel/sleepHeldUp/-HeldDown`, `barRoom/barBuyQty/barBuyHeldUp/-HeldDown`, `jukeboxRoom/jukeSel/jukeHeldUp/-HeldDown/jukeSpaceHeld/jukeEnterHeld/jukeSavedPos`, `jukeQueue`, `coinCount`, `hamburgerCount`, `hamburgerTimer`, `drunkLevel`, `drunkTimer`, `isDay`, `cycleChangeTimer`, `actionJustPressed`) + getterit (`jukePick`, `jukeCovers`, `keys`, `state`, `dayT`, `burgerInterval`, `HUNGER_WAKE_GRACE`, `CYCLE_CHANGE_DELAY_FRAMES`) + vakiot + apurit `updateHUD/playCoin/saveChaosSession/resetMoon/resetSun/showNotification/StreetAudio`. Huoneiden liikennekutsut käyttävät **globaalia `StreetTraffic`ia** (ei sidottu). API: `drawSleep/drawJukebox/drawBar` + 7 logiikkanimeä |
 
 **⚠️ Ansa, joka löytyi osassa 6 (opi tästä):** moduulin host-muuttujan nimi **ei saa törmätä siirrettävän koodin paikallisiin nimiin**. Huonepiirto käyttää joka funktiossa `const W = WORLD_W, H = WORLD_H;` → host-nimi `H` varjostui ja koodi kaatui (`Cannot access 'H' before initialization`, TDZ). Ratkaisu: host-nimeksi **`ENV`**. Jatkossa: tarkista siirrettävästä koodista sen omat `const/let`-nimet ennen host-nimen valintaa.
 
 **⚠️ Ansa 2, joka löytyi osassa 7:** **tiedoston lopussa määritelty `const` on sidottava getterinä.** `updateTraffic` lukee `PLAYER_DEPTH_MAX_Y`ia, joka on määritelty vasta rivillä ~8023 (funktion jälkeen) → arvona sidottuna bind kaatuisi TDZ:hen. Sääntö: **mikä tahansa nimeä, joka on määritelty bind-kohdan jälkeen tai jota mutatoidaan, on sidottava getterinä.**
+
+**⚠️ Ansa (osa 8a) – kommentti katkeaa:** **kohdistuskommenttiin ei saa kirjoittaa `*/`-yhdistelmää.** Siirtotyökalun tilalle jätettävä kommentti alkoi versiolla `/* … Tila (sleep*/bar*/juke*) sidotaan … */` → merkkipari `*/` (`sleep*` + `/bar*`) **katkaisi lohkokommentin kesken** → `node --check` kaatui (`Invalid regular expression: missing /`). Sama ansa myös moduulin otsikkokommentissa. Sääntö: kuvaa tähdellä alkavat nimet sanoin (esim. "sleep-, bar- ja juke-muuttujat").
+
+**⚠️ Ansa (osa 8b) – työkalun kirjoitus:** kohdetiedoston rivinvaihdot voivat olla CRLF → **normalisoi luettu teksti LF:ksi ennen `split`-vertailuja** (muuten `split(markkijono)` ei löydä mitään ja työkalu keskeyttää ennen kirjoitusta). Ja kun lisäät uusia rivejä keskelle `bind({…})`-literaalia, **muista pilkku** viimeisen lisätyn rivin perään – muuten seuraava alkuperäinen rivi on syntaksivirhe (`Unexpected identifier`).
 
 **Mekanismi (ei buildia, klassiset scriptit kuten `digGame1`):**
 1. Osat ovat `var StreetXxx = (function () { … })();` – paljastavat nimensä.
@@ -160,10 +164,13 @@ keskeyttävät ennen kirjoitusta, jos yksikin varmistus pettää):**
 `extract.cjs` + `plan-*.json` (Vaihe 1, tiedoston sisäinen pilkonta) ·
 `split-news.cjs` (Vaihe 5 osa 3, sanomalehti) · `split-vehicle.cjs` (Vaihe 5 osa 4, ajoneuvon piirto) ·
 `split-cards.cjs` (Vaihe 5 osa 5, K7-kaaoskortit) · `split-rooms.cjs` (Vaihe 5 osa 6, huoneiden piirto) ·
-`split-traffic-logic.cjs` (Vaihe 5 osa 7, liikennologiikka samaan moduuliin).
+`split-traffic-logic.cjs` (Vaihe 5 osa 7, liikennologiikka samaan moduuliin) ·
+`split-rooms-logic.cjs` (Vaihe 5 osa 8, huoneiden logiikka samaan moduuliin:
+3 lohkoa 345 rv, lookbehind-nimeäminen + vahti "jokainen nimi 0 kertaa ilman ENV.-etuliitettä").
 
-**Tulos:** `street.js` 11 169 → **8 622 rv** (osat 1–7) · NORMAL 78 avainta / 0 eroa ·
-render-smoke 30/30 · **24 penkkiä 18 puhdasta / 6 = sama kuin baseline**.
+**Tulos:** `street.js` 11 169 → **8 338 rv** (osat 1–8) · NORMAL 78 avainta / 0 eroa ·
+render-smoke 30/30 · **26 penkkiä 19 puhdasta / 7 = sama kuin baseline** (7. = tunnettu
+epävakaa `street-meteor-coin`; vakioksi jäävät kuusi vanhentunutta odotusta ovat baseline).
 
 ### Jäljellä (miksi ei vielä)
 
@@ -172,8 +179,13 @@ ryhmittelyn (Vaihe 4). Suositeltu järjestys ja miksi:
 
 | Osio | Rivit | Estävä tila |
 |---|---|---|
-| Huoneiden **logiikka** (`updateXxxRoom`, `closeXxxRoom`, ovet) | ~600 | `barRoom`/`jukeboxRoom`/`sleepRoom` + ~15 apumuuttujaa (469 viittausta) – pelitilaa, ei piirtoa |
 | Tilan ryhmittely (Vaihe 4 loppuun) | – | päivä/yö 141 + talous 149 viittausta (ks. Vaihe 4 -taulukko) |
+
+> ✅ **Huoneiden logiikka poistui listalta** (Vaihe 5 osa 8): `updateSleepRoom`,
+> `updateBarRoom`, `updateJukeboxRoom`, `resetJukeboxRoom`, `jukePickedTracks`,
+> `jukeboxExitAndPlay` ja `closeSleepRoom/-BarRoom/-JukeboxRoom` (345 rv) siirrettiin
+> `street/rooms.js`:ään **get+set-hostilla** – tila jäi street.js:n sulkeumaan, joten
+> `rooms[]`-rekisteri, oven avaus (`tryXxxDoor`) ja `closeRoom()`-silmukka eivät muuttuneet.
 
 > ✅ **Liikenteen logiikka poistui listalta** (Vaihe 5 osa 7): `updateTraffic` (spawnit, liike,
 > törmäys → tainnutus) siirrettiin `street/traffic.js`:ään piirron seuraksi; kadun tila

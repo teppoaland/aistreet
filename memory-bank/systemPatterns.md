@@ -7,7 +7,14 @@
 
 ## ⭐ Yleisarkkitehtuuri
 
-- **Pääportaali (juuri):** `index.html`, `style.css`, `street.js`, `gameState.js`, `audio.js` – ei `js/`-kansiota.
+- **Pääportaali (juuri):** `index.html`, `style.css`, `street.js`, `gameState.js`, `audio.js` – **ei `js/`-kansiota**;
+  raskaat osat ovat **`street/`-kansiossa** omina `var StreetXxx`-IIFE-moduuleina (Vaihe 5 osat 1–8, v11.38–v11.44):
+  `chaos-config.js` (kaaosarvot + `hslToHex`), `sfx.js` (äänet + moottori), `news.js` (lehti),
+  `traffic.js` (ajoneuvon piirto + liikennologiikka), `chaos-cards.js` (K7-kortit),
+  **`rooms.js` (huoneiden piirto + logiikka: Nuku/BAR/jukebox)**. `index.html` lataa ne ennen `street.js`iä;
+  penkit liittävät samat osat `tools/tests/street-src.cjs`:n `PARTS`-listalla. Moduulit eivät tunne pelitilaa:
+  `bind()` antaa live-getterit ja **get+set -parit** (tila pysyy street.js:n sulkeumassa) – ks.
+  `tools/refactor/README.md` § Mekanismi + ansat.
 - **Kaaosjärjestelmä (v10.01–v10.18):** keskitetty `chaosProfiles`/`setChaos()` `street.js`:ssä kirjoittaa kertoimet suoraan olemassa oleviin `let`-muuttujiin (ei uutta mekaniikkaa); hub `#chaos-menu` valitaan aina ennen `Street.init()` (NORMAL = nykyiset arvot, FULL = `generateFullChaosSeed()`); valittu mode + `chaosCfg` `sessionStorage`en (v10.06), kolikot/🍔 `pimeakatu_gamestate`:ssa.
 - **Portti ja pääsäännöt:** jokainen arpa kulkee `clampChaosCfg()` + `validateChaosCfg()` läpi; pelaajan kyvykkyysindeksi **C** skaalaa uhkat (nopeus ≤ 1,4 × C, varoitus ≥ 21/C f). Sitovat: **NORMAL ei hajoa koskaan** ja **peli pysyy pelattavana kaikissa moodeissa**.
 - **Kategoriat K0–K7** vaikutuksen mukaan (K1 visuaalinen = vapaa · K3 uhka & K4 keho = klampit · K5 talous 🔒 lukittu · K6 ääni · K7 tapahtumakortit = v1 vain visuaalisia) + tasomanifesti, C-indeksi ja DoD: **`docs/chaos.md`** (toteutus `v10.02`…`v10.05`, uudet akselit `v10.18`).

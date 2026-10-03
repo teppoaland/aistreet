@@ -27,6 +27,7 @@ node tools/tests/run-all.cjs chaos-normal  :: vain yksi penkki
 | `street-chaos-cards-test.cjs` | **v11.38 (Vaihe 5 osa 5):** ajaa kaikkien 10 K7-kortin `save → apply → restore` -polun (tila palautuu täsmälleen) + lippukortit. Ainoa penkki, joka kattaa kaaoskorttien tilamutaatiot. |
 | `street-window-lights-test.cjs` | **v11.41:** BAD/FULLin `shuffleBuildingOrder()`/`resetBuildingOrder()` kylvävät ikkunavalot heti (`seedLitWindows()`). `Math.random` on kiinnitetty → deterministinen. |
 | `street-canvas-invariants-test.cjs` | **v11.43:** ajaa FULL/NORMALia 420 frameä ja vahtii, ettei canvas-kutsuihin mene NaN/undefined/virheellisiä värejä (oikea selain hylkää ne hiljaa, stubi ei kaadu). |
+| `street-rooms-logic-test.cjs` | **v11.44 (Vaihe 5 osa 8):** ajaa siirretyn **huonelogiikan** oikeasti läpi (`update()` → `rooms[]` → `street/rooms.js`): Nuku/Poistu (isDay vaihtuu, +1 🍔, herätysrauha, katto), BAR-osto/peruutus + FULL-oluen haara, jukeboxin veloitus/palautus -polut ja `closeRoom()`-rekisteri. **Ainoa penkki, joka todistaa huoneiden get+set-hostin** (41 tarkistusta). |
 
 ## Tärkein portti
 
@@ -43,6 +44,10 @@ Osa penkeistä ei aja peliä vaan **hakee koodia lähdetekstistä**. Nämä kohd
 kova rajapinta `street.js`:ään:
 
 - `indexOf`-haut: `leaveHiddenStateForDeath();`, `if (sleepRoom) {`, `if (beamWeaponCollected && dayT <= 0) {`, `'♪ JUKEBOX'`, `'hampurilaisajastin, 1/60s'`, `'if (Math.random() < MH_BONUS_CHANCE) {'`, `'jukebox/' + t`
+  - **v11.44 (osa 8):** huonelogiikka siirtyi `street/rooms.js`:ään ja tila sidotaan
+    `ENV.`-etuliitteellä → `street-traffic-rooms` ja `street-knockdown-traffic` hyväksyvät
+    molemmat muodot (`if \((?:ENV\.)?sleepRoom\) {` / `… barRoom …`), sama periaate kuin
+    v11.42:n `(?:H\.)?player\.`. **Tarkoitus ennallaan:** liikennekutsu on huonehaarassa.
 - Export-rivi on injektiopiste: penkit korvaavat tekstin
   `return { init, resize, closeGame, closeRoom, setChaos, saveChaosSession, loadChaosSession, clearChaosSession, clearBeamWeapon };`
   versiolla, jossa on `__t`-koukut. **Tätä riviä ei saa muuttaa.**

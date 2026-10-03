@@ -1,6 +1,6 @@
 # 📊 Projektin edistyminen
 
-> **v11.38 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026.
+> **v11.44 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026.
 > **Kompaktoitu 28.9.2026 (v11.00, 29,5 → 20,7 kt):** tiivistettiin vain v10.x/uusi aines (v10.01–v11.00 -taulukko) + rakenteelliset viat (orvot taulukkorivit, tyhjät rivit, pitkät rivit).
 > **Esiforkin v3.8x–v5.02 -historia säilyy alla sellaisenaan** (koko historia: `D:\AI\Main`, 196 committia; ffb1dd9 · cc7046b · 44db9e7) – tämän repon historia alkaa `b854771`.
 > **3.10.2026: pankkia kevennettiin** – esiforkin taulukkorivit (v3.8x–v5.02) sekä vanhat
@@ -8,12 +8,13 @@
 > vain nykyajan (v10+/v11+) rivit ja refaktoroinnin kirjaukset.
 > **Rajat (päivitetty 3.10.2026 – `progress.md` 45 → 65 kt, pysyvä):** tämä tiedosto **≤ 65 kt** · `activeContext.md` ≤ 65 kt · `systemPatterns.md` ≤ 25 kt · koko pankki **≤ 155 kt** – kokoa ei raportoida joka istunnossa; raja mainitaan vain, jos se ylittyy. Tämä tiedosto on **historia** (versiot, mittaustulokset, testipenkit): uusi rivi per versio, ei nykytilan kuvausta (se on `activeContext.md`:ssä).
 >
-> **🚧 Jatkopiste (3.10.2026):** koodirefaktorointi **Vaiheet 0–5 osat 1–7 on tehty ja validoitu**
+> **🚧 Jatkopiste (3.10.2026, v11.44):** koodirefaktorointi **Vaiheet 0–5 osat 1–8 on tehty ja validoitu**
 > (penkit repoon, `update()` 85 rv, `render()` 143 rv, `handleAction()` 14 rv, `chaosFlags`,
 > `rooms[]`, `street/chaos-config.js` + `street/sfx.js` + `street/news.js` + `street/traffic.js` + `street/chaos-cards.js` + `street/rooms.js`).
-> **Bugikorjaukset v11.39** (K7 "Valot sammuvat" -kortti), **v11.41** (BAD/FULLin ikkunavalot) **ja
-> v11.43** (FULLin canvas-arvot: `#NaNNaN`-väri + `translate(NaN)`). **Työ on työpuussa – ei committia**
-> (versio `v11.38` `index.html`:ssä). Jatko-ohjeet ja seuraavat askeleet:
+> **Bugikorjaukset v11.39** (K7 "Valot sammuvat" -kortti), **v11.41** (BAD/FULLin ikkunavalot),
+> **v11.43** (FULLin canvas-arvot: `#NaNNaN`-väri + `translate(NaN)`) **ja osa 8 / v11.44**
+> (huoneiden logiikka `street/rooms.js`:ään, 345 rv + uusi penkki `street-rooms-logic-test` 41/0).
+> Työ on committoitu paikallisesti (pushia ei ole tehty). Jatko-ohjeet ja seuraavat askeleet:
 > **`activeContext.md` § "🚧 JATKOPISTE"**.
 
 ## 🏮 Pääportaali – AI CHAOS STREET
@@ -334,5 +335,36 @@ molemmat. `#version-tag` + 11 leimaa → **v11.43**. **Tulos:** NORMAL 78 avaint
 render-smoke 30/30; FULL-fuzz **0 poikkeamaa / 40 arpaa**; **25 penkkiä 18 puhdasta / 7**
 (7. = tunnettu epävakaa `street-meteor-coin`).
 
+
+**v11.44 – Vaihe 5 osa 8: huoneiden LOGIIKKA samaan moduuliin (street/rooms.js):**
+`updateSleepRoom` (76) · `updateBarRoom` (77) · `updateJukeboxRoom` (49) · `jukeboxExitAndPlay` (73)
++ `jukePickedTracks` · `resetJukeboxRoom` (9) · `closeSleepRoom` / `closeBarRoom` / `closeJukeboxRoom`
+(29) = **345 rv / 3 lohkoa** siirrettiin piirron seuraksi **get+set-hostilla** (host-nimi `ENV`).
+**Paikalleen jäivät** `rooms[]`-rekisteri, oven avaus (`tryXxxDoor`:t) ja `closeRoom()`
+(rekisterisilmukka kokoaa kaikki neljä huonetta – myös lehden) → `street.js` kutsuu nyt
+`StreetRooms`-destrukturointia (`const { updateSleepRoom, … } = StreetRooms;`), joten rekisteri
+ja `closeGame()`:n `resetJukeboxRoom()`-kutsu eivät muuttuneet. **Host (~45 nimeä):** get+set
+`sleepRoom/sleepPhase/sleepSel/sleepHeldUp/-HeldDown`, `barRoom/barBuyQty/barBuyHeldUp/-HeldDown`,
+`jukeboxRoom/jukeSel/jukeHeldUp/-HeldDown/jukeSpaceHeld/jukeEnterHeld/jukeSavedPos`, `jukeQueue`,
+`coinCount`, `hamburgerCount`, `hamburgerTimer`, `drunkLevel`, `drunkTimer`, **`isDay`** (Nuku
+vaihtaa päivä/yön), `cycleChangeTimer`, `actionJustPressed`; getterit `jukePick`, `keys`, `state`
+(määritelty `let state` → getteri, koska `state` vaihtuu `GameState.load()`issa), `dayT`,
+`burgerInterval`, `HUNGER_WAKE_GRACE`, `CYCLE_CHANGE_DELAY_FRAMES`; apurit `updateHUD`, `playCoin`,
+`saveChaosSession`, `resetMoon`, `resetSun`, `showNotification`, `StreetAudio` (globaalit
+`GameState`/`StreetAudio`/`StreetTraffic` – liikennekutsut jäivät muotoon `StreetTraffic.update`,
+jotta penkkien laskuri 5 pysyy). **Uudelleennimeäminen lookbehindilla** `(?<![\w.$])`, jotta
+`state.isDay` ei muutu muotoon `ENV.state.ENV.isDay`, ja työkaluun vahti "jokainen nimi 0 kertaa
+ilman ENV.-etuliitettä" (ansa 3). **Ansat:** (1) kohdistuskommentissa `sleep*/bar*/juke*`-tyylinen
+`*/` katkaisi lohkokommentin → `node --check` kaatui; (2) CRLF-normalisointi ennen
+`split`-vertailuja; (3) pilkku puuttui lisätyn bind-lohkon lopusta → `Unexpected identifier`.
+**Uusi penkki `street-rooms-logic-test.cjs` (41 OK / 0)** – ajaa siirretyn logiikan oikeasti läpi
+(Nuku/Poistu + isDay + 🍔 + herätysrauha + katto, BAR-osto/peruutus + FULL-ilut, jukeboxin
+veloitus/vajaat kolikot/0 kolikkoa/äänen puuttuminen → palautus, `closeRoom()`) ja todistaa
+get+set-hostin. **Penkkipäivitykset (2 penkkiä):** LIIKENNE-regexit sallivat `(?:ENV\.)?`-etuliitteen,
+`showNotification`-laskuri 15 → 18 (kutsuja 13 ennallaan; laskuri laskee myös maininnat).
+**Tulos:** `street.js` 8 622 → **8 338 rv** (11 169 → 8 338 osissa 1–8); `street/rooms.js`
+1 053 → **1 417 rv**; NORMAL 78 avainta / 0 eroa; render-smoke 30/30; **26 penkkiä 19 puhdasta /
+7 = sama baseline**. `#version-tag` + 10 leimaa → **v11.44**. Työkalu
+**`tools/refactor/split-rooms-logic.cjs`**.
 
 Vanhat penkkimuistiinpanot (v11.24–v11.27) ja vanhentunut penkkilista: `docs/pimea-katu-historia.md`.

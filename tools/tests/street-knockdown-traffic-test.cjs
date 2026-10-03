@@ -457,13 +457,19 @@ function expectKnockMoving(label, r) {
        (kutsuja: `if (updateManholeSequence(dt)) return;`). */
     if (s.indexOf('if (manhole.action) { StreetTraffic.update(dt, true); updateManholeAction(dt); return true; }') < 0)
         fail('Lähde: kaivon haarassa ei päivitetä liikennettä');
-    if (!/if \(sleepRoom\) \{\s*\n\s*\/\* LIIKENNE EI PYSÄHDY \(v11\.09\)/.test(s))
+    /* Vaihe 5 osa 8 (v11.44): huoneiden logiikka siirtyi street/rooms.js:ään,
+       jossa tila sidotaan ENV.-etuliitteellä → sallitaan molemmat muodot
+       (sama periaate kuin v11.42 `H.player`-etuliitteen kanssa). */
+    if (!/if \((?:ENV\.)?sleepRoom\) \{\s*\n\s*\/\* LIIKENNE EI PYSÄHDY \(v11\.09\)/.test(s))
         fail('Lähde: makuuhuoneen liikennekutsu puuttuu');
-    if (!/if \(barRoom\) \{\s*\n\s*\/\* LIIKENNE EI PYSÄHDY \(v11\.09\)/.test(s))
+    if (!/if \((?:ENV\.)?barRoom\) \{\s*\n\s*\/\* LIIKENNE EI PYSÄHDY \(v11\.09\)/.test(s))
         fail('Lähde: BARin liikennekutsu puuttuu');
     const notif = srcCount(/showNotification/g, s);
-    if (notif !== 15) fail('Lähde: showNotification-määrä muuttui (' + notif + ', odotettu 15) – sääntö 06 (bf54693 poisti 1 popupin)');
-    else ok('Lähde: ei uusia dialogeja (showNotification 15 kpl, ennallaan)');
+    /* 15 (v11.37) → 18 (v11.44): kutsut ennallaan (13), mutta laskuri laskee
+       myös maininnat: siirretyt kutsut rooms.js:ssä (5) + bind-rivi (1) +
+       moduulin otsikkolista (1). Yksi uusi kutsu → 19. */
+    if (notif !== 18) fail('Lähde: showNotification-määrä muuttui (' + notif + ', odotettu 18) – sääntö 06 (kutsut 13, loput mainintoja)');
+    else ok('Lähde: ei uusia dialogeja (showNotification 18 mainintaa = 13 kutsua + 5 mainintaa, ennallaan)');
 
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
     /* Vaihe 5: skriptitiedostoja voi olla 4 tai enemmän (street/-osat) → tarkistetaan

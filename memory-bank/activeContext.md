@@ -1,11 +1,12 @@
 # 🎯 Aktiivinen konteksti
 
 > **Kevyt:** Vain tämä tiedosto luetaan session alussa.
-> **🚧 KESKEN: refaktorointi v11.38–v11.43 + 4 bugikorjausta (Vaiheet 0–5 osat 1–7 tehty) → ks. "JATKOPISTE" alempana.**
-> Sääntö 03: **versio `v11.43`** (`index.html`). **Työ on COMMITTOITU PAIKALLISESTI** (5 committia,
-> `main` = `origin/main` + 5; **pushia EI ole tehty** → julkinen tuotanto on edelleen **v11.37**).
-> **🔴 UUSI SESSIO – KYSY ENSIN:** *"Testasitko v11.43:n (`docs/testilista.md`)? Löytyikö ongelmia?"*
-> Ongelmat → **toista vika mekaanisesti (A/B + penkki) ennen korjausta**; ei ongelmia → jatka alla olevasta osa 8:sta.
+> **🚧 KESKEN: refaktorointi v11.38–v11.44 + 4 bugikorjausta (Vaiheet 0–5 osat 1–8 tehty) → ks. "JATKOPISTE" alempana.**
+> Sääntö 03: **versio `v11.44`** (`index.html`). **Työ on COMMITTOITU PAIKALLISESTI** (6 committia,
+> `main` = `origin/main` + 6; **pushia EI ole tehty** → julkinen tuotanto on edelleen **v11.37**).
+> **🔴 UUSI SESSIO – KYSY ENSIN:** *"Testasitko v11.44:n (`docs/testilista.md`)? Löytyikö ongelmia?"*
+> Ongelmat → **toista vika mekaanisesti (A/B + penkki) ennen korjausta**; ei ongelmia → jatka alla olevasta
+> **Vaihe 4 loppuun / Vaihe 6:sta** (Vaihe 5 osat 1–8 on tehty).
 > **Kompaktoitu 28.9.2026 (v11.00):** tiivistettiin vain v10.x/uusi aines (kaaos K0–K7 → `docs/chaos.md`) ja
 > korjattiin rakenteelliset viat. **Esiforkin v4.x-historia säilyy alla sellaisenaan.**
 > **Rajat (päivitetty 3.10.2026 – `progress.md` 45 → 65 kt ja pankki 135 → 155 kt, pysyvä):** tämä tiedosto **≤ 65 kt** · `progress.md` ≤ 65 kt ·
@@ -27,7 +28,7 @@
 
 ## 📍 Nyt (AI CHAOS STREET – fork 27.9.2026)
 
-- **Projekti:** **AI CHAOS STREET** – itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages `teppoaland.github.io/aistreet/` ONLINE 27.9.2026), forkattu Pimeä Katu v5.02:sta; alkuperäinen `D:\AI\Main` jäädytetty. **Versio `v11.43`** – `index.html` `#version-tag`: **v11.43 = kaksi FULLin canvas-bugia:** `#NaNNaN`-väri (hsl-paletti + hex-apuri) ja `translate(NaN)` (puuttuva `WORLD_W`-sidonta) · **v11.42 = Vaihe 5 osa 7: liikennologiikka `street/traffic.js`:ään** · **v11.41 = BAD/FULL: ikkunavalot syttyvät taas**
+- **Projekti:** **AI CHAOS STREET** – itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages `teppoaland.github.io/aistreet/` ONLINE 27.9.2026), forkattu Pimeä Katu v5.02:sta; alkuperäinen `D:\AI\Main` jäädytetty. **Versio `v11.44`** – `index.html` `#version-tag`: **v11.44 = Vaihe 5 osa 8: huoneiden LOGIIKKA `street/rooms.js`:ään** (345 rv, get+set-host; `rooms[]`-rekisteri + `closeRoom()` + oven avaus jäivät street.js:ään; uusi penkki `street-rooms-logic-test` 41/0) · **v11.43 = kaksi FULLin canvas-bugia:** `#NaNNaN`-väri (hsl-paletti + hex-apuri) ja `translate(NaN)` (puuttuva `WORLD_W`-sidonta) · **v11.42 = Vaihe 5 osa 7: liikennologiikka `street/traffic.js`:ään** · **v11.41 = BAD/FULL: ikkunavalot syttyvät taas**
 (`seedLitWindows()`; ennen koko runi ilman ikkunavaloja) · **v11.40 = Vaihe 5 osa 6: huoneiden piirto `street/rooms.js`:ään** · **v11.39 = K7 "Valot sammuvat" -kortin bugikorjaus** (lamppujen kuvut, kuvun valopilkku, ovivalo ja pelaajan reunavalo sammuvat nyt myös, ks. `progress.md`; `?v=`-leimat samassa numerossa – pelkkä arvon/parametrin säätö ei nosta versionumeroa, sääntö 03; **Versiohistoria v11.06–v11.37: ks. `progress.md`** (mm. jukebox-intro, liikenne huoneissa, kolarin putoamistaso, sädease, tablet-ohjaimet, hover-kierto, meteoriitti + eskalaatio + BAD-avaus, rauniot, savukorjaus).
 - 🔓 **Sääntö 04 (talousbalanssi-lukko) EI PÄDE enää forkissa** (27.9.2026): se kirjoitettiin **alkuperäistä Pimeä Katu -peliä** varten → talousarvot (aloituskolikot/🍔, 🍔-tahti, RTP, hinnat, syntymäpaketti) ovat **vapaita myös NORMALissa**. `.clinerules/04` + `docs/economy-balance-memo.md` = historiallisia viitteitä, **eivät sitovia**.
 - 🧱 **Koodirakenne (Vaihe 1 VALMIS, v11.38 – ei toimintamuutoksia):** `street.js` pilkottiin
@@ -61,22 +62,24 @@
   Loput domainit on **mitattu ja perusteltu jätettäväksi**: päivä/yö 141 viittausta
   (lomittuu `state.isDay`:hin + 4 penkkiä), huoneet 469 (kannattaa tehdä Vaiheessa 5),
   talous 149 (eniten penkkikytkentöjä, ei toiminnallista hyötyä), rosvo (jo olio).
-  📦 **Vaihe 5 (v11.38 osat 1–5 · v11.40 osa 6 · v11.42 osa 7) – tiedostojako (osat 1–7):**
+  📦 **Vaihe 5 (v11.38 osat 1–5 · v11.40 osa 6 · v11.42 osa 7 · v11.44 osa 8) – tiedostojako (osat 1–8):**
   kaaoskonfiguraatio + -matematiikka → **`street/chaos-config.js`** (399 rv, `StreetChaos`),
   kadun äänet (SFX + moottori) → **`street/sfx.js`** (344 rv, `StreetSfx`), sanomalehden asettelu +
   piirto → **`street/news.js`** (438 rv, `StreetNews`), ajoneuvojen piirto **ja liikennologiikka**
   → **`street/traffic.js`** (248 + 124 rv, `StreetTraffic`), K7-kaaoskortit
-  → **`street/chaos-cards.js`** (134 rv, `StreetChaosCards`) ja huoneiden piirto
-  → **`street/rooms.js`** (1013 rv, `StreetRooms`). `street.js` ottaa nimet
+  → **`street/chaos-cards.js`** (134 rv, `StreetChaosCards`) ja huoneiden piirto **+ logiikka**
+  → **`street/rooms.js`** (1013 + 345 rv, `StreetRooms`). `street.js` ottaa nimet
   `const { … } = StreetXxx;`-destrukturoinnilla; moduulit eivät tunne pelitilaa:
   `bind({ WORLD_W, hungerMultFor })` / `StreetSfx.setVolume(chaosCfg.sfxVolumeMult)` /
-  **live-getterit** + **get+set -host** (korttien save/restore, liikennologiikan tila).
+  **live-getterit** + **get+set -host** (korttien save/restore, liikennologiikan tila, huoneiden tila).
   **Ansat:** (osa 6) host-nimi ei saa törmätä paikallisiin (`const W = …, H = …` → `ENV`);
-  (osa 7) bind-kohdan jälkeen määritelty `const` → **getteri** (`PLAYER_DEPTH_MAX_Y`).
+  (osa 7) bind-kohdan jälkeen määritelty `const` → **getteri** (`PLAYER_DEPTH_MAX_Y`);
+  (osa 8) kohdistuskommentissa `sleep*/bar*`-tyylinen `*/` katkaisee lohkokommentin, ja uusi nimi
+  on aina lisättävä `bind()`iin (muuten `undefined` → NaN hiljaa; vahtina uusi penkki).
   `index.html` lataa osat omilla `<script>`-riveillä ennen `street.js`iä ja
   `tools/tests/street-src.cjs` `PARTS`-lista liittää penkeille saman kokonaisuuden.
-  `street.js` 11 169 → **8 622 rv**.
-  **Jäljellä:** huoneiden logiikka (~600 rv, 469 viittausta) – sekä Vaihe 4 loppuun (päivä/yö,
+  `street.js` 11 169 → **8 338 rv**.
+  **Jäljellä:** Vaihe 4 loppuun (päivä/yö 141, talous 149 viittausta) ja
   talous) ja Vaihe 6 (kommenttisiivous). Ks. `tools/refactor/README.md`.
 
 - 🏚️🚑💨🍺🗝️ **v11.30–v11.37 (historia – yksityiskohdat `progress.md`:ssä):** talojärjestyksen sekoitus
@@ -245,68 +248,73 @@ mopo, puut, kolikko, mobiilikamera, potkukolikko).
 
 ---
 
-## 🚧 JATKOPISTE – refaktorointi kesken (päivitetty 3.10.2026, v11.43)
+## 🚧 JATKOPISTE – refaktorointi kesken (päivitetty 3.10.2026, v11.44)
 
-> **Tila:** Vaiheet 0–5 (osat 1–7) **tehty ja validoitu** ja **committoitu paikallisesti** (4 committia:
+> **Tila:** Vaiheet 0–5 (osat 1–8) **tehty ja validoitu** ja **committoitu paikallisesti** (committit:
 > `4827f34` penkit+työkalut · `064f2d8` koodi (7 moduulia + bugikorjaukset) · `6d1c240` docs+säännöt ·
-> `14767f3` pankin kevennys). **`git status` puhdas · `main [origin/main: ahead 4]` ·
-> origin/main = `6af16f8` = v11.37 → tuotanto koskematon.**
-> Versio `v11.43` on jo `index.html`:ssä (#version-tag + 10 `?v=`-leimaa). Seuraava istunto jatkaa tästä.
+> `14767f3` pankin kevennys · `5c34519`+`d2a8fb7` testilista · **`v11.44` osa 8**).
+> **`git status` puhdas · `main` on `origin/main`ia edellä · origin/main = v11.37 → tuotanto koskematon.**
+> Versio `v11.44` on `index.html`:ssä (#version-tag + 10 `?v=`-leimaa). Seuraava istunto jatkaa tästä.
 
 **Mitä on tehty (kaikki ilman toimintamuutoksia):**
-1. Testipenkit versioitu repoon `tools/tests/` (**25 penkkiä** + ajaja + lähdeloader) ja siirtotyökalut `tools/refactor/`.
+1. Testipenkit versioitu repoon `tools/tests/` (**26 penkkiä** + ajaja + lähdeloader) ja siirtotyökalut `tools/refactor/`.
 2. `update()` 1119 → **85 rv** · `render()` 428 → **143 rv** · `handleAction()` 226 → **14 rv** (Vaihe 1).
 3. Kaaosliput `chaosFlags` (27 hajallaan ollutta tarkistusta → 0) + `sfxTone`-ääniapuri (Vaihe 2).
 4. Huonerekisteri `rooms[]`: `update()` / `drawRoomView()` / `closeRoom()` ovat silmukoita (Vaihe 3).
 5. Tilan ryhmittely: `manhole`-olio + `coin.respawnTimer` / `coinCheat`-olio (Vaihe 4, osittain – loput perustellusti jätetty).
 6. **`street/`-kansio:** `chaos-config.js` (399 rv), `sfx.js` (344 rv), `news.js` (438 rv),
-   `traffic.js` (248 piirto + 124 logiikka), `chaos-cards.js` (134 rv) ja `rooms.js` (1013 rv)
-   omiksi tiedostoiksi; `street.js` 11 169 → **8 622 rv** (Vaihe 5 osat 1–7).
+   `traffic.js` (248 piirto + 124 logiikka), `chaos-cards.js` (134 rv) ja `rooms.js`
+   (1013 piirtoa + **345 logiikkaa**) omiksi tiedostoiksi; `street.js` 11 169 → **8 338 rv** (osat 1–8).
 7. **Muistipankin kevennys (3.10.2026):** esiforkin v3.8x–v5.02 -taulukkorivit + vanhat penkkimuistiinpanot
    → **`docs/pimea-katu-historia.md`** (18,2 kt); `progress.md` 64,3 → **47,7 kt**. Tilalle jäi osoitinrivi
-   per taulukko. **Uudet penkit:** `street-chaos-cards-test` (v11.38), `street-window-lights-test` (v11.41)
-   ja `street-canvas-invariants-test` (v11.43 – vahtii NaN/undefined-argumentit canvas-kutsuissa;
-   olisi napanneet v11.43:n molemmat bugit).
+   per taulukko. **Uudet penkit:** `street-chaos-cards-test` (v11.38), `street-window-lights-test` (v11.41),
+   `street-canvas-invariants-test` (v11.43 – vahtii NaN/undefined-argumentit canvas-kutsuissa;
+   olisi napanneet v11.43:n molemmat bugit) ja **`street-rooms-logic-test` (v11.44 – huonelogiikan
+   get+set-host, 41 tarkistusta)**.
 
 **Todistus – aja nämä ennen jatkamista (tulosten pitää olla samat):**
 ```bat
 node tools/tests/chaos-normal-check.cjs        :: NORMAL CLEAN: 78 keys, 0 diffs
 node tools/tests/street-render-smoke-test.cjs  :: Tulos: 30 / 30 OK, 0 löydöstä
-node tools/tests/run-all.cjs                   :: 25 penkkiä, 18 puhdasta / 7 (7. = epävakaa meteor-coin)
+node tools/tests/street-rooms-logic-test.cjs   :: Tulos: 41 OK, 0 löydöstä
+node tools/tests/run-all.cjs                   :: 26 penkkiä, 19 puhdasta / 7 (7. = epävakaa meteor-coin)
 ```
 `tools/tests/BASELINE.md` = per-penkki-taulukko; **ne 6 "löydöstä" ovat ennestään vanhentuneita
 odotuksia, eivät regressioita** (autohover 31 · avenger 1 · bad-warning 1 · hunger-scope 3 ·
 jukebox 27 · manhole-bonus 3). Epävakaa (A/B-todistettu penkkiviaksi): `street-meteor-coin` (0–4)
-→ ajoraportti on siksi joskus **18/7**. Uudet penkit (kortit, ikkunavalot, canvas-invariantit) ovat puhtaita.
+→ ajoraportti on siksi joskus **19/7**. Uudet penkit (kortit, ikkunavalot, canvas-invariantit,
+huonelogiikka) ovat puhtaita.
 
-**0) ENSIN – kysy käyttäjältä v11.43-testin tulos** (`docs/testilista.md` § UUSI SESSIO).
+**0) ENSIN – kysy käyttäjältä v11.44-testin tulos** (`docs/testilista.md` § UUSI SESSIO).
 Ongelma → **toista havainto + A/B (`git show HEAD`) + kirjoita penkki, joka kaatuu ennen korjausta**,
-vasta sitten korjaus + versionosto + paikallinen commit. Ei ongelmia → jatka A:sta.
+vasta sitten korjaus + versionosto + paikallinen commit. Ei ongelmia → jatka alla olevista.
 
 **Miten jatketaan – valitse suunta:**
-- **A) Vaihe 5 osa 8 (SEURAAVA): huoneiden LOGIIKKA** – **mitattu 317 rv / 9 funktiota:**
-  `updateSleepRoom` (76) · `updateBarRoom` (77) · `updateJukeboxRoom` (49) · `jukeboxExitAndPlay` (73) ·
-  `resetJukeboxRoom` (9) · `closeSleepRoom`/`closeBarRoom`/`closeJukeboxRoom`/`closeRoom` (33).
-  *Piirto on jo siirretty* (`street/rooms.js`, osa 6) → tämä on viimeinen huonepala.
-  **Host (~28 nimeä):** get+set `coinCount` · `hamburgerCount` · **`isDay`** (Nuku vaihtaa päivä/yön!) ·
-  `sleepSel` · `sleepPhase` · `barBuyQty` · `jukeSel` · `jukePick` · `jukeQueue` · `jukeSpaceHeld` ·
-  `jukeEnterHeld` · `jukeSavedPos` · `actionJustPressed`; oliot `state` (89 viittausta) · `keys` (25);
-  apurit `updateHUD` · `playCoin` · `resetMoon` · `resetSun` · `saveMoonClock` · `showNotification`
-  (+ globaalit `GameState` / `StreetAudio`). **Koskee taloutta** → aja `street-drunk` (51: BAR-ostot)
-  + `street-hunger-scope` + `chaos-normal-check` + `street-canvas-invariants` + `run-all`.
-  Muut vaihtoehdot: **Vaihe 4 loppuun** (päivä/yö 141 · talous 149) tai **Vaihe 6** (kommenttisiivous).
-  **Malli osista 3–7:** siirrä *puhdas piirto/luku* ensin; get+set vasta kun mutaatio on pakko siirtää;
+- **A) ✅ TEHTY v11.44 – Vaihe 5 osa 8: huoneiden LOGIIKKA** `street/rooms.js`:ään (345 rv / 3 lohkoa:
+  `updateSleepRoom` · `updateBarRoom` · `updateJukeboxRoom` · `resetJukeboxRoom` +
+  `jukePickedTracks` + `jukeboxExitAndPlay` · `closeSleepRoom`/`closeBarRoom`/`closeJukeboxRoom`).
+  **Paikalleen jäivät** `rooms[]`-rekisteri, `closeNewsRoom`, `closeRoom()` ja oven avaus
+  (`tryXxxDoor`) – rekisteri kokoaa kaikki neljä huonetta. Tila sidottiin **get+set** -pareina
+  (`state`/`keys`/`jukePick` gettereinä); liikennekutsut käyttävät globaalia `StreetTraffic`ia.
+  **Tulos:** NORMAL 78/0 · render-smoke 30/30 · uusi penkki 41/0 · `run-all` 19/7 = baseline.
+  Yksityiskohdat ja ansat: `progress.md` (v11.44) + `tools/refactor/README.md`.
+- **B) Vaihe 4 loppuun** (SEURAAVA, jos halutaan vielä siivota): päivä/yö **141** (+4 penkkiä injektoi
+  `dayT`-hookit) · talous **149** (suositus: jätä ennalleen). Domain kerrallaan + täysi ajo välissä.
+- **C) Vaihe 6 (itsenäinen, kevyt):** 479 `vNN.NN`-kommenttimerkintää → `CHANGELOG.md`:hen, kommenteihin vain "miksi".
+  **Malli osista 3–8:** siirrä *puhdas piirto/luku* ensin; get+set vasta kun mutaatio on pakko siirtää;
   **tarkista host-nimen törmäys** paikallisiin nimiin (osa 6: `H` → `ENV`); **sido getterinä kaikki, mikä
   on määritelty bind-kohdan jälkeen** (osa 7: `PLAYER_DEPTH_MAX_Y`); ja **lisää JOKAINEN uudelleennimetty
   nimi bindiin** (osa 7:n regressio: `WORLD_W` unohtui → `undefined + w` = NaN → canvasiin kelvoton arvo,
-  jota selain ei näytä kaatavan).
+  jota selain ei näytä kaatavan). **Nimeäminen lookbehindilla** `(?<![\w.$])` – muuten `state.isDay`
+  muuttuisi muotoon `ENV.state.ENV.isDay` (tämä löytyi osassa 8).
   Jokainen osa: (1) `var StreetXxx = (function(){…})();` + `bind()`/setterit, (2) `tools/tests/street-src.cjs`
-  `PARTS`-listaan oikeaan järjestykseen, (3) `<script src="street/xxx.js?v=11.43">` `index.html`:hin
+  `PARTS`-listaan oikeaan järjestykseen, (3) `<script src="street/xxx.js?v=11.44">` `index.html`:hin
   **ennen** `street.js`iä, (4) `node --check` + `run-all.cjs` + **selaintesti** + **versionosto (+0.01)**
   + **paikallinen commit (restore-piste)**. Malli: `tools/refactor/README.md` § Mekanismi;
   siirtoskriptit `tools/refactor/split-*.cjs`.
-- **B) Vaihe 4 loppuun** (esiehto A:lle): huoneet **469** viittausta · päivä/yö **141** (+4 penkkiä injektoi
-  `dayT`-hookit) · talous **149** (suositus: jätä ennalleen). Domain kerrallaan + täysi ajo välissä.
+- **B) Vaihe 4 loppuun** (SEURAAVA vapaaehtoinen siivous, kun A on tehty): päivä/yö **141**
+  (+4 penkkiä injektoi `dayT`-hookit) · talous **149** (suositus: jätä ennalleen).
+  Domain kerrallaan + täysi ajo välissä.
 - **C) Vaihe 6 (itsenäinen, kevyt):** 479 `vNN.NN`-kommenttimerkintää → `CHANGELOG.md`:hen, kommentteihin vain "miksi".
 - **D) Muut avoimet työt** (eivät liity refaktorointiin): ks. "🔜 Seuraavaksi" – Blue Mäx -testimode,
   pääsiäismunat Dig Däshiin, hedelmäpelin RTP-presetit, jukebox-testien päivitys.
@@ -321,7 +329,7 @@ vasta sitten korjaus + versionosto + paikallinen commit. Ei ongelmia → jatka A
   testilista ja mitä kustakin pitää näkyä: `docs/chaos.md` § 6.7.
 - **Testilista (3.10.2026):** manuaalitestit ovat **`docs/testilista.md`** (kytkimet, riskialueet,
   ei-bugit, penkkikomennot, raportointipohja § 6 ja **koodikartta § 7**). **Kysy käyttäjältä tulos heti
-  session alussa** – älä oleta että v11.43 on testattu.
+  session alussa** – älä oleta että v11.44 on testattu.
 - **Git (käyttäjän linjaus 3.10.2026):** **commit = paikallinen tallennus, AINA sallittu** – committaa
   jokaisen validoidun vaiheen jälkeen (`git add -A && git commit -m "vNN.NN: …"`) → jokaisesta versiosta
   jää **revert-piste**, eikä committaus julkaise mitään. **Push = julkaisu** (GitHub **+ GitHub Pages**):
@@ -331,18 +339,25 @@ vasta sitten korjaus + versionosto + paikallinen commit. Ei ongelmia → jatka A
   refaktorointi jonka toiminta ei muutu – käyttäjä tunnistaa numerosta, että testaa uusinta versiota
   (`?v=`-leima pakottaa tuoreet tiedostot). Refaktoroinnin osat 1–5 = **v11.38**, blackout-bugikorjaus
   = **v11.39**, huoneiden piirto = **v11.40**, ikkunavalot BAD/FULLissa = **v11.41**, liikennologiikka
-  (`street/traffic.js`) = **v11.42**, FULLin canvas-arvot = **v11.43**. Pelkkä
+  (`street/traffic.js`) = **v11.42**, FULLin canvas-arvot = **v11.43**, huonelogiikka
+  (`street/rooms.js`) = **v11.44**. Pelkkä
   dokumentti-/muistipankkipäivitys **ei** nosta versiota. Ks. `.clinerules/03` (päivitetty 3.10.2026:
   syy + "Nykyinen versio" -rivi + `?v=`-leimat samaan numeroon).
 - **⚠️ Ansa 3 (v11.43):** kun uudelleennimeät siirretyssä koodissa nimen `X` → `ENV.X`/`H.X`,
   **lisää X myös `bind()`-kutsuun** – muuten arvo on `undefined` ja laskut menevät hiljaa NaN:iksi
   (selain hylkää NaN-piirrot HILJAA, joten penkit eivät kaadu). Tarkista bind aina nimen­vaihdon
   jälkeen; `tools/tests/street-canvas-invariants-test.cjs` valvoo tätä.
+- **⚠️ Ansa 4 (v11.44, osa 8):** kolme muuta siirtotyökalun karikkoa – (a) **nimeä lookbehindilla**
+  `(?<![\w.$])`, muuten `state.isDay` → `ENV.state.ENV.isDay`; (b) **kohdistus-/otsikkokommenttiin ei
+  saa tulla `*/`-paria** (esim. `sleep*/bar*` katkaisee lohkokommentin → `node --check` kaatuu);
+  (c) **CRLF-normalisointi ennen `split`-vertailuja** ja **pilkku** lisätyn bind-lohkon loppuun.
+  Vahtina uusi penkki `street-rooms-logic-test.cjs` (41/0) + työkalun sisäinen tarkistus
+  "jokainen nimi 0 kertaa ilman ENV.-etuliitettä".
 - `%TEMP%\*.cjs`-kopiot penkeistä ovat vanhentuneita – **kanoniset penkit ovat repossa `tools/tests/`**.
 - **NORMAL ei saa rikkoutua** (pääsääntö 1) → aja `chaos-normal-check` jokaisen muutoksen jälkeen.
 
 **Pankin koko – kaikki reilusti rajojen sisällä (rajat 3.10.2026: 65 + 65 + 25 = 155 kt):**
-`activeContext.md` **50,2 kt** (raja 65 kt) · `progress.md` **48,0 kt** (raja 65 kt) · `systemPatterns.md` 17,5 kt (raja 25 kt).
+`activeContext.md` **52,2 kt** (raja 65 kt) · `progress.md` **51,0 kt** (raja 65 kt) · `systemPatterns.md` 17,5 kt (raja 25 kt) · pankki **~120,7 kt** (raja 155 kt).
 → **3.10.2026 tehty pankin kevennys (kaksi vaihetta):** (1) esiforkin v3.8x–v5.02 -taulukkorivit (45 riviä)
 + vanhat penkkimuistiinpanot (51 riviä) → **`docs/pimea-katu-historia.md`** (18,2 kt; `progress.md` 64,3 → 47,7 kt);
 (2) tämän tiedoston Projekti-bulletin versiolista v11.06–v11.37 + 7 vanhinta "Nyt"-bulletsia → yhden rivin

@@ -1,4 +1,4 @@
-# 📊 BASELINE – pöytäpenkkien tila 2.10.2026 (v11.37)
+# 📊 BASELINE – pöytäpenkkien tila 2.10.2026 (v11.37 → v11.44)
 
 > Tämä tiedosto on **vertailukohta refaktoroinnille**. Penkit siirrettiin `%TEMP%`:ista
 > repoon 2.10.2026 (Vaihe 0). Aja aina: `node tools/tests/run-all.cjs`.
@@ -300,4 +300,26 @@ render-smoke 30/30.
 selain. **Penkkejä ei tarvinnut muuttaa lainkaan** (osa 1:n `?v=`-löysennys `>= 4` kattaa uuden
 skriptitagin). Tarkistettu: NORMAL 78 avainta / 0 eroa · render-smoke 30/30 · 22 penkkiä
 16 puhdasta / 6 = sama kuin baseline.
+
+### Vaihe 5 osa 8 – huoneiden logiikka `street/rooms.js`:ään (v11.44)
+
+Huonelogiikka (345 rv / 3 lohkoa: `updateSleepRoom`, `updateBarRoom`, `updateJukeboxRoom` ·
+`resetJukeboxRoom`, `jukePickedTracks`, `jukeboxExitAndPlay` · `closeSleepRoom`, `closeBarRoom`,
+`closeJukeboxRoom`) siirrettiin moduuliin piirron seuraksi **get+set-hostilla**. Paikalleen jäivät
+`rooms[]`-rekisteri, oven avaus (`tryXxxDoor`) ja `closeRoom()`-silmukka (kokoaa myös lehden).
+
+- **Uusi penkki `street-rooms-logic-test.cjs` (41 OK / 0):** ajaa siirretyn logiikan oikeasti läpi
+  (`update()` → rekisteri → moduuli) ja todistaa get+set-hostin: Nuku (isDay vaihtuu, +1 🍔,
+  herätysrauha, katto 10), Poistu, BAR-osto/peruutus + FULL-oluen haara, jukeboxin veloitus
+  (1 valinta / vajaat kolikot / ei valintoja / 0 kolikkoa / äänen puuttuminen → palautus) ja
+  `closeRoom()`. Lisäksi rakennevahti: tila on `ENV.`-etuliitteellä (ansa 3) ja `street.js`:ssä
+  ei ole enää omia huonefunktioita.
+- **Penkkipäivitykset (2 penkkiä, 3 tarkistusta):** `street-traffic-rooms` ja
+  `street-knockdown-traffic` – LIIKENNE-regexit hyväksyvät nyt `(?:ENV\.)?`-etuliitteen
+  (tarkoitus ennallaan: liikennekutsu huonehaarassa) ja `showNotification`-laskuri 15 → **18**
+  (kutsuja edelleen 13; laskuri on karkea ja laskee nyt myös siirretyt maininnat + bind-rivin +
+  moduulin otsikkolistan). **Yksi uusi kutsu veisi luvun 19:ään** → sääntö 06 pysyy vahdittuna.
+- **Tulokset:** `street.js` 8 622 → **8 338 rv** · `street/rooms.js` 1 053 → **1 417 rv** ·
+  NORMAL 78 avainta / 0 eroa · render-smoke 30/30 · **26 penkkiä 19 puhdasta / 7** =
+  sama baseline (meteor-coin on tunnettu epävakaa 0–4).
 

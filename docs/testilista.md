@@ -1,4 +1,4 @@
-# 🧪 Testilista v11.43 – manuaalitestit (AI CHAOS STREET)
+# 🧪 Testilista v11.44 – manuaalitestit (AI CHAOS STREET)
 
 > ## ⚠️ UUSI SESSIO (Cline): LUE TÄMÄ ENSIN
 >
@@ -11,10 +11,12 @@
 >
 > **Kysy heti session alussa:**
 >
-> > *"Testasitko v11.43:n (`docs/testilista.md`)? Löytyikö ongelmia?"*
+> > *"Testasitko v11.44:n (`docs/testilista.md`)? Löytyikö ongelmia?"*
 >
-> - **Ei ongelmia** → jatka `memory-bank/activeContext.md` § JATKOPISTE → **osa 8 (v11.44)**:
->   huoneiden logiikka → `street/rooms.js`.
+> - **Ei ongelmia** → Vaihe 5 osat 1–8 on tehty: jatka `memory-bank/activeContext.md` § JATKOPISTE
+>   → **B) Vaihe 4 loppuun** (päivä/yö-domain) tai **C) Vaihe 6** (kommenttisiivous).
+>   **Erityisen tärkeä testi tässä versiossa: § 1a:n huoneet** (Nuku / BAR / jukebox) – niiden
+>   *logiikka* siirtyi `street/rooms.js`:ään (osa 8).
 > - **Ongelmia** → pyydä alla oleva **raportointipohja (§ 6)** ja toimi **kurinalaisesti (koodari):**
 >   1. **Toista havainto itse** mekaanisesti (vm-harness / fuzz) – älä arvaa.
 >   2. **A/B-todista** onko vika uusi vai ennestään ollut: `git show HEAD:street.js`,
@@ -31,7 +33,7 @@
 ## 0) Miten testataan
 
 - **Polku:** `file:///D:/AI/AI_street/index.html` + parametrit. `start_server.bat` **ei** ole käytössä.
-- **Välimuisti:** `?v=11.43` vaihtui → selain hakee tuoreet tiedostot automaattisesti.
+- **Välimuisti:** `?v=11.44` vaihtui → selain hakee tuoreet tiedostot automaattisesti.
 - **Konsoli (F12)** kannattaa pitää auki: siellä näkyvät JS-virheet ja `?debug`-taulukko.
 
 | Kytkin | Mihin |
@@ -48,7 +50,7 @@
 
 ---
 
-## 1) 🔴 Riskialue 1: refaktoroidut moduulit (v11.38–v11.43)
+## 1) 🔴 Riskialue 1: refaktoroidut moduulit (v11.38–v11.44)
 
 Suurin osa koodista on siirretty tiedostosta toiseen → **toiminnan pitää olla identtinen**.
 
@@ -59,6 +61,13 @@ Suurin osa koodista on siirretty tiedostosta toiseen → **toiminnan pitää oll
 - **makuuhuone**: Nuku → Zzz-pimennys → **+1 🍔** + päivä⇄yö; Poistu ilmainen
 - **jukebox** (yöllä): valitse 2–3 kappaletta → soi peräkkäin; ääni + kansikuvat
 - **hedelmäpeli**-talo (iframe), avaimet, oviukko, rosvo, kukkaruukku
+
+**1a′. Huonelogiikka (osa 8, v11.44 – siirretty `street/rooms.js`:ään, tarkista erikseen)**
+- **Nuku**: 🍔 +1 (ei yli 10), päivä⇄yö vaihtuu **joka kerta**, Zzz-pimennys näkyy, ✕ kesken pimennyksen palauttaa kadulle
+- **BAR**: ▲ = 1 🪙 → 1 🍔, ▼ peruu **vain tämän vierailun** ostot, katto 10, 0 kolikolla ei tapahdu mitään, poistuminen (o)/Space/✕
+- **jukebox**: valinta 1 🪙/kappale, **vajaat kolikot** → soi niin monta kuin riittää, vahinko ✕ = **ei veloitusta**, äänen puuttuessa kolikot palautuvat
+- **talous ei muutu hyppäyksin**: HUD:in 🪙/🍔-luvut päivittyvät heti (sama tila tallentuu, F5 säilyttää)
+- **nälkä kuluu huoneissa** kuten ennen (0 🍔 huoneessa = kuolema)
 
 **1b. Liikenne** (v11.42 + v11.43)
 - autot / mopo / ambulanssi / **panssarivaunu** kulkevat läpi ja **poistuvat näkyvistä**
@@ -132,9 +141,10 @@ file:///D:/AI/AI_street/index.html?chaos=full&day=1  ← pakota päivä (aamuong
 node tools/tests/chaos-normal-check.cjs            :: NORMAL CLEAN: 78 keys, 0 diffs
 node tools/tests/street-render-smoke-test.cjs      :: Tulos: 30 / 30 OK
 node tools/tests/street-canvas-invariants-test.cjs :: Tulos: 0 löydöstä
-node tools/tests/run-all.cjs                       :: 25 penkkiä, 18 puhdasta / 7
+node tools/tests/street-rooms-logic-test.cjs       :: Tulos: 41 OK (huonelogiikan get+set-host, osa 8)
+node tools/tests/run-all.cjs                       :: 26 penkkiä, 19 puhdasta / 6–7
 ```
-**Baseline (3.10.2026):** `run-all` = **18 puhdasta / 6–7 löydöstä**; 7. on **tunnettu epävakaa**
+**Baseline (3.10.2026, päivitetty v11.44):** `run-all` = **19 puhdasta / 6–7 löydöstä**; 7. on **tunnettu epävakaa**
 `street-meteor-coin` (0–4). Tunnettu 6: autohover 31 · avenger 1 · bad-warning 1 · hunger-scope 3 ·
 jukebox 27 · manhole-bonus 3. **Nämä eivät ole regressioita** – per-penkki-taulu: `tools/tests/BASELINE.md`.
 
@@ -148,7 +158,7 @@ sen rakenne (3 FULL-arpaa × 420 frameä riittää yleensä).
 ## 6) 📝 Raportointipohja (mitä kysy käyttäjältä, jos ongelma löytyi)
 
 ```
-1. Versio: v11.43
+1. Versio: v11.44
 2. Tarkka URL + parametrit (esim. ?chaos=full&card=windows)
 3. seed (?debug → konsolin taulukko) tai "en tiedä"
 4. Mitä odotin vs. mitä näin (screenshot auttaa valtavasti)
@@ -175,6 +185,8 @@ sen rakenne (3 FULL-arpaa × 420 frameä riittää yleensä).
 | ajoneuvojen piirto + liikennologiikka | `street/traffic.js` | osa 4 + 7 · v11.43 |
 | K7-kortit + `?card=` | `street/chaos-cards.js` | osa 5 |
 | huoneiden piirto (uni/jukebox/BAR) | `street/rooms.js` | osa 6 |
+| **huoneiden logiikka** (Nuku/BAR-ostot/jukebox-veloitus, `closeXxxRoom`) | **`street/rooms.js`** | **osa 8 · v11.44** |
+| huonerekisteri `rooms[]` + `closeRoom()` + oven avaus | `street.js` | osa 8 (jäi tänne) |
 | blackout (lamppujen kuput, ovivalot, reunavalo) | `street.js`: `drawLampPost`/`drawDoor`/`drawPlayer` | v11.39 |
 | BAD/FULL ikkunavalot | `street.js`: `seedLitWindows` | v11.41 |
 | FULL-värit (`lightenHex`/`mixHex`-vahdit) | `street.js` + `chaos-config.js` | v11.43 |
@@ -182,5 +194,6 @@ sen rakenne (3 FULL-arpaa × 420 frameä riittää yleensä).
 | nälkä/vauhti/BAR-talous | `street.js` + `gameState.js` | (ennallaan) |
 
 **Siirtotyökalut** (jos tarvitsee siirtää lisää koodia): `tools/refactor/split-*.cjs` + `README.md`
-(§ Mekanismi + **ansat 1–3**). **Muista:** jokainen uudelleennimetty nimi on lisättävä `bind()`iin
-(tämä unohtui osassa 7 → `translate(NaN)`).
+(§ Mekanismi + **ansat 1–4**). **Muista:** jokainen uudelleennimetty nimi on lisättävä `bind()`iin
+(tämä unohtui osassa 7 → `translate(NaN)`), ja nimeäminen tehdään lookbehindilla `(?<![\w.$])`
+(osa 8: muuten `state.isDay` → `ENV.state.ENV.isDay`).
