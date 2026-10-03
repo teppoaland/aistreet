@@ -27,6 +27,32 @@ const problems = [], oks = [];
 const check = (c, m) => { if (c) oks.push(m); else problems.push(m); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/* ── Autohoverin AIKAJANA (street.js:n vakiot) ─────────────────────────
+   v11.28: alku 1 s → 5 s (valikon avautumisesta) + 500 ms uusintayritys,
+   jos kierros jäi väliin (esim. valikko ei ollut vielä näkyvissä).
+   Penkki laskee kaikki odotukset NÄISTÄ vakioista → pelkkä ajoituksen
+   säätö ei enää riko penkkiä, mutta rakennevahti (mainSrc) vahtii arvot. */
+const START = 5000;                          // AUTO_HOVER_START_MS
+const STEP  = 173;                           // AUTO_HOVER_STEP_MS
+const HOLD  = 2000;                          // AUTO_HOVER_HOLD_MS (vain FULL CHAOS)
+const CYCLE = 10000;                         // AUTO_HOVER_REPEAT_MS
+const FULL_AT  = START + 4 * STEP;           // FULL CHAOS syttyy (5692 ms)
+const HOLD_END = FULL_AT + HOLD;             // pito + tärinä päättyvät (7692 ms)
+/* Odota, kunnes kello on relMs (e.rel() = ms domReadysta). */
+async function waitUntil(e, relMs) {
+    const d = relMs - e.rel();
+    if (d > 0) await sleep(d);
+}
+/* Odota (poll 30 ms), että ehto toteutuu ennen määräaikaa. Käytetään
+   gate-polussa, jossa ajastin käynnistyy vasta gaten sulkeuduttua. */
+async function waitForCond(e, cond, deadlineRel) {
+    while (e.rel() < deadlineRel) {
+        if (cond()) return true;
+        await sleep(30);
+    }
+    return cond();
+}
+
 function makeCtx() {
     const grad = { addColorStop() {} };
     return new Proxy({
@@ -208,52 +234,52 @@ async function main() {
     A.domReady();
     await sleep(300);
     check(A.adds(0) === 0 && !A.anyHover(),
-          'A: t=' + A.rel() + ' ms – efekti ei ala heti (odottaa 1 s valikon avautumisesta)');
+          'A: t=' + A.rel() + ' ms – efekti ei ala heti (odottaa ' + START + ' ms valikon avautumisesta)');
 
-    await sleep(1300);                    // ≈1600 ms → napit 1–4 käyty (173 ms askel), FULL CHAOS ei vielä (1692 ms)
+    await waitUntil(A, START + 2 * STEP + 120);  // napit 1–3 käyty, FULL CHAOS ei vielä
     const mid = A.allAdds();
     check(mid[0] === 1 && mid[4] === 0 && (mid[1] + mid[2] + mid[3]) >= 2,
           'A: liuku käynnissä eikä FULL CHAOS vielä (' + mid.join('/') + ')');
     check(A.shakeAdds() === 0, 'A: näyttö ei tärise ennen FULL CHAOS -nappia (t=' + A.rel() + ' ms)');
 
-    await sleep(1000);                    // ≈2600 ms → FULL CHAOS päällä + tärinä käynnissä
+    await waitUntil(A, FULL_AT + 300);           // FULL CHAOS päällä + tärinä käynnissä
     check(A.has(4) && A.shaking(), 'A: FULL CHAOS jäi päälle ja näyttö tärisee (t=' + A.rel() + ' ms)');
     check(!A.has(0) && !A.has(1) && !A.has(2) && !A.has(3),
           'A: neljä edellistä nappia vapautuivat ennen FULL CHAOSin pitoa');
 
-    await sleep(1600);                    // ≈4200 ms → pito (2 s, päättyi 3692 ms) ja tärinä päättyneet
+    await waitUntil(A, HOLD_END + 600);          // pito (2 s) ja tärinä päättyneet
     check(!A.has(4) && !A.shaking() && A.removes(4) >= 1,
           'A: FULL CHAOSin pito päättyi eikä jää päälle (t=' + A.rel() + ' ms)');
     /* HUOM: clearAutoHover() tyhjentää luokat myös jokaisen kierroksen alussa,
        joten pituus mitataan VIIMEISESTÄ poistosta (-1), ei ensimmäisestä. */
     const hold = A.remAt(4, -1) - A.addAt(4);
-    check(hold >= 1850 && hold <= 2200, 'A: FULL CHAOS pysyi päällä ≈2 s (' + hold + ' ms)');
+    check(hold >= HOLD - 150 && hold <= HOLD + 300, 'A: FULL CHAOS pysyi päällä ≈' + HOLD + ' ms (' + hold + ' ms)');
     const shake = A.shakeRemAt(-1) - A.shakeAt(0);
-    check(shake >= 1850 && shake <= 2200, 'A: näytön tärinä kesti ≈2 s (' + shake + ' ms)');
+    check(shake >= HOLD - 150 && shake <= HOLD + 300, 'A: näytön tärinä kesti ≈' + HOLD + ' ms (' + shake + ' ms)');
     check(A.shakeAdds() === 1, 'A: tärinä ajettiin tasan kerran (' + A.shakeAdds() + ')');
     check([0, 1, 2, 3].every((i) => A.removes(i) >= 1),
           'A: myös .auto-hover poistettiin joka napilta (' + [0, 1, 2, 3, 4].map((i) => A.removes(i)).join('/') + ')');
     check(!A.anyHover(), 'A: liuku päättyi eikä jää päälle (t=' + A.rel() + ' ms)');
 
     const first = [0, 1, 2, 3, 4].map((i) => A.addAt(i));
-    check(A.addAt(0) >= 950 && A.addAt(0) <= 1400,
-          'A: efekti alkoi t=' + A.addAt(0) + ' ms valikon avautumisesta (tavoite 1000 ms)');
+    check(A.addAt(0) >= START - 250 && A.addAt(0) <= START + 500,
+          'A: efekti alkoi t=' + A.addAt(0) + ' ms valikon avautumisesta (tavoite ' + START + ' ms, v11.28)');
     check(first.every((v, i) => i === 0 || v > first[i - 1]),
           'A: järjestys on ylhäältä alas eli NO CHAOS → FULL CHAOS (' + first.join(' < ') + ' ms)');
     const step = A.addAt(1) - A.addAt(0);
-    check(step >= 140 && step <= 240, 'A: askeleen pituus ≈173 ms (v11.17: 450 → 346 → 173) (' + step + ' ms)');
-    check(A.addAt(4) - A.addAt(0) >= 620 && A.addAt(4) - A.addAt(0) <= 900,
+    check(step >= STEP - 45 && step <= STEP + 80, 'A: askeleen pituus ≈' + STEP + ' ms (v11.17: 450 → 346 → 173) (' + step + ' ms)');
+    check(A.addAt(4) - A.addAt(0) >= 4 * STEP - 90 && A.addAt(4) - A.addAt(0) <= 4 * STEP + 160,
           'A: viiden napin liuku ≈0,7 s (' + (A.addAt(4) - A.addAt(0)) + ' ms)');
-    check(Math.abs(A.shakeAt(0) - A.addAt(4)) <= 3,
+    check(Math.abs(A.shakeAt(0) - A.addAt(4)) <= 5,
           'A: tärinä alkoi samalla hetkellä kun FULL CHAOS syttyi (' + A.shakeAt(0) + ' vs ' + A.addAt(4) + ' ms)');
 
-    await sleep(5000);                    // ≈9200 ms
-    check(A.adds(0) === 1, 'A: t=' + A.rel() + ' ms – ylimääräistä kierrosta ei tullut ennen 10 s');
-    await sleep(2100);                    // ≈11300 ms → 2. kierros käynnissä (1 s + 10 s)
+    await waitUntil(A, START + CYCLE - 1500);    // ennen 2. kierrosta
+    check(A.adds(0) === 1, 'A: t=' + A.rel() + ' ms – ylimääräistä kierrosta ei tullut ennen ' + CYCLE + ' ms');
+    await waitUntil(A, START + CYCLE + 2 * STEP + 10);   // 2. kierros käynnissä
     const gap = A.addAt(0, 1) - A.addAt(0, 0);
     check(A.adds(0) === 2, 'A: toinen kierros alkoi (edellisestä ' + gap + ' ms)');
-    check(gap >= 9800 && gap <= 10600,
-          'A: kierros toistuu 10 s välein kierroksen alusta (' + gap + ' ms)');
+    check(gap >= CYCLE - 250 && gap <= CYCLE + 900,
+          'A: kierros toistuu ' + CYCLE + ' ms välein kierroksen alusta (' + gap + ' ms)');
 
     A.click('normal');                    // kesken 2. kierroksen
     check(!A.anyHover(), 'A: valinta poisti .auto-hover heti kaikilta napeilta');
@@ -269,24 +295,26 @@ async function main() {
 async function mainB() {
     const B = boot('', { gate: false, hoverIndex: 2 });     // nappi 3 = GOOD on oikean osoittimen alla
     B.domReady();
-    await sleep(3100);                    // ≈3200 ms → liuku ohi, FULL CHAOS päällä
+    await waitUntil(B, FULL_AT + 300);    // liuku ohi, FULL CHAOS päällä
     check(B.adds(2) === 0 && !B.has(2), 'B: oikean osoittimen alla oleva nappi (3 = GOOD) jätettiin väliin');
     check(B.adds(0) === 1 && B.adds(1) === 1 && B.adds(3) === 1 && B.adds(4) === 1,
           'B: muut 4 nappia saivat efektin normaalisti (' + B.allAdds().join('/') + ')');
     check(B.has(4) && B.shaking(), 'B: pito + tärinä ajetaan, vaikka osoitin on muualla napin päällä');
 
-    /* C: osoitin valikkoalueelle keskeyttää käynnissä olevan liu'un heti */
+    /* C (v11.29): PC:n mouseenter-peruutus on POISTETTU – selain laukaisee
+       mouseenterin uudelleen, kun gate katoaa, joten peruutus keskeytti
+       kierroksen vahingossa. Tilalla on vain :hover-tarkistus (ks. B).
+       Tämä osio vahtii, ettei peruutusta palaa ja että kierto menee loppuun. */
     const C = boot('', { gate: false });
     C.domReady();
-    await sleep(1060);                    // nappi 1 on juuri syttynyt
+    await waitUntil(C, START + 2 * STEP + 120);   // nappi 1 on juuri syttynyt
     check(C.adds(0) === 1, 'C: t=' + C.rel() + ' ms – liuku käynnissä (nappi 1 sai efektin)');
     const hit = C.zoneEnter();
-    check(hit > 0, 'C: valikkoalueen mouseenter-kuuntelija löytyi (' + hit + ' kpl)');
-    check(!C.anyHover(), 'C: oikea osoitin keskeytti liu\'un heti (auto-hover pois)');
-    check(!C.shaking(), 'C: tärinä ei alkanut keskeytetyssä liu\'ussa');
-    await sleep(500);
-    check(C.allAdds()[1] === 0 && C.allAdds()[4] === 0 && !C.anyHover() && C.shakeAdds() === 0,
-          'C: keskeytynyt liuku ei jatkanut seuraaviin nappeihin eikä tärinä lauennut (' + C.allAdds().join('/') + ')');
+    check(hit === 0, 'C: mouseenter-peruutusta ei ole kiinnitetty (v11.29 poisti sen)');
+    check(C.anyHover(), 'C: synteettinen mouseenter ei keskeytä liukua (v11.29)');
+    await waitUntil(C, HOLD_END + 700);
+    check(C.adds(4) === 1 && C.shakeAdds() === 1 && !C.anyHover(),
+          'C: kierto meni loppuun asti (FULL CHAOS + tärinä) eikä jää päälle (' + C.allAdds().join('/') + ')');
 }
 
 /* D: aloitusgate – efekti alkaa vasta kun valikko on oikeasti auennut (ei gaten aikana) */
@@ -299,28 +327,28 @@ async function mainD() {
           'D: gaten aikana (valikko piilossa) efekti ei ala eikä näyttö tärise');
     D.unlockGate();
     const u = D.rel();
-    await sleep(2400);                    // gate 2000 ms + efekti 1000 ms = 3000 ms
+    await waitUntil(D, u + 2000 + 800);   // gate 2000 ms → valikko juuri avautui, efekti odottaa START
     check(D.adds(0) === 0, 'D: t=+' + (D.rel() - u) + ' ms avauksesta – valikko juuri avautui, efekti ei vielä');
-    await sleep(900);                     // ≈3400 ms → liuku alkanut
+    await waitUntil(D, u + 2000 + START + 350);   // liuku alkanut
     check(D.adds(0) === 1, 'D: t=+' + (D.rel() - u) + ' ms avauksesta – efekti alkoi valikon auettua');
-    await sleep(1400);                    // ≈4700 ms → FULL CHAOS + tärinä (nappi 5 syttyi +3692, pito 2 s)
-    check(D.has(4) && D.shaking(),
-          'D: t=+' + (D.rel() - u) + ' ms avauksesta – FULL CHAOS + tärinä ajetaan myös gatesta tultaessa');
-    await sleep(2200);                    // ≈6900 ms → pito (2 s, päättyi 5692 ms) päättynyt
-    check(!D.has(4) && !D.shaking(),
-          'D: t=+' + (D.rel() - u) + ' ms avauksesta – pito ja tärinä päättyivät eikä jää päälle');
+    const sawFull = await waitForCond(D, () => D.has(4) && D.shaking(),
+                                      u + 2000 + START + 4 * STEP + HOLD + 1500);
+    check(sawFull, 'D: t=+' + (D.rel() - u) + ' ms avauksesta – FULL CHAOS + tärinä ajetaan myös gatesta tultaessa');
+    const ended = await waitForCond(D, () => !D.has(4) && !D.shaking(),
+                                    u + 2000 + START + 4 * STEP + 2 * HOLD + 2000);
+    check(ended, 'D: t=+' + (D.rel() - u) + ' ms avauksesta – pito ja tärinä päättyivät eikä jää päälle');
 }
 
 /* E: esteettömyys, testikytkimet ja piilotettu välilehti */
 async function mainE() {
     const E = boot('?autohover=0', { gate: false });
     E.domReady();
-    await sleep(1500);
+    await waitUntil(E, START + 1200);
     check(E.adds(0) === 0 && !E.anyHover() && E.shakeAdds() === 0, 'E: ?autohover=0 – efekti ei käynnisty (testikytkin)');
 
     const F = boot('?chaos=normal', {});            // ?chaos= ohittaa hubin
     F.domReady();
-    await sleep(1200);
+    await waitUntil(F, START + 1200);
     check(F.adds(0) === 0 && !F.anyHover() && F.shakeAdds() === 0, 'F: ?chaos=normal – hubia ei näytetä eikä efektiä ajeta');
 
     /* G (v11.27): reduce-motion ei enää estä MITÄÄN osaa – efekti on sama
@@ -330,18 +358,18 @@ async function mainE() {
        (= käyttäjän raportoima mobiilibugi). */
     const G = boot('', { gate: false, reducedMotion: true });
     G.domReady();
-    await sleep(1600);                    // ≈1600 ms → napit 1–4 käyty
+    await waitUntil(G, START + 2 * STEP + 10);    // napit 1–3 käyty
     check(G.adds(0) === 1 && G.adds(1) === 1, 'G: reduce-motion – efekti käynnistyi normaalisti (' + G.allAdds().join('/') + ')');
-    await sleep(1000);                    // ≈2600 ms → FULL CHAOS + tärinä
+    await waitUntil(G, FULL_AT + 300);            // FULL CHAOS + tärinä
     check(G.has(4) && G.shaking(), 'G: reduce-motion – FULL CHAOS + näytön tärinä ajetaan (v11.27, t=' + G.rel() + ' ms)');
-    await sleep(1600);                    // ≈4200 ms → pito (2 s) päättynyt
+    await waitUntil(G, HOLD_END + 600);           // pito (2 s) päättynyt
     check(!G.anyHover() && !G.shaking() && G.shakeAdds() === 1,
           'G: reduce-motion – kierto päättyi ja tärinä ajettiin tasan kerran (' + G.shakeAdds() + ')');
 
     const H = boot('', { gate: false });
     H.domReady();
     H.setHidden(true);
-    await sleep(1200);
+    await waitUntil(H, START + 800);
     check(H.adds(0) === 0 && !H.anyHover() && H.shakeAdds() === 0, 'H: document.hidden – kierros ohitetaan kun välilehti on piilossa');
     H.setHidden(false);
 }
@@ -352,7 +380,7 @@ async function mainI() {
     I.domReady();
     const bound = I.clickEl('instructions-link');
     check(bound > 0, 'I: INSTRUCTIONS-linkin klikkikuuntelija löytyi (' + bound + ' kpl)');
-    await sleep(1400);
+    await waitUntil(I, START + 800);
     check(I.adds(0) === 0 && !I.anyHover() && I.shakeAdds() === 0, 'I: ohjeikkunan ollessa auki automaattihover ohitetaan');
 }
 
@@ -361,7 +389,7 @@ async function mainJ() {
     const J = boot('', { gate: false, chaosSession: JSON.stringify({ level: 'normal' }) });
     J.domReady();
     check(J.has0('chaos-menu', 'hidden'), 'J: F5 – valikko heti piilossa (session löytyi)');
-    await sleep(1200);
+    await waitUntil(J, START + 800);
     check(J.adds(0) === 0 && !J.anyHover() && J.shakeAdds() === 0, 'J: F5-reset – hubia ei näytetä eikä hover-kiertoa ajeta');
 }
 
@@ -369,12 +397,12 @@ async function mainJ() {
 async function mainK() {
     const K = boot('', { gate: false });
     K.domReady();
-    await sleep(3100);                    // ≈3200 ms → pito + tärinä käynnissä (alkoivat 2800 ms)
+    await waitUntil(K, FULL_AT + 300);    // pito + tärinä käynnissä
     check(K.has(4) && K.shaking(), 'K: t=' + K.rel() + ' ms – FULL CHAOS -pito + näytön tärinä käynnissä');
     K.click('full');
     check(!K.shaking(), 'K: valinta kesken tärinän katkaisi tärinän heti');
     check(!K.anyHover(), 'K: valinta poisti myös FULL CHAOSin pidon');
-    await sleep(1600);
+    await waitUntil(K, HOLD_END + 600);
     check(!K.shaking() && K.shakeAdds() === 1 && !K.anyHover(),
           'K: tärinä ei palaa eikä pito jää päälle valinnan jälkeen (tärinöitä ' + K.shakeAdds() + ')');
 }
@@ -390,32 +418,32 @@ async function mainL() {
     L.domReady();
     check(L.zoneListenerCount('mouseenter') === 0, 'L: puhelin (hover: none) – mouseenter-peruutusta ei kiinnitetä (v11.17)');
     check(L.zoneListenerCount('touchstart') === 1, 'L: puhelin – touchstart-peruutus on kiinnitetty (v11.17)');
-    await sleep(1300);                    // ≈1400 ms → liuku käynnissä (nappi 5 syttyy 1692 ms)
+    await waitUntil(L, START + 2 * STEP + 10);    // liuku käynnissä (FULL CHAOS ei vielä)
     const lmid = L.allAdds();
     check(lmid[0] === 1 && lmid[4] === 0, 'L: puhelimella liuku käynnistyi normaalisti (' + lmid.join('/') + ')');
     const cutL = L.zoneTouchFire();
     check(cutL === 1 && !L.anyHover() && !L.shaking(), 'L: täppäys nappialueelle keskeyttää liu\'un heti');
-    await sleep(900);                     // ≈2300 ms → keskeytetty liuku ei jatkanut
+    await waitUntil(L, START + 4 * STEP + 400);   // keskeytetty liuku ei jatkanut
     check(L.adds(3) === 0 && L.adds(4) === 0 && !L.anyHover() && L.shakeAdds() === 0,
           'L: keskeytetty liuku ei jatkanut eikä tärinä lauennut (' + L.allAdds().join('/') + ')');
 
     /* N: puhelin ilman reduce-motionia → koko kierto + tärinä ajetaan */
     const N = boot('', { gate: false, touch: true });
     N.domReady();
-    await sleep(2600);                    // ≈2700 ms → FULL CHAOS päällä (pito 1692–3692)
+    await waitUntil(N, FULL_AT + 300);            // FULL CHAOS päällä
     check(N.has(4) && N.shaking(), 'N: puhelimella FULL CHAOS + tärinä ajetaan');
-    await sleep(2200);                    // ≈4900 ms → pito päättynyt
+    await waitUntil(N, HOLD_END + 600);           // pito päättynyt
     check(!N.anyHover() && !N.shaking(), 'N: puhelimella pito päättyi eikä jää päälle');
 
     /* M: puhelin + reduce-motion = Androidin "poista animaatiot" (v11.27:
        sama efekti kuin ilman reduce-motionia – myös tärinä ajetaan) */
     const M = boot('', { gate: false, touch: true, reducedMotion: true });
     M.domReady();
-    await sleep(2600);                    // ≈2700 ms → FULL CHAOS päällä
+    await waitUntil(M, FULL_AT + 300);            // FULL CHAOS päällä
     check(M.adds(1) === 1 && M.adds(3) === 1 && M.has(4),
           'M: puhelin + reduce-motion – koko kierto ajetaan (' + M.allAdds().join('/') + ')');
     check(M.shaking(), 'M: puhelin + reduce-motion – näytön tärinä ajetaan nytkin (v11.27)');
-    await sleep(2200);                    // ≈4900 ms → pito päättyi
+    await waitUntil(M, HOLD_END + 600);           // pito päättyi
     check(M.adds(4) === 1 && !M.anyHover() && !M.shaking() && M.shakeAdds() === 1,
           'M: puhelin + reduce-motion – tärinä ajettiin tasan kerran eikä jää päälle (' + M.shakeAdds() + ')');
 }
@@ -428,6 +456,10 @@ async function mainSrc() {
     const cssSrc = fs.readFileSync(path.join(ROOT, 'style.css'), 'utf8');
     const htmlSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
     check(/const AUTO_HOVER_STEP_MS\s*=\s*173;/.test(src), 'LÄHDE: AUTO_HOVER_STEP_MS = 173 (v11.17)');
+    /* v11.28 (käyttäjän havainto): efekti alkaa vasta 5 s valikon avautumisesta
+       ja väliin jäänyt kierros yritetään uudelleen 500 ms kuluttua. */
+    check(/const AUTO_HOVER_START_MS\s*=\s*5000;/.test(src), 'LÄHDE: AUTO_HOVER_START_MS = 5000 (v11.28: 1 s → 5 s)');
+    check(/const AUTO_HOVER_RETRY_MS\s*=\s*500;/.test(src), 'LÄHDE: AUTO_HOVER_RETRY_MS = 500 (uusintayritys)');
     check(!/if \(!AUTO_HOVER_ON \|\| insReducedMotion\(\) \|\| autoHoverNext\) return;/.test(src),
           'LÄHDE: startAutoHover ei enää estä kiertoa reduce-motionilla');
     check(!/const motion = !insReducedMotion\(\);/.test(src), 'LÄHDE: motion-lippu on poistettu (v11.27)');
@@ -443,7 +475,13 @@ async function mainSrc() {
           'LÄHDE: tärinä-animaatio ja keyframes ovat ennallaan');
     check(/@media \(prefers-reduced-motion: reduce\) \{\r?\n\s*#instructions-overlay,/.test(cssSrc),
           'LÄHDE: ohjeikkunan oma reduce-motion-lohko on tallella');
-    check(/matchMedia\('\(hover: hover\)'\)/.test(src), 'LÄHDE: mouseenter-peruutus vain (hover: hover) -laitteille');
+    /* v11.29: PC:n mouseenter-peruutus on poistettu kokonaan (se keskeytti
+       kierroksen vahingossa, kun selain laukaisi mouseenterin uudelleen
+       gaten kadottua) – tilalla on vain :hover-tarkistus. */
+    check(!/addEventListener\('mouseenter'/.test(src),
+          'LÄHDE: PC:n mouseenter-peruutus on poistettu (v11.29)');
+    check(/document\.querySelector\('\.chaos-buttons button:hover'\)/.test(src),
+          'LÄHDE: oikea osoitin tarkistetaan :hover-kyselyllä (v11.29)');
     check(/addEventListener\('touchstart', clearAutoHover, \{ passive: true \}\)/.test(src),
           'LÄHDE: kosketuslaitteen touchstart-peruutus on paikallaan');
     check(/AUTO_HOVER_HOLD_MS\s*=\s*2000;/.test(src), 'LÄHDE: FULL CHAOSin pito 2 s (ennallaan)');

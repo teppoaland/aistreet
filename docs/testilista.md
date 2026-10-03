@@ -130,7 +130,7 @@ file:///D:/AI/AI_street/index.html?chaos=full&day=1  ← pakota päivä (aamuong
 | `?card=` pysyy päällä, F5 ei nollaa | parametri on osoitteessa → poista se |
 | BAD/FULLin tähdet "kiinteät" | luodaan kerran latauksessa (`init`) |
 | Jukebox/hedelmäpeli kiinni päivällä | auki vain klo 20–06 (popup `Open`) |
-| `street-meteor-coin`-penkki heiluu (0–4) | tunnettu epävakaa **penkki**, ei peliongelma |
+| `street-meteor-coin`-penkki heilui (0–4) | **korjattu 3.10.2026:** penkki arpoi talojärjestyksen → kiinteä siemen; ei ollut peliongelma |
 | BAD/FULLissa kadun värit ovat synkät | `randomHuePalette`/`NEAR_BLACK_PALETTE` = tarkoituksellinen akseli |
 
 ---
@@ -142,11 +142,12 @@ node tools/tests/chaos-normal-check.cjs            :: NORMAL CLEAN: 78 keys, 0 d
 node tools/tests/street-render-smoke-test.cjs      :: Tulos: 30 / 30 OK
 node tools/tests/street-canvas-invariants-test.cjs :: Tulos: 0 löydöstä
 node tools/tests/street-rooms-logic-test.cjs       :: Tulos: 41 OK (huonelogiikan get+set-host, osa 8)
-node tools/tests/run-all.cjs                       :: 26 penkkiä, 19 puhdasta / 6–7
+node tools/tests/run-all.cjs                       :: 26 penkkiä, 26 puhdasta, 0 löydöstä
 ```
-**Baseline (3.10.2026, päivitetty v11.44):** `run-all` = **19 puhdasta / 6–7 löydöstä**; 7. on **tunnettu epävakaa**
-`street-meteor-coin` (0–4). Tunnettu 6: autohover 31 · avenger 1 · bad-warning 1 · hunger-scope 3 ·
-jukebox 27 · manhole-bonus 3. **Nämä eivät ole regressioita** – per-penkki-taulu: `tools/tests/BASELINE.md`.
+**Baseline (3.10.2026, päivitetty v11.44):** `run-all` = **26 puhdasta / 0 löydöstä** (5 peräkkäistä
+ajoa). Penkkivelka on nollattu: kuusi vanhentunutta odotusta ja epävakaa `street-meteor-coin`
+korjattiin **pelikoodia muuttamatta** (versio pysyy v11.44:ssä) – yksityiskohdat per penkki:
+`tools/tests/BASELINE.md` § Penkkivelka nollattu.
 
 **Fuzz (oikea työkalu visuaalisiin/silentteihin vikoihin):** skannaa **jokaisen canvas-kutsun argumentin**
 NaN/±Infinity/undefined-varalta ja tyylimerkkijonot (`#NaN…`). Sillä löytyivät v11.43:n molemmat bugit.

@@ -367,4 +367,28 @@ get+set-hostin. **Penkkipäivitykset (2 penkkiä):** LIIKENNE-regexit sallivat `
 7 = sama baseline**. `#version-tag` + 10 leimaa → **v11.44**. Työkalu
 **`tools/refactor/split-rooms-logic.cjs`**.
 
+**Penkkivelka nollattu (3.10.2026, v11.44 – ei koodimuutosta, ei versionnostoa):** kuusi pitkään
+"keltaista" penkkiä (vanhentuneita odotuksia v11.10–v11.31:stä) ja epävakaa `street-meteor-coin`
+korjattiin → löydökset 31+1+1+3+27+3 (+0–4) → **0**; `run-all` = **26 penkkiä, 26 puhdasta,
+0 löydöstä** (5 peräkkäistä ajoa). **Pelikoodia ei muutettu lainkaan** (versio pysyy v11.44:ssä –
+käyttäjän testaama koodi on täsmälleen sama). Korjaukset lyhyesti:
+
+- **`ROOT` osoitti forkissa `D:\AI\Main`iin** (forkin esikuva) kolmessa penkissä (hunger-scope,
+  jukebox, manhole-bonus) → ne lukivat väärän projektin `gameState.js`/`audio.js`/fruitgame-vakiot.
+- **`street-jukebox`:** koko penkki oli yhden valinnan mallia (v4.21) → uudistettu
+  monivalintaan (v4.46/v4.99): rivi 0 = Exit, `✓ 1 🪙`, `▶ N track(s)`, `♪ PLAYING`,
+  Enter lisää jonon perään; `tapDoor` vapauttaa Space-näppäimen (reunanilmaisu); audio-stubi
+  tallentaa `playJukeboxQueue`/`appendJukeboxQueue`; T5-regex sallii forkin `|| introPlaying`.
+- **`street-autohover`:** v11.28 nosti alun 1 s → 5 s (+ 500 ms uusintayritys) ja v11.29 poisti
+  PC:n mouseenter-peruutuksen → aikajana lasketaan nyt vakioista (`START/STEP/HOLD/CYCLE`);
+  osio C = "mouseenter ei enää keskeytä"; uudet lähdevahdit; D-osiossa pollaus.
+- **`street-avenger`:** potki `buildings[2]`:ta, joka on nykyään Laivanupotus → kohde **talo 0**
+  (3 potkua sytyttävät ikkunat, 4. pudottaa); jahti- ja paluubudjetit 1200 / 1100 f (v4.68).
+- **`street-hunger-scope`:** merkki `'MAKUUHUONE'` → `'BEDROOM'` (UI englanniksi v11.00);
+  T6 kävelee `x ≥ 745` asti (1 🍔 = 2/3-vauhti v4.70) `player()`-proben avulla.
+- **`street-manhole-bonus`:** keräilybudjetti 400 → 1500 kierrosta (18 putoamista): "75 %" oli
+  4 putoamisen sattumaa → 18 putoamisella 22 % / 17 % = 1/6 ✔; arvotut luvut tulostetaan.
+- **`street-meteor-coin`:** kiinteä `Math.random`-siemen (37/40 siemenestä läpäisee, oletus 7,
+  `MC_SEED=`-kytkin) + kolikkotestissä pelaaja turvaradalle (liikenne ei enää kaada kesken).
+
 Vanhat penkkimuistiinpanot (v11.24–v11.27) ja vanhentunut penkkilista: `docs/pimea-katu-historia.md`.

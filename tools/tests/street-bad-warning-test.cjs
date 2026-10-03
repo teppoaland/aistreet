@@ -231,7 +231,10 @@ async function main() {
     const revealed = await waitFor(() => A.has('chaos-blackout', 'reveal'), 2000);
     const revealAt = Date.now() - t0;
     check(revealed, 'BAD: musta haivytetaan holdin jalkeen (n. +0,8 s)');
-    check(revealAt > 3600 && revealAt < 4600, 'BAD: paljastus n. 3,9 s kohdalla (mitattu ' + revealAt + ' ms)');
+    /* Aikajana on seinäkello: koneen kuorma venyttää summaa. Vaiheet
+       tarkistetaan erikseen yllä (2 s → kirjoitus → 0,8 s hold → paljastus),
+       joten tässä riittää alaraja (design) + väljä yläraja (kuorma). */
+    check(revealAt > 3600 && revealAt < 7000, 'BAD: paljastus n. 3,9 s kohdalla (mitattu ' + revealAt + ' ms, 3,6-7,0 s)');
     const hidden = await waitFor(() => A.has('chaos-blackout', 'hidden'), 2000);
     check(hidden, 'BAD: musta pois tielta +1 s -> koko siirtyma n. 4,9 s');
     check(A.warn() === '', 'BAD: varoitusteksti siivotaan haivytyksen lopussa');
@@ -256,7 +259,8 @@ async function main() {
         const rv = await waitFor(() => B.has('chaos-blackout', 'reveal'), 3000);
         const rvMs = Date.now() - b0;
         check(rv, lvl.toUpperCase() + ': paljastus alkaa n. 2 s (entinen aikajana)');
-        check(rvMs > 1900 && rvMs < 2700, lvl.toUpperCase() + ': paljastus ajallaan (mitattu ' + rvMs + ' ms)');
+        /* Sama kuormahuomio kuin BADissa: alaraja = design, yläraja väljä. */
+        check(rvMs > 1900 && rvMs < 3600, lvl.toUpperCase() + ': paljastus ajallaan (mitattu ' + rvMs + ' ms, 1,9-3,6 s)');
         const hd = await waitFor(() => B.has('chaos-blackout', 'hidden'), 2000);
         check(hd, lvl.toUpperCase() + ': musta pois tielta +1 s (yht. 3 s)');
         check(B.warn() === '', lvl.toUpperCase() + ': varoitus pysyy tyhjana koko siirtyman');

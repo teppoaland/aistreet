@@ -11,8 +11,12 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const ROOT = 'd:/AI/Main';
-const streetSrc = require('./street-src.cjs');
+const ROOT = path.resolve(__dirname, '..', '..');   // D:\AI\AI_street (forkki, ei enää D:\AI\Main)
+const streetSrcRaw = require('./street-src.cjs');
+/* Probe (vain muistiin): pelaajan sijainti – T6:n kävely mitataan metreinä,
+   koska 1 🍔 = 2/3-vauhti (v4.70) eikä kiinteä frame-määrä enää riitä. */
+const streetSrc = streetSrcRaw.replace('    function update(dt) {',
+    '    function update(dt) {\n        globalThis.__p = { x: player.x, y: player.y, kd: player.knockedDown };');
 const audioSrc  = fs.readFileSync(path.join(ROOT, 'audio.js'), 'utf8');
 const stateSrc  = fs.readFileSync(path.join(ROOT, 'gameState.js'), 'utf8');
 
@@ -160,6 +164,7 @@ function boot(seed, startCoins, opts) {
         releaseBtn(id) { for (const f of ((listeners[id] || {})['touchend'] || []).slice()) f({ preventDefault() {} }); },
         listenerCount(id, type) { return ((listeners[id] || {})[type] || []).length; },
         room() { return texts.some((t) => t.indexOf(ROOM_MARK) >= 0); },
+        player() { return sandbox.__p || null; },   // probe: { x, y, kd }
         sawText(needle) { return texts.some((t) => t.indexOf(needle) >= 0); },
         notif() { return (cached['notification'] || {}).textContent || ''; },
         hud() { return (cached['hud-bar'] || {}).innerHTML || ''; },
@@ -323,10 +328,12 @@ function enterFruitDoor(e) {
           ' framea ~2400; nollauksella 3600)');
 })();
 
-/* ═══ T5: makuuhuone – nälkä jäissä + Nuku +1 (ennallaan) ════════ */
+/* ═══ T5: makuuhuone – nälkä jäissä + Nuku +1 (ennallaan) ════════
+   HUOM (v11.00): pelaajalle näkyvät tekstit käännettiin englanniksi →
+   huoneen tunnistaa otsikosta 'BEDROOM' (ennen 'MAKUUHUONE'). */
 (function T5() {
     console.log('T5 makuuhuone: nalka jaissa, Nuku +1');
-    const r = findEntry(walkToSleepDoor, 'MAKUUHUONE', 5);
+    const r = findEntry(walkToSleepDoor, 'BEDROOM', 5);
     if (!r) { fail('T5: makuuhuone ei auennut siemenilla 1-30'); return; }
     console.log('  (makuuhuone aukesi siemenella ' + r.seed + ')');
     const e = r.e;
@@ -344,7 +351,7 @@ function enterFruitDoor(e) {
     console.log('T6 nalkakuolema huoneessa: huone sulkeutuu, kuolema kadulla');
     /* Etsi siemen: hedeläpelitalo auki -> ulos -> 1 burgeri -> BAR auki */
     let e = null, seed = 0;
-    for (let s = 1; s <= 30 && !e; s++) {
+    for (let s = 1; s <= 60 && !e; s++) {
         const t = boot(s, 5);
         if (enterFruitDoor(t) !== 'iframe') continue;
         const st = st0(t);
@@ -352,7 +359,15 @@ function enterFruitDoor(e) {
         t.store['pimeakatu_gamestate'] = JSON.stringify(st);
         t.sandbox.window._streetReturn({ data: 'RETURN_TO_STREET' });
         t.frame(2);
-        t.hold('ArrowRight'); t.frame(150); t.release('ArrowRight'); t.frame(1);
+        /* Kävele BARin ovelle: 1 🍔 → 2/3-vauhti (v4.70), joten etenemistä
+           mitataan pelaajan x:stä (ovi ≈ 765, DOOR_RADIUS 19 → x ≥ 745 osuu). */
+        t.hold('ArrowRight');
+        for (let i = 0; i < 60; i++) {
+            t.frame(8);
+            const p = t.player();
+            if (p && p.x >= 745) break;
+        }
+        t.release('ArrowRight'); t.frame(1);
         if (tapUntil(t, () => t.sawText('EXIT: (o) / Space'), 12)) { e = t; seed = s; }
     }
     if (!e) { fail('T6: BAR-huone ei auennut siemenilla 1-30'); return; }

@@ -10,16 +10,20 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const ROOT = 'd:/AI/Main';
+const ROOT = path.resolve(__dirname, '..', '..');   // D:\AI\AI_street (forkki, ei enää D:\AI\Main)
 const streetSrcRaw = require('./street-src.cjs');
 const fruitSrc = fs.readFileSync(path.join(ROOT, 'fruitgame', 'js', 'constants.js'), 'utf8');
 const stateSrc = fs.readFileSync(path.join(ROOT, 'gameState.js'), 'utf8');
 
-/* Mittari: montako kertaa bonus-arpa heitettiin (vain laskuri, ei logiikkaa) */
+/* Mittari: montako kertaa bonus-arpa heitettiin + arvotut luvut (vain laskuri,
+   ei logiikkaa). Arvot talletetaan, jotta 1/6-osuus voidaan todeta suoraan
+   arvonnasta eikä pelkästään kolikkosaldojen erotuksista. */
 const MARK = '        if (Math.random() < MH_BONUS_CHANCE) {';
 const PROBE = '    function update(dt) {';
 const streetSrc = streetSrcRaw
-    .replace(MARK, '        globalThis.__mhRolls = (globalThis.__mhRolls || 0) + 1;\n' + MARK)
+    .replace(MARK, '        (globalThis.__mhVals = globalThis.__mhVals || []).push(Math.random());\n' +
+                   '        globalThis.__mhRolls = (globalThis.__mhRolls || 0) + 1;\n' +
+                   '        if (globalThis.__mhVals[globalThis.__mhVals.length - 1] < MH_BONUS_CHANCE) {')
     .replace(PROBE, PROBE + '\n        globalThis.__p = { x: player.x, y: player.y, kd: player.knockedDown, mh: manhole.open, act: !!manhole.action, hp: hamburgerCount };');
 if (streetSrc === streetSrcRaw) {
     console.log('VAROITUS: bonus-arpakohtaa ei loytynyt - mittari ei ole kaytossa');
@@ -152,6 +156,7 @@ function boot(seed, startCoins, holeParam) {
         hold(k) { this.key('keydown', k); },
         release(k) { this.key('keyup', k); },
         rolls() { return sandbox.__mhRolls || 0; },
+        mhVals() { return (sandbox.__mhVals || []).slice(); },   // arvotut luvut (1/6-raja)
 
         coins() { return JSON.parse(store['pimeakatu_gamestate']).inventory.coinCount; },
         shapes() { return shapes.slice(); },
@@ -224,18 +229,25 @@ function driveToHole(e, mh, t) {
     return null;
 }
 
-/* Kävele reiän kohdalle ja putoa want kertaa. */
-function collectFalls(e, mh, want) {
+/* Kävele reiän kohdalle ja putoa want kertaa.
+   HUOM (v11.44): budjetti mitoitettu 1/6-arvonnalle – aikaisempi 400 kierrosta
+   riitti 1/3:lle, mutta tainnutusten odottelu (40 f/kierros) vei kaiken ajan. */
+function collectFalls(e, mh, want, guardMax) {
     const t = makeTracker(e);
-    let guard = 0;
-    while (t.rec.length < want && guard < 400) {
+    let guard = 0, waits = 0, moves = 0;
+    const guardCap = guardMax || 1500;
+    while (t.rec.length < want && guard < guardCap) {
         guard++;
+        const wasKd = !!(e.player() && e.player().kd);
         const r = driveToHole(e, mh, t);
         if (r === 'roll') t.run(280);       // pudotus + kiipeaminen ~246 framea
-        else t.run(20);
+        else if (wasKd) waits++;
+        else moves++;
+        if (r !== 'roll') t.run(20);
     }
     console.log('  kaivo ' + JSON.stringify(mh) + ': pelaaja ' + JSON.stringify(e.player()) +
-                ', putoamisia ' + t.rec.length);
+                ', putoamisia ' + t.rec.length + ' (kierroksia ' + guard + ', tainnutus-odotuksia ' +
+                waits + ', siirtymia ' + moves + ')');
     return t;
 }
 
@@ -265,6 +277,11 @@ function report(e, t, tag, startCoins) {
     const share = t.rec.length ? bonus / t.rec.length : 0;
     console.log('  ' + tag + ': loytoja (+3) ' + bonus + '/' + t.rec.length + ' = ' +
                 (share * 100).toFixed(0) + ' %');
+    /* Suora todiste arvonnasta (ei kolikkosaldoista): 1/6-rajan alle jääneet */
+    const vals = e.mhVals();
+    const rawHits = vals.filter((v) => v < 1 / 6).length;
+    console.log('  ' + tag + ': arvotut luvut ' + JSON.stringify(vals.map((v) => Number(v.toFixed(3)))) +
+                ' -> < 1/6: ' + rawHits + '/' + vals.length);
     check(share >= 0.08 && share <= 0.30,
           tag + ': loytojen osuus ~1/6 (8-30 %): ' + (share * 100).toFixed(0) + ' %');
     check(e.coins() >= 0, tag + ': kolikkosaldo ei koskaan negatiivinen (lopussa ' + e.coins() + ')');

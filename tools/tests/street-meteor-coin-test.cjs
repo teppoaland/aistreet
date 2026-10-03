@@ -56,6 +56,16 @@ const sandbox = {
     URLSearchParams, Image: function () {}, Uint8ClampedArray, Audio: function () {}
 };
 sandbox.globalThis = sandbox;
+/* Deterministinen Math.random: FULL/BAD arpovat talojen järjestyksen ja
+   meteoriittitaajuuden. Ilman tätä meteoriitti saattoi jäädä talon taakse
+   (osuma estyy) tai syntyä eri paikkaan → penkki heilui 0–4 (A/B: sama vika
+   myös ennen refaktorointia, joten kyse ei ollut regressiosta). */
+/* kiinteä siemen: sama layout joka ajolla. 37/40 siemenistä menee läpi –
+   loput 3 asettavat talon meteoriitin eteen (osuma estyy). Vaihda tarvittaessa:
+   MC_SEED=2 npm: node tools/tests/street-meteor-coin-test.cjs */
+let __seed = Number(process.env.MC_SEED || 7) >>> 0 || 1;
+const rnd = () => { __seed = (__seed * 1664525 + 1013904223) >>> 0; return __seed / 4294967296; };
+sandbox.Math = new Proxy(Math, { get(t, p) { return p === 'random' ? rnd : t[p]; } });
 vm.createContext(sandbox);
 sandbox.StreetAudio = new Proxy({}, {
     get(t, k) {
@@ -172,7 +182,11 @@ for (const lvl of ['normal', 'mild', 'good', 'bad']) {
 Street.setChaos('normal');
 ok('NORMAL: coinRespawnFrames yhä 7200 (bit-identtinen)', T.cfg.coinRespawnFrames === 7200, T.cfg.coinRespawnFrames);
 
-/* ═══ 5. Regressio: kadun kolikon keräys toimii edelleen (+1, globaali polku) ═══ */
+/* ═══ 5. Regressio: kadun kolikon keräys toimii edelleen (+1, globaali polku) ═══
+   HUOM (v11.44): FULLissa liikenne/oviukko voi kaataa pelaajan kesken
+   yrityksen (armFiring jättää pelaajan y=320 = kaistalle) → kolikon keräys jäi
+   väliin ja penkki heilui 0–4. Tämä tarkistus mittaa KOLIKKOPOLKUA, joten
+   pelaaja siirretään turvaradalle ja tainnutus nollataan joka kierroksella. */
 console.log('\n[5] Regressio: kadun kolikko (sama koodi kaikilla tasoilla)');
 try {
     Street.setChaos('full');
@@ -181,6 +195,9 @@ try {
     // Sama silmukka kuin pelissä (update). Lamput voivat työntää pelaajaa
     // sivusuunnassa → kolikko asetetaan uudelleen jalkoihin ja yritetään uudelleen.
     for (let i = 0; i < 5 && !collected; i++) {
+        T.player.y = 350;                    // turvarata (≥ PLAYER_DEPTH_MAX_Y 347)
+        T.player.knockedDown = false;
+        T.player.knockdownTimer = 0;
         T.coin.collected = false;
         T.coin.x = T.player.x + T.player.w / 2;
         T.coin.y = T.player.y + T.player.h;

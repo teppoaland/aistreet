@@ -1,19 +1,25 @@
-# 📊 BASELINE – pöytäpenkkien tila 2.10.2026 (v11.37 → v11.44)
+# 📊 BASELINE – pöytäpenkkien tila 2.10.2026 (v11.37 → v11.44 · **kaikki 26 puhdasta 3.10.2026**)
 
 > Tämä tiedosto on **vertailukohta refaktoroinnille**. Penkit siirrettiin `%TEMP%`:ista
 > repoon 2.10.2026 (Vaihe 0). Aja aina: `node tools/tests/run-all.cjs`.
+> **3.10.2026:** kuusi vanhentunutta odotusta (keltainen tila) korjattiin → **0 löydöstä**
+> (ks. viimeinen luku "Penkkivelka nollattu"). Pelikoodia ei muutettu.
 
 ## Miten baselinea luetaan
 
-- **Vihreä = 0 löydöstä:** `chaos-normal-check` (NORMAL bitti-identtinen, 78 avainta),
+- **Vihreä = 0 löydöstä:** kaikki penkit paitsi alla listatut olivat puhtaita jo ennen
+  korjauksia: `chaos-normal-check` (NORMAL bitti-identtinen, 78 avainta),
   `street-traffic-rooms`, `street-knockdown-traffic`, `street-drunk`, `street-chaos-fade`,
   `street-building-collapse`, `street-meteor-aftermath`, `street-meteor-tempo`,
   `street-k2k6k7`, `street-bm-key-reward`, `backdrop-destroy`, `street-fruit`,
-  `street-beam-cd-hp` (1 ei-kriittinen huomio), `street-beam-pickup-spawn` (1).
-- **Keltainen (tunnettu, penkkikohtainen):** alla listatut 7 penkkiä. Ne olivat
-  rikki **jo ennen** refaktorointia (vanhentuneet odotukset v11.12–v11.31:stä).
-- **Sääntö refaktoroinnissa:** keltainen penkki ei saa muuttua **huonommaksi**
-  (löydösten määrä ei saa kasvaa eikä uusia penkkejä saa kaatua).
+  `street-beam-cd-hp` (1 ei-kriittinen huomio), `street-beam-pickup-spawn` (1) sekä
+  uudet `street-chaos-cards`, `street-window-lights`, `street-canvas-invariants`,
+  `street-rooms-logic`.
+- **Keltainen (tunnettu, penkkikohtainen) – POISTUI 3.10.2026:** 7 penkkiä olivat rikki
+  **jo ennen** refaktorointia (vanhentuneet odotukset v11.10–v11.31:stä). Kaikki on nyt
+  korjattu (ks. viimeinen luku).
+- **Sääntö:** koska keltainen tila on poistettu, **mikä tahansa punainen rivi on aito löydös**
+  (ei enää "tunnettuja odotuksia").
 
 ## Ajo 2.10.2026 (22 penkkiä, 16 puhdasta / 6 löydöstä)
 
@@ -320,6 +326,24 @@ Huonelogiikka (345 rv / 3 lohkoa: `updateSleepRoom`, `updateBarRoom`, `updateJuk
   (kutsuja edelleen 13; laskuri on karkea ja laskee nyt myös siirretyt maininnat + bind-rivin +
   moduulin otsikkolistan). **Yksi uusi kutsu veisi luvun 19:ään** → sääntö 06 pysyy vahdittuna.
 - **Tulokset:** `street.js` 8 622 → **8 338 rv** · `street/rooms.js` 1 053 → **1 417 rv** ·
-  NORMAL 78 avainta / 0 eroa · render-smoke 30/30 · **26 penkkiä 19 puhdasta / 7** =
-  sama baseline (meteor-coin on tunnettu epävakaa 0–4).
+## Penkkivelka nollattu – 26 penkkiä / 0 löydöstä (3.10.2026, v11.44)
+
+Kuusi "keltaista" penkkiä olivat **vanhentuneita odotuksia** (v11.10–v11.31), eivät
+regressioita. Ne korjattiin vastaamaan nykyistä, tarkoituksellista toimintaa – **pelikoodia ei
+muutettu lainkaan**, joten versionumero pysyy **v11.44**:ssä (käyttäjän testaama koodi on
+täsmälleen sama).
+
+| Penkki | Löydökset | Mikä oli vanhentunut | Korjaus |
+|---|---|---|---|
+| `street-manhole-bonus` | 3 → **0** | `ROOT` osoitti **D:\AI\Main**iin (forkin esikuva) + keräilybudjetti mitoitettu 1/3-arvonnalle | `ROOT` = repo; budjetti 400 → 1500 kierrosta (→ 18 putoamista): "75 %" oli 4 putoamisen sattumaa, 18:lla 22 % / 17 % = 1/6 ✔; arvotut luvut tulostetaan todisteeksi |
+| `street-hunger-scope` | 3 → **0** | `ROOT` = Main; makuuhuoneen merkki `'MAKUUHUONE'` (UI käännettiin englanniksi v11.00 → `'BEDROOM'`); T6:n kävely kiinteä 150 f (1 🍔 = 2/3-vauhti v4.70) | `ROOT` = repo; merkki `'BEDROOM'`; T6 kävelee `x ≥ 745` asti (uusi `player()`-probe) |
+| `street-jukebox` | 27 → **0** | koko penkki oli **yhden valinnan mallia** (v4.21): `'Valinta: N'`, `'SOI NYT'`, suomenkieliset tekstit | uudistettu **monivalintaan (v4.46/v4.99)**: rivi 0 = Exit, `✓ 1 🪙`, `▶ N track(s)`, `♪ PLAYING`, Enter lisää jonoon; `tapDoor` vapauttaa Space-näppäimen (reunanilmaisu); audio-stubi tallentaa `playJukeboxQueue`/`appendJukeboxQueue`; T5-regex sallii forkin `\|\| introPlaying` |
+| `street-avenger` | 1 → **0** | potki `buildings[2]`:ta, joka on nykyään **Laivanupotus** (2. napautus avaa pelin) | kohde = **talo 0** (nykyään ainoa "potki kahdesti → pudotus"): 3 potkua sytyttävät ikkunat, 4. pudottaa; jahti- ja paluubudjetit (1200 / 1100 f) vastaavat v4.68:n hitaampaa oviukkoa |
+| `street-autohover` | 31 → **0** | **v11.28 nosti alun 1 s → 5 s** (+ 500 ms uusintayritys) ja **v11.29 poisti PC:n mouseenter-peruutuksen** | aikajana lasketaan nyt vakioista (`START`/`STEP`/`HOLD`/`CYCLE`); osio C = "mouseenter ei enää keskeytä"; uudet lähdevahdit (START 5000, RETRY 500); D-osiossa pollaus (`waitForCond`) |
+| `street-meteor-coin` | 0–4 (epävakaa) → **0** | FULL arpoi talojen järjestyksen → meteoriitti saattoi jäädä talon taakse (osuma estyy); kolikkotestissä liikenne kaatoi pelaajan | kiinteä `Math.random`-siemen (37/40 siemenistä kelpaa, oletus **7**, kytkin `MC_SEED=`, ks. kommentti); kolikkotestissä pelaaja turvaradalle (`y 350`) + tainnutus nollataan |
+
+**Tulos:** `node tools/tests/run-all.cjs` → **26 penkkiä, 26 puhdasta, 0 löydöstä** (5 peräkkäistä ajoa).
+Yllä oleva per-penkki-taulukko on tästä eteenpäin **historiaa**: uusien penkkien odotukset ovat
+suoria portteja, joten mikä tahansa punainen rivi on nyt aito löydös.
+
 

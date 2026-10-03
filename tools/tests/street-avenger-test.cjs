@@ -163,6 +163,25 @@ function boot(startBurgers) {
     return h;
 }
 
+/* Kävele annettuun pisteeseen (keski-x, pelaajan y) 1 framen askeleilla.
+   Käytetään Testissä 1, koska 1 🍔 = 2/3-vauhti (v4.70) tekee kiinteistä
+   frame-määristä epäluotettavia. */
+function walkToPoint(e, tx, tyHome, maxSteps) {
+    for (let i = 0; i < (maxSteps || 1200); i++) {
+        const p = e.dbg.player();
+        const cx = p.x + p.w / 2;
+        const kx = (tx - cx) > 1.5 ? 'ArrowRight' : ((tx - cx) < -1.5 ? 'ArrowLeft' : null);
+        const ky = (tyHome - p.y) > 1.5 ? 'ArrowDown' : ((tyHome - p.y) < -1.5 ? 'ArrowUp' : null);
+        if (!kx && !ky) return true;
+        if (kx) e.hold(kx);
+        if (ky) e.hold(ky);
+        e.frame(1);
+        if (kx) e.release(kx);
+        if (ky) e.release(ky);
+    }
+    return false;
+}
+
 /* ═══ TESTI 1: kadun polku – potku ovelle → oviukko → osuma (ei väistettävissä) ═══ */
 try {
     const e = boot(6);
@@ -176,25 +195,33 @@ try {
     if (A.AVENGER_CHANCE !== 0.12 || A.AVENGER_COOLDOWN !== 1800) fail('Vakiot: arvonta/cooldown ei 0.12/1800');
     else ok('Vakiot: 1/8 arvonta (0.12) + 30 s cooldown (1800 f)');
 
-    // Kävele talon 2 ovelle (buildings[2], ovi x 225): alas → oikealle → ylös
-    e.rnd(0.05);                       // oviukon arvonta osuu
-    e.hold('ArrowDown'); e.frame(60); e.release('ArrowDown');
-    e.hold('ArrowRight'); e.frame(143); e.release('ArrowRight');
-    e.hold('ArrowUp'); e.frame(55); e.release('ArrowUp');
+    // Kävele TALON 0 ovelle (ovi x 40, kynnys y 294) alarataa pitkin:
+    // alas (y 350) → vasemmalle → ylös kynnykselle. Kohde on mitattava
+    // pelaajan keskipisteestä, koska handleAction käyttää samaa pistettä.
+    e.rnd(0.05);                       // ikkunatavoite 3 potkua + oviukon arvonta osuu
+    walkToPoint(e, e.dbg.player().x + e.dbg.player().w / 2, 350);   // alas turvaradalle
+    walkToPoint(e, 40, 350);                                        // vasemmalle
+    walkToPoint(e, 40, 280);                                        // ylös kynnykselle (keski y 295)
     const pl = e.dbg.player();
     ok('Kävely ovelle: pelaaja (' + Math.round(pl.x) + ', ' + Math.round(pl.y) + ')');
 
-    // 1. potku: sytyttää talon valot (ei pudotusta)
+    /* Talo 0 on nykyään ainoa "potki kahdesti → pudotus" -kohde:
+       1.–3. potku sytyttävät ikkunat (rnd 0.05 → tavoite 3), 4. potku
+       valaistulla ovella pudottaa (oviukko 1/8 → kolikko 1/5 → ruukku). */
+    // 1. potku: ikkunat, ei pudotusta
     e.tapAction(); e.frame(4);
     if (e.dbg.avenger()) fail('Ensimmäinen potku synnytti oviukon (valot vasta syttyivät)');
-    // 2. potku: pudotus – rnd 0.05 → oviukko
+    // 2.–3. potku: ikkunat syttyvät (tavoite 3)
+    e.tapAction(); e.frame(4);
+    e.tapAction(); e.frame(4);
+    // 4. potku valaistulla ovella: pudotus – rnd 0.05 → oviukko
     e.tapAction(); e.frame(2);
 
     const a = e.dbg.avenger();
     if (!a) {
         fail('Oviukko ei syntynyt potkusta (oviukon arvonta)');
     } else {
-        const doorX = 225, windowY = GY - e.dbg.buildings[2].h + 40;   // 210 = ruukun lähtökorkeus
+        const doorX = 40, windowY = GY - e.dbg.buildings[0].h + 40;   // talo 0: ruukun lähtökorkeus
         ok('Oviukko syntyi: x ' + Math.round(a.x) + ' (ovi ' + doorX + '), y ' + Math.round(a.y) + ' (kynnys ' + (GY - 30) + ')');
         if (Math.abs(a.y - (GY - 30)) > 1) fail('Oviukko ei aloita kynnykseltä (y ' + a.y + ')');
         else if (Math.abs(a.y - windowY) < 5) fail('Oviukko putoaa ikkunasta (y ' + a.y + ' = ruukun korkeus)');
@@ -205,10 +232,12 @@ try {
         if (!(e.dbg.avengerCooldown() > 0)) fail('Cooldown ei käynnistynyt oviukosta');
         else ok('Cooldown käynnistyi: ' + Math.round(e.dbg.avengerCooldown()) + ' f');
 
-        // Pakene täydellä nopeudella oikealle (sähkökaappi x200 on vasemmalla – ei saa sotkea)
+        // Pakene täydellä nopeudella oikealle: oviukko (1,0 px/f) nappaa vasta
+        // laidalla. Talon 0 ovelta (x 31) on koko kadun matka (~750 px), joten
+        // kiinniotto kestää ~750 f (hitaampi vauhti v4.68) → budjetti 1200 f.
         let contactFrame = 0, chaseStart = 0, dChase0 = 0, dHit = 0;
         e.hold('ArrowRight');
-        for (let i = 1; i <= 600; i++) {
+        for (let i = 1; i <= 1200; i++) {
             e.frame(1);
             const cur = e.dbg.avenger();
             if (!cur) break;
@@ -251,8 +280,10 @@ try {
         if (e.dbg.player().knockedDown && e.dbg.burgers() !== 5) fail('Tainnutuksen aikana tuli toinen osuma (' + e.dbg.burgers() + ')');
         else ok('120 f tainnutuksen aikana → edelleen 5 hampurilaista (ei tuplaosumaa)');
 
-        // Paluu ovelle + katoaminen tainnutuksen aikana
-        for (let i = 0; i < 600 && e.dbg.avenger(); i++) e.frame(1);
+        // Paluu ovelle + katoaminen tainnutuksen aikana.
+        // HUOM: jahti päättyi nyt kadun oikeaan laitaan (x ~760) ja ovi on
+        // talossa 0 (x 40) → paluumatka ~720 px @ 1,0 px/f = ~720 f.
+        for (let i = 0; i < 1100 && e.dbg.avenger(); i++) e.frame(1);
         if (e.dbg.avenger()) fail('Oviukko ei palannut ovelle ja kadonnut');
         else ok('Oviukko käveli takaisin kynnykselle ja katosi (avenger = null)');
         let cleared = 0;

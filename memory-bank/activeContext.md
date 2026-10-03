@@ -278,13 +278,14 @@ mopo, puut, kolikko, mobiilikamera, potkukolikko).
 node tools/tests/chaos-normal-check.cjs        :: NORMAL CLEAN: 78 keys, 0 diffs
 node tools/tests/street-render-smoke-test.cjs  :: Tulos: 30 / 30 OK, 0 löydöstä
 node tools/tests/street-rooms-logic-test.cjs   :: Tulos: 41 OK, 0 löydöstä
-node tools/tests/run-all.cjs                   :: 26 penkkiä, 19 puhdasta / 7 (7. = epävakaa meteor-coin)
+node tools/tests/run-all.cjs                   :: 26 penkkiä, 26 puhdasta, 0 löydöstä
 ```
-`tools/tests/BASELINE.md` = per-penkki-taulukko; **ne 6 "löydöstä" ovat ennestään vanhentuneita
-odotuksia, eivät regressioita** (autohover 31 · avenger 1 · bad-warning 1 · hunger-scope 3 ·
-jukebox 27 · manhole-bonus 3). Epävakaa (A/B-todistettu penkkiviaksi): `street-meteor-coin` (0–4)
-→ ajoraportti on siksi joskus **19/7**. Uudet penkit (kortit, ikkunavalot, canvas-invariantit,
-huonelogiikka) ovat puhtaita.
+`tools/tests/BASELINE.md` = per-penkki-taulukko. **3.10.2026: penkkivelka nollattu** – kuusi
+vanhentunutta odotusta (autohover 31 · avenger 1 · bad-warning 1 · hunger-scope 3 · jukebox 27 ·
+manhole-bonus 3) ja epävakaa `street-meteor-coin` korjattiin, **pelikoodia muuttamatta**
+(ROOT osoitti forkissa D:\AI\Mainiin; jukebox-penkki oli yhden valinnan mallia; autohoverin alku
+1 s → 5 s v11.28 + mouseenter-peruutus poistui v11.29). Yksityiskohdat: `BASELINE.md`
+§ Penkkivelka nollattu. **Nyt mikä tahansa punainen rivi on aito löydös.**
 
 **0) ENSIN – kysy käyttäjältä v11.44-testin tulos** (`docs/testilista.md` § UUSI SESSIO).
 Ongelma → **toista havainto + A/B (`git show HEAD`) + kirjoita penkki, joka kaatuu ennen korjausta**,
@@ -303,9 +304,12 @@ vasta sitten korjaus + versionosto + paikallinen commit. Ei ongelmia → jatka a
   (+4 penkkiä injektoi `dayT`-hookit) · talous **149 viittausta** (suositus: jätä ennalleen – arvot on
   pelitestattu). Tämä on **ainoa jäljellä oleva refaktorointivaihe**, ja se on vapaaehtoinen siivous:
   mikään ei enää estä Vaihetta 6.
-- **E) Penkkivelka (paras hoitaa ennen julkaisua):** 6 penkkiä on **vanhentuneita odotuksia**
-  (autohover 31 · avenger 1 · bad-warning 1 · hunger-scope 3 · jukebox 27 · manhole-bonus 3) +
-  epävakaa `street-meteor-coin` → portti ei ole vielä 100 % vihreä, vaikka uudet penkit ovat puhtaita.
+- **E) ✅ TEHTY 3.10.2026 – Penkkivelka nollattu:** 6 vanhentunutta penkkiä + epävakaa
+  `street-meteor-coin` korjattu (ROOT → repo, jukebox monivalintamalliin, autohoverin uusi
+  aikajana 5 s + mouseenter-peruutuksen poisto v11.29, avengerin kohdetalo 0, hunger-scopen
+  `'BEDROOM'`-merkki + 2/3-vauhdin kävely, manhole-budjetti 1500 kierrosta, meteor-coinin
+  kiinteä siemen) → **run-all 26 penkkiä / 26 puhdasta / 0 löydöstä**. **Ei koodimuutosta**
+  → versionumero pysyi v11.44:ssä.
 - **C) Vaihe 6 (itsenäinen, kevyt):** 479 `vNN.NN`-kommenttimerkintää → `CHANGELOG.md`:hen, kommenteihin vain "miksi".
 - **D) Muut avoimet työt** (eivät liity refaktorointiin): ks. "Seuraavaksi"-osio – Blue Mäx -testimode,
   pääsiäismunat Dig Däshiin, hedelmäpelin RTP-presetit, jukebox-testien päivitys.
