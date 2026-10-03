@@ -128,6 +128,10 @@ const Street = (() => {
            uudelle asettelulle; ikkunavälimuisti ja -valot nollataan). */
         _allWindows = null;
         litWindows.length = 0;
+        /* v11.41 (bugikorjaus): kylvä ikkunavalot HETI uudelleen. Muuten BAD/FULL jäi
+           ilman ikkunavaloja koko runiksi, koska updateLitWindows() arpoo uuden
+           tavoitteen vain kun jokin ikkuna sammuu → tyhjä lista ei koskaan täyty. */
+        seedLitWindows();
         buildingOrderShuffled = true;
     }
 
@@ -174,7 +178,7 @@ const Street = (() => {
     ];
 
 /* ── Kolikko ─────────────────────────────────────── */
-    const coin = { x: 590, y: 325, collected: false, sparkle: 0, despawnTimer: 0, despawnCooldown: 0 };
+    const coin = { x: 590, y: 325, collected: false, sparkle: 0, despawnTimer: 0, despawnCooldown: 0, respawnTimer: 0 };
     // Kolikko ilmestyy sinne, missä pelaajan jalat voivat liikkua:
     //   x: 0..(WORLD_W - player.w), y: GROUND_Y..(WORLD_H - 50 + player.h)
     const COIN_X_MIN = 0;
@@ -267,6 +271,7 @@ const Street = (() => {
         for (let i = 0; i < trees.length; i++) trees[i].x = TREE_X_DEFAULT[i];
         _allWindows = null;
         litWindows.length = 0;
+        seedLitWindows();   // v11.41: sama syy (esim. BAD/FULL → NORMAL samassa sessiossa)
         buildingOrderShuffled = false;
     }
 
@@ -388,14 +393,32 @@ const Street = (() => {
        ▲/▼, Space (⚡) vie seuraavalle sivulle ja poistuu viimeiseltä,
        (o)/Enter poistuu heti. Ei tallennettavaa tilaa. */
     let newsRoom = false;
-    let newsScreen = 0;            // näkyvä "näyttö" (pitkä sivu voi olla usealla)
     let newsHeldUp = false;        // ▲ reunanilmaisu
     let newsHeldDown = false;      // ▼ reunanilmaisu
     let newsSpaceHeld = false;     // Space/⚡ reunanilmaisu (seuraava sivu)
     let newsExitHeld = false;      // (o)/Enter reunanilmaisu (poistu heti)
 
+    /* ── Huonerekisteri (Vaihe 3) ─────────────────────────────────────────
+       Jokainen kadun canvas-huone on olio, jolla on sama rajapinta:
+         isOpen()   – onko huone auki (koko näkymä on huone)
+         update(dt) – true = käsitteli framen (update() palaa heti)
+         draw()     – piirtää huoneen (kutsutaan vain kun isOpen())
+         close()    – ✕ / closeRoom(): sulkee huoneen, true = oli auki
+       Uuden huoneen lisäys = yksi olio tähän listaan + omat update/draw/
+       close-funktiot – update(), render() eivät muutu.
+       Huoneet ovat modaalisia (enintään yksi auki kerrallaan), joten
+       järjestys on vapaa; se on kuitenkin sama kuin entinen käsittelyjärjestys.
+       HUOM: oven avaaminen (potku, valot, avaimet) on yhä omissa
+       tryXxxDoor()-funktioissaan – huone ei avaa itseään. */
+    const rooms = [
+        { name: 'sleep',   isOpen: () => sleepRoom,   update: updateSleepRoom,   draw: StreetRooms.drawSleep,     close: closeSleepRoom },
+        { name: 'bar',     isOpen: () => barRoom,     update: updateBarRoom,     draw: StreetRooms.drawBar,       close: closeBarRoom },
+        { name: 'jukebox', isOpen: () => jukeboxRoom, update: updateJukeboxRoom, draw: StreetRooms.drawJukebox,   close: closeJukeboxRoom },
+        { name: 'news',    isOpen: () => newsRoom,    update: updateNewsRoom,    draw: StreetNews.drawView, close: closeNewsRoom }
+    ];
+
+
     let coinCount = 0;
-    let coinRespawnTimer = 0;
     let hamburgerCount = 5;
     let hamburgerTimer = 2400;  // 40s @ ~60fps – lukittu tahti (sääntö 04)
     let burgerInterval = 2400;  // 🍔-kulutustahti kaaosakselina (K4, v10.04); NORMAL 2400
@@ -439,7 +462,7 @@ const Street = (() => {
     }
     /* Tähtäysvirhe humalassa (v11.31d/f): horjuva siirtymä tähtäyspisteeseen. */
     function drunkAimShift() {
-        if (chaosLevel !== 'full' || drunkLevel < DRUNK_AIM_MIN) return { x: 0, y: 0 };
+        if (!chaosFlags.drunk || drunkLevel < DRUNK_AIM_MIN) return { x: 0, y: 0 };
         const lvl = Math.max(0, Math.min(DRUNK_MAX, Math.round(drunkLevel)));
         const amp = DRUNK_AIM_PX[lvl] || 0;
         if (amp <= 0) return { x: 0, y: 0 };
@@ -508,9 +531,15 @@ const Street = (() => {
     const COIN_CHEAT_REWARD   = 20;     // kolikkoa palkkiosta
     const COIN_CHEAT_GAP      = 120;    // 2s @ ~60fps: sallittu väli potkujen välissä
     const COIN_CHEAT_COOLDOWN = 3600;   // 60s @ ~60fps palkkion jälkeen (0 = ei cooldownia)
-    let coinCheatStreak = 0;            // peräkkäiset potkut vitoslamppuun
-    let coinCheatGapTimer = 0;          // montako frameä putki vielä pysyy voimassa
-    let coinCheatCooldown = 0;          // cooldownin jäljellä olevat framet
+    /* ── Salainen kolikkopalkkio: putken tila (Vaihe 4) ────────────────
+       Ryhmitelty yhdeksi olioksi (ennen kolme irrallista muuttujaa).
+       Testityökalu: ei vaikuta talouteen eikä tallennu. */
+    const coinCheat = {
+        streak: 0,      // peräkkäiset potkut vitoslamppuun
+        gapTimer: 0,    // montako frameä putki vielä pysyy voimassa
+        cooldown: 0,    // cooldownin jäljellä olevat framet
+        reset() { this.streak = 0; this.gapTimer = 0; this.cooldown = 0; }
+    };
 
     /* ── Oviukko (Avenger): kolikon vastakohta ────────
        Ei putoa ikkunasta kuten ruukku/kolikko – astuu OVESTA kynnykseltä ja
@@ -921,9 +950,18 @@ const Street = (() => {
     const MH_RISE_PART    = 0.65;          // osuus kiipeämisestä, jolloin hahmo nousee esiin
     const MH_STEP_PX      = 9;             // loppuosa: astuu reiän reunan yli kuivalle
     const MH_CLIMB_WOBBLE = 1.6;           // köpimisen sivuttaisheilunta (px, vain visuaalinen)
-    let manholeOpen = null;                // null = kannet paikallaan · 0/1 = kumpi puuttuu
-    let mhInside = [false, false];         // oliko jalkapiste reiän ellipsissä (reunaehto)
-    let mhAction = null;                   // { idx, phase: 'fall' | 'climb', t } pudotuksen aikana
+    /* ── Kaivon tila (Vaihe 4: ryhmitelty olioksi) ──────────────────────
+       Aiemmin kaivon tila oli kolmea irrallista muuttujaa (auki oleva kansi,
+       sisällä-lippu ja käynnissä oleva pudotus/kiipeäminen).
+       Hyöty: nollaus ja uudelleenarvonta yhdessä paikassa (manhole.reset()),
+       ei hajallaan kymmenissä kohdissa. Vain muistissa – ei tallenneta
+       (kansi arvotaan uudelleen huoneesta/alapelistä palatessa). */
+    const manhole = {
+        open: null,                   // null = kannet paikallaan · 0/1 = kumpi puuttuu
+        inside: [false, false],       // oliko jalkapiste reiän ellipsissä (reunaehto)
+        action: null,                 // { idx, phase: 'fall' | 'climb', t } pudotuksen aikana
+        reset() { this.open = null; this.inside = [false, false]; this.action = null; }
+    };
     let wasHiddenStreet = false;           // oliko huone/alapeli auki viime framella (paluu = 1/10)
 
     const MH_HOLE_PARAM = (typeof location !== 'undefined' && typeof URLSearchParams !== 'undefined')
@@ -944,23 +982,24 @@ const Street = (() => {
 
     /* Alkutilanne: 1/6 → satunnainen kansi puuttuu. */
     function rollManholeState() {
-        if (MH_FORCE !== undefined) { manholeOpen = MH_FORCE; mhInside = [false, false]; return; }
-        manholeOpen = (Math.random() < MANHOLE_START_CHANCE)
+        manhole.reset();                       // alkutilanne: ei auki olevaa kantta eikä sekvenssiä
+        if (MH_FORCE !== undefined) { manhole.open = MH_FORCE; return; }
+        manhole.open = (Math.random() < MANHOLE_START_CHANCE)
             ? (Math.random() < 0.5 ? 0 : 1)
             : null;
-        mhInside = [manholeHit(0), manholeHit(1)];
+        manhole.inside = [manholeHit(0), manholeHit(1)];
     }
 
     /* Paluu kadulle: 1/10 → tilanne vaihtuu (kansi katoaa TAI palaa paikalleen). */
     function maybeRerollManholeState() {
-        if (MH_FORCE !== undefined || playerDead || mhAction) return;
+        if (MH_FORCE !== undefined || playerDead || manhole.action) return;
         if (Math.random() >= MANHOLE_RETURN_CHANCE) return;
-        manholeOpen = (manholeOpen == null)
+        manhole.open = (manhole.open == null)
             ? (Math.random() < 0.5 ? 0 : 1)
             : null;
         /* Jos jalat ovat juuri uuden reiän kohdalla, putoaminen ei laukea
            heti: jalkapisteen pitää käydä välillä ellipsin ulkopuolella. */
-        mhInside = [manholeHit(0), manholeHit(1)];
+        manhole.inside = [manholeHit(0), manholeHit(1)];
     }
 
     /* Paluu kadulle -vahti: kun huone tai alapeli sulkeutuu, arvotaan 1/10
@@ -1205,7 +1244,7 @@ const Street = (() => {
        MUUT MOODIT täsmälleen entinen: −1 🍔 ja 0 → kuolema.
        Tainnutus asetetaan aina kutsujassa – tämä hoitaa vain "hinnan". */
     function collisionCost() {
-        if (chaosLevel === 'full' && drunkLevel > 0) {
+        if (chaosFlags.drunk && drunkLevel > 0) {
             drunkLevel--;                 // olutkerros imee iskun
             drunkTimer = burgerInterval;
             saveChaosSession();           // v11.31e: F5 ei hukkaa humalaa
@@ -1254,7 +1293,7 @@ const Street = (() => {
        Sekvenssin ajan katu on jäissä (update palaa heti alussa). */
     function startManholeFall(idx) {
         const mh = foreground.manholes[idx];
-        mhAction = { idx: idx, phase: 'fall', t: MH_FALL_FRAMES };
+        manhole.action = { idx: idx, phase: 'fall', t: MH_FALL_FRAMES };
         player.kicking = false;
         player.kickFrame = 0;
         player.walking = false;
@@ -1264,7 +1303,7 @@ const Street = (() => {
     }
 
     function updateManholeAction(dt) {
-        const a = mhAction;
+        const a = manhole.action;
         const mh = foreground.manholes[a.idx];
         a.t -= dt;
 
@@ -1283,8 +1322,8 @@ const Street = (() => {
                putoamista, mutta seuraava astuminen laukaisee taas. */
             player.walking = false;
             player.walkFrame = 0;
-            mhInside[a.idx] = false;
-            mhAction = null;
+            manhole.inside[a.idx] = false;
+            manhole.action = null;
             spawnParticles(mh.x, mh.y - 6, '#5a5a5a', 8);
             return;
         }
@@ -1347,402 +1386,55 @@ const Street = (() => {
     let windDir = Math.random() < 0.5 ? 1 : -1;
     let windSpeed = 2 + Math.random() * 3; // px/s (2–5)
 
-    /* ── Potkuääni (Web Audio API) ────────────────── */
-    let audioCtx = null;
-    let _audioListenersAdded = false;
-    function initAudio() {
-        if (!audioCtx) {
-            audioCtx = StreetAudio.getCtx();
-        }
-        if (audioCtx && audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
-        if (!_audioListenersAdded) {
-            _audioListenersAdded = true;
-            const resumeAudio = () => {
-                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-            };
-            document.addEventListener('touchstart', resumeAudio, { passive: true });
-            document.addEventListener('mousedown', resumeAudio);
-            document.addEventListener('keydown', resumeAudio);
-        }
-    }
-    function playKick() {
-        try {
-            initAudio();
-            if (!audioCtx || audioCtx.state !== 'running') return;
-            const now = audioCtx.currentTime;
-            // Lyhyt napsaus – kohina + terävä alku
-            const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * 0.06), audioCtx.sampleRate);
-            const data = buf.getChannelData(0);
-            for (let i = 0; i < data.length; i++) {
-                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.008));
-            }
-            const src = audioCtx.createBufferSource();
-            src.buffer = buf;
-            const filter = audioCtx.createBiquadFilter();
-            filter.type = 'highpass';
-            filter.frequency.value = 800;
-            const gain = audioCtx.createGain();
-            gain.gain.setValueAtTime(0.83 * sfxVolumeMult, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-            src.connect(filter).connect(gain).connect(audioCtx.destination);
-            src.start(now);
-            src.stop(now + 0.06);
-        } catch(e) {}
-    }
-    /* ── Kävelyääni ──────────────────────────────── */
-    function playWalk() {
-        try {
-            initAudio();
-            if (!audioCtx || audioCtx.state !== 'running') return;
-            const now = audioCtx.currentTime;
-            const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * 0.05), audioCtx.sampleRate);
-            const data = buf.getChannelData(0);
-            for (let i = 0; i < data.length; i++) data[i] = (Math.random()*2-1) * Math.exp(-i/(audioCtx.sampleRate*0.012));
-            const src = audioCtx.createBufferSource(); src.buffer = buf;
-            const filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 300;
-            const gain = audioCtx.createGain();
-            gain.gain.setValueAtTime(0.68 * sfxVolumeMult, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-            src.connect(filter).connect(gain).connect(audioCtx.destination);
-            src.start(now); src.stop(now + 0.05);
-        } catch(e) {}
-    }
-    /* ── Kolikkoääni ──────────────────────────────── */
-    function playCoin() {
-        try {
-            initAudio();
-            if (!audioCtx || audioCtx.state !== 'running') return;
-            const now = audioCtx.currentTime;
-            // Vieno pling – kaksi sine-oskillaattoria (1200 + 1800 Hz)
-            [1200, 1800].forEach(freq => {
-                const osc = audioCtx.createOscillator();
-                osc.type = 'sine';
-                osc.frequency.value = freq;
-                const gain = audioCtx.createGain();
-                gain.gain.setValueAtTime(0.18 * sfxVolumeMult, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-                osc.connect(gain).connect(audioCtx.destination);
-                osc.start(now); osc.stop(now + 0.08);
-            });
-        } catch(e) {}
-    }
-    /* ── Tömähdys (oviukon osuma) ──────────────────── */
-    function playKnock() {
-        try {
-            initAudio();
-            if (!audioCtx || audioCtx.state !== 'running') return;
-            const now = audioCtx.currentTime;
-            // Matala tömähdys: kohina + lyhyt matala jyrinä
-            const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * 0.12), audioCtx.sampleRate);
-            const data = buf.getChannelData(0);
-            for (let i = 0; i < data.length; i++) {
-                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.02));
-            }
-            const src = audioCtx.createBufferSource();
-            src.buffer = buf;
-            const filter = audioCtx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.value = 500;
-            const gain = audioCtx.createGain();
-            gain.gain.setValueAtTime(0.75 * sfxVolumeMult, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-            src.connect(filter).connect(gain).connect(audioCtx.destination);
-            src.start(now); src.stop(now + 0.12);
+    /* ── Äänet omasta tiedostosta (Vaihe 5) ──
+       street/sfx.js sisältää kaikki kadun SFX-äänet ja ajoneuvon moottoriäänen.
+       Moduuli omistaa audioCtx:n ja SFX-tason (K6); tänne tuodaan samat nimet,
+       joten kutsuva koodi ei muutu. */
+    const {
+        initAudio, sfxTone, playKick, playWalk, playCoin, playKnock, playZap, playLaser,
+        playMeteorHit, playBuildingCollapse, playBeamEmpty, playLampOn,
+        startVehicleEngine, updateVehicleEngine, stopVehicleEngine
+    } = StreetSfx;
+    StreetSfx.bind({ WORLD_W: WORLD_W });   // moottoriäänen panorointi tarvitsee maailman leveyden
 
-            const osc = audioCtx.createOscillator();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(150, now);
-            osc.frequency.exponentialRampToValueAtTime(45, now + 0.11);
-            const ogain = audioCtx.createGain();
-            ogain.gain.setValueAtTime(0.30 * sfxVolumeMult, now);
-            ogain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
-            osc.connect(ogain).connect(audioCtx.destination);
-            osc.start(now); osc.stop(now + 0.12);
-        } catch(e) {}
-    }
-    /* ── Sähköiskun ääni ───────────────────────────── */
-    function playZap() {
-        try {
-            initAudio();
-            if (!audioCtx || audioCtx.state !== 'running') return;
-            const now = audioCtx.currentTime;
-            // Surina: kohina + nopea neliöaalto-sweep alas
-            const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * 0.18), audioCtx.sampleRate);
-            const data = buf.getChannelData(0);
-            for (let i = 0; i < data.length; i++) {
-                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.04));
-            }
-            const src = audioCtx.createBufferSource();
-            src.buffer = buf;
-            const ngain = audioCtx.createGain();
-            ngain.gain.setValueAtTime(0.5 * sfxVolumeMult, now);
-            ngain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-            src.connect(ngain).connect(audioCtx.destination);
-            src.start(now); src.stop(now + 0.18);
+    /* ── Sanomalehden asettelu + piirto omasta tiedostosta (Vaihe 5 osa 3) ──
+       street/news.js omistaa lehden sivutilan (screen) ja asetteluvälimuistin.
+       Tähän sidotaan street.js:n sulkeumassa asuvat arvot live-gettereinä,
+       joten esim. viewW seuraa resizeä ja ctx asettuu initissä. */
+    StreetNews.bind({
+        get ctx() { return ctx; },
+        get canvas() { return canvas; },
+        get viewW() { return viewW; },
+        get foreground() { return foreground; },
+        get player() { return player; },
+        get vehicles() { return vehicles; },
+        get newsRoom() { return newsRoom; },
+        get iframeOpen() { return iframeOpen; },
+        WORLD_W: WORLD_W, WORLD_H: WORLD_H, VIEWW_MIN: VIEWW_MIN
+    });
 
-            const osc = audioCtx.createOscillator();
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(120, now);
-            osc.frequency.exponentialRampToValueAtTime(30, now + 0.15);
-            const ogain = audioCtx.createGain();
-            ogain.gain.setValueAtTime(0.12 * sfxVolumeMult, now);
-            ogain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-            osc.connect(ogain).connect(audioCtx.destination);
-            osc.start(now); osc.stop(now + 0.15);
-        } catch(e) {}
-    }
+    /* ── Ajoneuvojen piirto omasta tiedostosta (Vaihe 5 osa 4) ──
+       street/traffic.js sisältää drawVehicle(v):n. Liikennologiikka
+       (spawn, liike, törmäys) jää tänne. Live-getterit: ctx asettuu
+       initissä ja dayT liukuu päivä/yö-syklin mukana. */
+    StreetTraffic.bind({
+        get ctx() { return ctx; },
+        get dayT() { return dayT; },
+        VEHICLE_HEADLIGHT_DIM: VEHICLE_HEADLIGHT_DIM,
+        /* Vaihe 5 osa 7 – liikennologiikka lukee/mutatoi näitä. */
+        WORLD_W: WORLD_W,   // ← v11.43: PUUTTUI (spawn x = WORLD_W + w → undefined+w = NaN!)
+        get vehicles() { return vehicles; },
+        get spawnTimers() { return spawnTimers; },
+        get player() { return player; },
+        get vehicleShakeTimer() { return vehicleShakeTimer; }, set vehicleShakeTimer(v) { vehicleShakeTimer = v; },
+        get trafficSpeedMult() { return trafficSpeedMult; },
+        get trafficSpawnMult() { return trafficSpawnMult; },
+        get PLAYER_DEPTH_MAX_Y() { return PLAYER_DEPTH_MAX_Y; },   // määritelty rivillä ~8041 → getteri (TDZ)
+        LANE_DEFS: LANE_DEFS, TRAFFIC_DAY_MULT: TRAFFIC_DAY_MULT,
+        chaosAllGone: chaosAllGone, spawnParticles: spawnParticles, collisionCost: collisionCost,
+        sfx: { playKnock: playKnock, startEngine: startVehicleEngine, updateEngine: updateVehicleEngine, stopEngine: stopVehicleEngine }
+    });
 
-    /* ── Sädeaseen laserääni (v10.21) – "pew" kuin Star Wars ── */
-    function playLaser() {
-        try {
-            initAudio();
-            if (!audioCtx || audioCtx.state !== 'running') return;
-            const now = audioCtx.currentTime;
-            // Vingahdus: korkea → matala sweep (sahatonni), ~1 s (v10.22)
-            const osc = audioCtx.createOscillator();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(1900, now);
-            osc.frequency.exponentialRampToValueAtTime(160, now + 1.0);
-            const ogain = audioCtx.createGain();
-            ogain.gain.setValueAtTime(0.16 * sfxVolumeMult, now);
-            ogain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
-            osc.connect(ogain).connect(audioCtx.destination);
-            osc.start(now); osc.stop(now + 1.0);
-            // Kirkas neliökerros → terävämpi "pew"
-            const osc2 = audioCtx.createOscillator();
-            osc2.type = 'square';
-            osc2.frequency.setValueAtTime(2800, now);
-            osc2.frequency.exponentialRampToValueAtTime(320, now + 0.8);
-            const g2 = audioCtx.createGain();
-            g2.gain.setValueAtTime(0.09 * sfxVolumeMult, now);
-            g2.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
-            osc2.connect(g2).connect(audioCtx.destination);
-            osc2.start(now); osc2.stop(now + 0.8);
-        } catch(e) {}
-    }
-
-    /* ── Meteoriitin osumaääni (v11.14): kivi halkeaa – matala kolahtava
-       "klonk" + lyhyt murskautuvan kuoren kohina. Erottuu selvästi laserin
-       pew-äänestä, jotta pelaaja tietää osuneensa (1. osuma ei vielä tuhoa). */
-    function playMeteorHit() {
-        try {
-            initAudio();
-            if (!audioCtx || audioCtx.state !== 'running') return;
-            const now = audioCtx.currentTime;
-            // Kolahtava runko: kivi resonoi matalalla
-            const osc = audioCtx.createOscillator();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(220, now);
-            osc.frequency.exponentialRampToValueAtTime(70, now + 0.16);
-            const ogain = audioCtx.createGain();
-            ogain.gain.setValueAtTime(0.13 * sfxVolumeMult, now);
-            ogain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-            osc.connect(ogain).connect(audioCtx.destination);
-            osc.start(now); osc.stop(now + 0.18);
-            // Murskautuva kuori: lyhyt keskiääninen kohinapiikki
-            const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * 0.09), audioCtx.sampleRate);
-            const data = buf.getChannelData(0);
-            for (let i = 0; i < data.length; i++) {
-                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.018));
-            }
-            const src = audioCtx.createBufferSource(); src.buffer = buf;
-            const bp = audioCtx.createBiquadFilter(); bp.type = 'bandpass';
-            bp.frequency.value = 900; bp.Q.value = 0.9;
-            const ngain = audioCtx.createGain();
-            ngain.gain.setValueAtTime(0.10 * sfxVolumeMult, now);
-            ngain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
-            src.connect(bp).connect(ngain).connect(audioCtx.destination);
-            src.start(now); src.stop(now + 0.09);
-        } catch(e) {}
-    }
-
-    /* ── Talon romahdusääni (v11.22, v11.24 ilman soivaa jyrinää): pelkkä
-       murskautuva massa. Kuuluu meteoriitin osuessa katuvarren taloon
-       (tuhoutumisen alkaessa). Ei uutta tekstiä (sääntö 06) – tuho kerrotaan
-       äänellä ja kuvalla. */
-    function playBuildingCollapse() {
-        try {
-            initAudio();
-            if (!audioCtx || audioCtx.state !== 'running') return;
-            const now = audioCtx.currentTime;
-            /* v11.24: soiva matala jyrinä (triangle 90 → 34 Hz) POISTETTU – se kuulosti
-               kongin/patarummun kumahdukselta juuri osumahetkellä. Jäljellä on vain
-               murskautuva massa: matala suodatettu kohina, hiukan pidempi ja vahvempi,
-               jotta isku ei tunnu tyhjältä. */
-            const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * 1.5), audioCtx.sampleRate);
-            const data = buf.getChannelData(0);
-            for (let i = 0; i < data.length; i++) {
-                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.55));
-            }
-            const src = audioCtx.createBufferSource(); src.buffer = buf;
-            const lp = audioCtx.createBiquadFilter(); lp.type = 'lowpass';
-            lp.frequency.setValueAtTime(620, now);
-            lp.frequency.exponentialRampToValueAtTime(110, now + 1.5);
-            const ng = audioCtx.createGain();
-            ng.gain.setValueAtTime(0.21 * sfxVolumeMult, now);
-            ng.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
-            src.connect(lp).connect(ng).connect(audioCtx.destination);
-            src.start(now); src.stop(now + 1.5);
-        } catch(e) {}
-    }
-
-    /* ── Tyhjä laukaus (v11.14): kuiva klikki, kun ase on vielä lukossa.
-       Kertoo, että klikkaus meni perille mutta laukaus ei lähde – ei uutta
-       tekstiä (sääntö 06), vain ääni. */
-    function playBeamEmpty() {
-        try {
-            initAudio();
-            if (!audioCtx || audioCtx.state !== 'running') return;
-            const now = audioCtx.currentTime;
-            const osc = audioCtx.createOscillator();
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(340, now);
-            osc.frequency.exponentialRampToValueAtTime(150, now + 0.05);
-            const g = audioCtx.createGain();
-            g.gain.setValueAtTime(0.045 * sfxVolumeMult, now);
-            g.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-            osc.connect(g).connect(audioCtx.destination);
-            osc.start(now); osc.stop(now + 0.06);
-        } catch(e) {}
-    }
-
-    /* ── Katuvalon syttyminen (yön lamppushow, v4.42) ──
-       Pehmeä naksahdus: lyhyt korkea kohinapiikki + lämmin humahdus.
-       Sama tyyli kuin muilla kadun SFX:illä (Web Audio, ei tiedostoja). */
-    function playLampOn() {
-        try {
-            initAudio();
-            if (!audioCtx || audioCtx.state !== 'running') return;
-            const now = audioCtx.currentTime;
-            // Naksahdus: lyhyt kohina, korkea suodatus → "klik"
-            const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * 0.045), audioCtx.sampleRate);
-            const data = buf.getChannelData(0);
-            for (let i = 0; i < data.length; i++) {
-                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.006));
-            }
-            const src = audioCtx.createBufferSource(); src.buffer = buf;
-            const hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1200;
-            const ngain = audioCtx.createGain();
-            ngain.gain.setValueAtTime(0.32 * sfxVolumeMult, now);
-            ngain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
-            src.connect(hp).connect(ngain).connect(audioCtx.destination);
-            src.start(now); src.stop(now + 0.045);
-            // Lämmin humahdus: hehkulanka syttyy (hillitty, ei peitä musiikkia)
-            const osc = audioCtx.createOscillator();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(420, now);
-            osc.frequency.exponentialRampToValueAtTime(200, now + 0.14);
-            const ogain = audioCtx.createGain();
-            ogain.gain.setValueAtTime(0.10 * sfxVolumeMult, now);
-            ogain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
-            osc.connect(ogain).connect(audioCtx.destination);
-            osc.start(now); osc.stop(now + 0.16);
-        } catch(e) {}
-    }
-
-    /* ── Ajoneuvon moottoriääni ────────────────────── */
-    function startVehicleEngine(v) {
-        try {
-            initAudio();
-            if (!audioCtx || audioCtx.state !== 'running') return null;
-            const now = audioCtx.currentTime;
-            let baseFreq, gainVal, lfoRate, lowpassFreq;
-            let lfoDepth = 0.22;    // LFO:n modulaatiosyvyys (osuus perustaajuudesta)
-            let tankDrive = false;  // panssarivaunu: särö + toinen oskillaattori
-            if (v.type === 'motorcycle') {
-                baseFreq = 185; gainVal = 0.025; lfoRate = 15; lowpassFreq = 2200;
-            } else if (v.type === 'ambulance') {
-                baseFreq = 55; gainVal = 0.08; lfoRate = 6; lowpassFreq = 420;
-            } else if (v.type === 'tank') {
-                // Raskas panssarivaunu: todella matala perusjyrinä (28 Hz) ja kova,
-                // säröity sävy. Suodatin päästää yläsävelet ~900 Hz asti, jotta ääni
-                // kuuluu myös puhelimen pienestä kaiuttimesta – pelkkä 35 Hz +
-                // 200 Hz suodatin jäi kännykässä käytännössä kuulumattomiin.
-                baseFreq = 28; gainVal = 0.30; lfoRate = 3; lowpassFreq = 900;
-                lfoDepth = 0.35;
-                tankDrive = true;
-            } else { // car
-                baseFreq = 82; gainVal = 0.065; lfoRate = 9; lowpassFreq = 640;
-            }
-            // Pääoskillaattori – moottorin perusjyrinä
-            const osc = audioCtx.createOscillator();
-            osc.type = 'sawtooth';
-            osc.frequency.value = baseFreq;
-            // LFO: taajuusmodulaatio → suriseva "zzz"/"ZZZzzz"-jyrinä
-            const lfo = audioCtx.createOscillator();
-            lfo.type = 'triangle';
-            lfo.frequency.value = lfoRate;
-            const lfoGain = audioCtx.createGain();
-            lfoGain.gain.value = baseFreq * lfoDepth;
-            lfo.connect(lfoGain);
-            lfoGain.connect(osc.frequency);
-            // Alipäästösuodatin pehmentää sahahampaan
-            const filter = audioCtx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.value = lowpassFreq;
-            // Panssarivaunu: toinen oskillaattori oktaavia ylempänä (kova, koneellinen
-            // sävy) + tanh-särö → lisää yläsäveliä, jotta matala jyrinä kuuluu myös
-            // puhelimen kaiuttimesta. Molemmat ajetaan saman suodattimen läpi.
-            let osc2 = null, shaper = null;
-            if (tankDrive) {
-                osc2 = audioCtx.createOscillator();
-                osc2.type = 'square';
-                osc2.frequency.value = baseFreq * 2;
-                osc2.detune.value = 12;             // hieno detune → karkea, elävä jyrinä
-                const osc2Gain = audioCtx.createGain();
-                osc2Gain.gain.value = 0.5;
-                osc2.connect(osc2Gain);
-                osc2Gain.connect(filter);
-                shaper = audioCtx.createWaveShaper();
-                const n = 1024, curve = new Float32Array(n);
-                for (let i = 0; i < n; i++) {
-                    curve[i] = Math.tanh(((i / (n - 1)) * 2 - 1) * 3.5);
-                }
-                shaper.curve = curve;
-                shaper.oversample = '2x';
-            }
-            // Äänenvoimakkuus (pehmeä fade-in)
-            const gain = audioCtx.createGain();
-            gain.gain.setValueAtTime(0.0001, now);
-            gain.gain.linearRampToValueAtTime(gainVal, now + 0.5);
-            // Stereopanorointi – ääni seuraa auton x-sijaintia
-            const panner = (typeof audioCtx.createStereoPanner === 'function') ? audioCtx.createStereoPanner() : null;
-            osc.connect(filter);
-            if (shaper) { filter.connect(shaper); shaper.connect(gain); }
-            else { filter.connect(gain); }
-            if (panner) { gain.connect(panner); panner.connect(audioCtx.destination); }
-            else { gain.connect(audioCtx.destination); }
-            osc.start(now);
-            lfo.start(now);
-            if (osc2) osc2.start(now);
-            const engine = { osc, lfo, gain, panner, osc2 };
-            updateVehicleEngine(engine, v);
-            return engine;
-        } catch (e) { return null; }
-    }
-
-    function updateVehicleEngine(engine, v) {
-        if (!engine || !audioCtx || !engine.panner) return;
-        try {
-            const pan = Math.max(-1, Math.min(1, (v.x / WORLD_W) * 2 - 1));
-            engine.panner.pan.setTargetAtTime(pan, audioCtx.currentTime, 0.05);
-        } catch (e) {}
-    }
-
-    function stopVehicleEngine(engine) {
-        if (!engine || !audioCtx) return;
-        try {
-            const now = audioCtx.currentTime;
-            engine.gain.gain.cancelScheduledValues(now);
-            engine.gain.gain.setValueAtTime(Math.max(engine.gain.gain.value, 0.0001), now);
-            engine.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
-            engine.osc.stop(now + 0.4);
-            engine.lfo.stop(now + 0.4);
-            if (engine.osc2) engine.osc2.stop(now + 0.4);
-        } catch (e) {}
-    }
 
     // Apufunktio: oven keskipiste
     function doorCenter(bldg) {
@@ -1761,46 +1453,42 @@ const Street = (() => {
        arvoja/kertoimia – ei uutta pelilogiikkaa. NORMAL = nykyiset
        arvot bitti-identtisinä. FULL CHAOS arpoo uniikin siemenen.
        ═══════════════════════════════════════════════════════════ */
-    const CHAOS_DEFAULTS = {
-        windSpeedMult: 1, windDirFlip: false,
-        trafficSpeedMult: 1, trafficSpawnMult: 1,
-        dayCycleFrames: 10800, skyDir: 1,
-        birdMin: 10, birdMax: 15,
-        coinRespawnFrames: 7200,
-        robberChance: 0.4, robberSpeed: 1.05, robberCooldown: 1500, robberTtl: 900
-    };
-    /* CHAOS_DEFAULTS2 = täysi superset (v10.02): kaikki kaaosakselit NORMAL-arvoilla.
-       NORMAL = nykyiset literaalit → peli pysyy bitti-identtisenä (pääsääntö 1). */
-    const CHAOS_DEFAULTS2 = Object.assign({}, CHAOS_DEFAULTS, {
-        playerSpeedMult: 1,               // kävelynopeuskerroin (kaaos K4, v10.04; klampi 0.6–1.6)
-        avengerChance: 0.12, avengerSpeed: 1.0, avengerTelegraph: 21,
-        avengerStun: 600, avengerFreeze: 180, avengerCooldown: 1800,
-        robberStun: 900, robberChasesY: false, cabinetOnChance: 0.5,   // robberChasesY: rosvo jahtaa vapaasti y-akselilla (v10.12, vain BAD)
-        startBurgers: 5, startCoins: 2, hungerWakeGrace: 600, burgerInterval: 2400,
-        fogAlpha: 0,
-        cloudCount: 18, cloudOpacityMult: 1, cloudBandTop: 40, cloudBandH: 40,
-        cloudSizeMult: 1, cloudCirrusShare: 0.35,
-        starCount: 80, starSizeMult: 1,
-        sunColor: null, sunGlow: null,     // null = nykyinen piirto (ei kaaosakselia vielä)
-        animalSpeedMult: 1, animalDirBias: 0.5, animalTypeWeights: null,
-        batSpawnFrames: 1800, birdSpeedMult: 1, beetleCount: 1,
-        windowTargetMax: 5, windowDurMin: 10000, windowDurMax: 30000,
-        lampHueShift: 0, threatWarnMult: 1,
-        cloudDayAlpha: 5,                       // CLOUD_DAY_ALPHA (päivän pilvien peittävyys)
-        daySkyTop: '#3f7fc0', daySkyMid: '#78b4e0', daySkyHorizon: '#ffd9a0',
-        silhouetteChance: 0.5, winDayFill: '#151716',
-        lampRadius: 30, batCountMax: 5, buildingPalette: null,
-        // K2 (kellon rytmit) + K6 (SFX) – v10.05
-        dayFadeFrames: 1200, nightFadeFrames: 1200, cycleChangeDelayFrames: 900,
-        nightLampFirst: 30, nightLampInterval: 18, spawnLampDelay: 240,
-        cabBlinkMin: 420, cabBlinkMax: 700, cabRerollMin: 900, cabRerollMax: 2100,
-        mosquitoDayDim: 1, meteorTempoMult: 1, sfxVolumeMult: 1,
-        // Kaaos v10.18 – uudet akselit (NORMAL = no-op)
-        doorLockChance: 0, staggerAmount: 0, screenShakeAmount: 0,
-        lampRedFlicker: 0, barBurntLetter: -1, cabFlicker: 0, sunSizeMult: 1
-    });
+    /* ── Kaaoskonfiguraatio omasta tiedostosta (Vaihe 5) ──
+       street/chaos-config.js sisältää oletukset, ?seed=-arvonnan, K1-apurit,
+       portin (clampChaosCfg + validateChaosCfg) ja drawChaosCfg:n.
+       Tuodaan samat nimet tähän, joten muu koodi ei muutu. */
+    const {
+        CHAOS_DEFAULTS, CHAOS_DEFAULTS2, CHAOS_PARAMS, CHAOS_SEED, CHAOS_DEBUG,
+        makeRng, chaosRng, rnd, rndInt, WARM_PALETTE, NEAR_BLACK_PALETTE,
+        SUN_GLOW_DEFAULT, randomHuePalette, randomDarkSky, randomAnimalTypes,
+        randomSunColor, generateFullChaosSeed, chaosProfile, clamp, chaosAbilityFor,
+        stunMaxOf, burgerIntervalMin, threatSpeedMax, threatTelegraphMin, threatBudget,
+        clampChaosCfg, validateChaosCfg, drawChaosCfg
+    } = StreetChaos;
+
+    /* Sidotaan street.js:ssä asuvat kaksi asiaa kaaosmoduuliin (Vaihe 5). */
+    StreetChaos.bind({ WORLD_W: WORLD_W, hungerMultFor: hungerMultFor });
+
     let chaosLevel = 'normal';
     let chaosCfg = Object.assign({}, CHAOS_DEFAULTS2);
+    /* Johdetut moodiliput (Vaihe 2, v11.38): sama tieto kuin `chaosLevel === 'full'`
+       / `'bad'`, mutta YHDESSÄ paikassa (applyChaosFlags). Koodi lukee näitä
+       chaosCfg:n rinnalla → mooditarkistus ei ole ripoteltuna pitkin tiedostoa.
+       Liput johdetaan AINA chaosLevelistä (myös F5-palautuksessa), joten ne
+       eivät voi jäädä vanhentuneiksi. */
+    const chaosFlags = {
+        beer: false,          // FULL: BAR myy olutta 🍺 hampurilaisten sijaan (v11.31)
+        drunk: false,         // FULL: humala horjuttaa ohjausta ja tähtäystä
+        beamWeapon: false,    // FULL: sädease + meteoriitin ampuminen
+        meteorAlways: false,  // FULL: meteoriitti joka välissä
+        meteorKill: false,    // FULL: ammuttu meteoriitti = +1 🪙
+        meteorHalf: false,    // BAD: meteoriitin arpa 50 % (ei asetta)
+        badDemo: false,       // BAD: aloitusdemo (talo romahtaa heti)
+        badFinale: false,     // BAD: finaali – ei tähtiä, hidas meteoriittiväli
+        ruin: false,          // BAD/FULL: rauniot – talojärjestys arvotaan, liikenne ja eläimet seisovat, savu
+        mosquitoes: false,    // BAD/FULL: lamppujen hyttyset isompia ja tummempia (K1/K3)
+        anyChaos: false       // ei-NORMAL: kaaosakselit ja K7-kortit aktiivisia
+    };
     let windSpeedMult = 1, windDirFlip = false;
     let trafficSpeedMult = 1, trafficSpawnMult = 1;
     let skyDir = 1;
@@ -1815,7 +1503,7 @@ const Street = (() => {
     let lampHueShift = 0, threatWarnMult = 1;
     let buildingPalette = null;   // talojen väripaletti (null = BUILDING_PALETTE)
     let meteorTempoMult = 1;      // tähdenlennon/satelliitin tahti (K2, v10.05)
-    let sfxVolumeMult   = 1;      // SFX-taso (K6, v10.05)
+    /* SFX-taso (K6) asuu äänimoduulissa (Vaihe 5): StreetSfx.setVolume() */
     let fogAlpha        = 0;      // sumuverhon peittävyys (K7/K1, v10.05)
     // Kaaos v10.18 – uudet akselit (polariteetti: ikävät = BAD/FULL, neutraalit = kaikki chaos-tasot)
     let doorLockChance   = 0;     // lukitut ovet (jukebox + hedelmäpeli), 0 = ei koskaan (NORMAL)
@@ -1833,67 +1521,9 @@ const Street = (() => {
 
     /* Deterministinen siemen + testikytkimet (v10.02, K0-infra).
        ?seed=N → sama kaaos jokaisella latauksella · ?debug → konsolidumppi. */
-    function makeRng(seed) {               // mulberry32 – sama siemen = sama peli
-        let a = seed >>> 0;
-        return function () {
-            a = (a + 0x6D2B79F5) >>> 0;
-            let t = Math.imul(a ^ (a >>> 15), 1 | a);
-            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-        };
-    }
-    const CHAOS_PARAMS = (typeof location !== 'undefined' && typeof URLSearchParams !== 'undefined')
-        ? new URLSearchParams(location.search) : null;
-    const CHAOS_SEED_PARAM = (CHAOS_PARAMS ? CHAOS_PARAMS.get('seed') : null);
-    const CHAOS_SEED = (CHAOS_SEED_PARAM !== null && /^\d+$/.test(CHAOS_SEED_PARAM))
-        ? Number(CHAOS_SEED_PARAM) : null;
-    const CHAOS_DEBUG = !!(CHAOS_PARAMS && CHAOS_PARAMS.get('debug') !== null);
-    let chaosRng = (CHAOS_SEED !== null) ? makeRng(CHAOS_SEED) : Math.random;
 
-    function rnd(a, b) { return a + chaosRng() * (b - a); }
-    function rndInt(a, b) { return Math.round(rnd(a, b)); }
 
     /* Kaaos K1 – visuaaliset apurit (v10.03): talopaletit + auringon värit */
-    const WARM_PALETTE = [
-        '#2a1a14', '#2a1e16', '#241a12', '#2a1616', '#241822',
-        '#2a1c18', '#2a1a1c', '#221a20', '#2a1e14',
-        '#241a18', '#26201a', '#2a1818', '#261a1e', '#281c12',
-        '#2c1a16', '#221c1a', '#2a1a18', '#262016'
-    ];
-    const NEAR_BLACK_PALETTE = [
-        '#0a0a0c', '#0b0a0c', '#0a0b0a', '#0c0a0a', '#0a0a0e',
-        '#0a0c0c', '#0b0b0a', '#0a0a0e', '#0c0b0a',
-        '#0a0a0d', '#0a0b0b', '#0c0a0b', '#0a0a0f', '#0b0c0a',
-        '#0c0a0c', '#0a0c0b', '#0b0a0e', '#0a0b0a'
-    ];
-    const SUN_GLOW_DEFAULT = ['rgba(255,224,120,0.55)', 'rgba(255,210,100,0.20)', 'rgba(255,200,80,0)'];
-    function randomHuePalette() {
-        const arr = [];
-        for (let i = 0; i < 18; i++) {
-            const h = Math.floor(Math.random() * 360);
-            const l = 8 + Math.floor(Math.random() * 8);
-            arr.push('hsl(' + h + ',' + (20 + Math.floor(Math.random() * 30)) + '%,' + l + '%)');
-        }
-        return arr;
-    }
-    function randomDarkSky() {
-        const v = 40 + Math.floor(Math.random() * 120);
-        const b = Math.min(255, v + Math.floor(Math.random() * 30));
-        const hex = (x) => x.toString(16).padStart(2, '0');
-        return '#' + hex(v) + hex(v) + hex(b);
-    }
-    function randomAnimalTypes() {
-        const all = ['mouse', 'rat', 'rabbit'];
-        const arr = [];
-        for (let i = 0; i < 6; i++) arr.push(all[Math.floor(Math.random() * all.length)]);
-        return arr;
-    }
-    function randomSunColor() {
-        const pick = Math.floor(Math.random() * 3);
-        if (pick === 0) return { sunColor: '#7dff7d', sunGlow: ['rgba(120,255,120,0.55)', 'rgba(90,220,90,0.20)', 'rgba(70,180,70,0)'] };
-        if (pick === 1) return { sunColor: '#d37dff', sunGlow: ['rgba(200,140,255,0.55)', 'rgba(170,110,230,0.20)', 'rgba(140,90,190,0)'] };
-        return { sunColor: '#ff4d4d', sunGlow: ['rgba(255,100,100,0.55)', 'rgba(220,80,80,0.20)', 'rgba(180,60,60,0)'] };
-    }
 
     /* ── Tähdenlento + satelliitti – apufunktiot (v10.03, ❓4) ──
        Sama logiikka oli aiemmin kahtena kopiona (tainnutus-haara + kadun
@@ -1972,7 +1602,7 @@ const Street = (() => {
         return true;
     }
     function chaosAllGone() {
-        return (chaosLevel === 'bad' || chaosLevel === 'full') && buildingsAllGone();
+        return chaosFlags.ruin && buildingsAllGone();
     }
 
     /* Eskalaatio: taustarivistä ≥ 40 % tuhoutunut (tai testikytkin päällä). */
@@ -1991,14 +1621,14 @@ const Street = (() => {
        arvota lainkaan (aina tähdätty meteoriitti) ja väli on lyhyt (nextSkyGap).
        FULL/MILD/GOOD/NORMAL eivät koskaan osu tähän haaraan. */
     function badFinalePhase() {
-        return chaosLevel === 'bad' && backdropMostlyGone();
+        return chaosFlags.badFinale && backdropMostlyGone();
     }
 
     /* v11.26: seuraavan taivaankappaleen väli (frameä). FULL = 600 kuten ennen,
        BAD-finaali = lyhyt kiinteä väli, muuten entinen arpa. Arvontajärjestys
        säilyy muilla tasoilla täsmälleen ennallaan → NORMAL bitti-identtinen. */
     function nextSkyGap() {
-        if (chaosLevel === 'full') return 600;
+        if (chaosFlags.meteorAlways) return 600;
         if (badFinalePhase()) {
             return BAD_FINALE_GAP_MIN + Math.random() * (BAD_FINALE_GAP_MAX - BAD_FINALE_GAP_MIN);
         }
@@ -2207,8 +1837,8 @@ const Street = (() => {
        (BAD:ssa ei ole sädeasetta → pelaaja joutuu katsomaan kaupungin tuhoutuvan).
        MILD/GOOD/NORMAL = 0 (ei koskaan). */
     function meteoriteChance() {
-        if (chaosLevel === 'full') return 1;       // aina (sädease testattavissa)
-        if (chaosLevel === 'bad') return 0.5;      // v11.26: 25 → 50 % (tuho nopeammaksi, ei asetta)
+        if (chaosFlags.meteorAlways) return 1;       // aina (sädease testattavissa)
+        if (chaosFlags.meteorHalf) return 0.5;      // v11.26: 25 → 50 % (tuho nopeammaksi, ei asetta)
         return 0;
     }
 
@@ -2362,10 +1992,10 @@ const Street = (() => {
             spawnParticles(shootingStar.x, shootingStar.y, '#f4f8ff', 12);
             shootingStar.active = false;
             // v10.32: FULL CHAOS – jokainen ammuttu meteoriitti = +1 🪙.
-            // Portti chaosLevel === 'full': ase on jaettu tallennuskenttä, joten
+            // Portti chaosFlags.meteorKill: ase on jaettu tallennuskenttä, joten
             // BADissa (25 % meteoriitit) ei tule kolikkoa – muut tasot pysyvät ennallaan.
             // Sääntö 06: ei uutta tekstiä – pling + kultakipinät + HUD-lukema riittävät.
-            if (chaosLevel === 'full') {
+            if (chaosFlags.meteorKill) {
                 coinCount++;
                 state.inventory.coinCount = coinCount;
                 GameState.save(state);
@@ -2378,7 +2008,7 @@ const Street = (() => {
 
     function spawnBeamPickup() {
         // Vain FULL CHAOS ja vain jos ase on vielä ansaitsematta.
-        if (chaosLevel !== 'full' || beamWeaponCollected) { beamPickup = null; return; }
+        if (!chaosFlags.beamWeapon || beamWeaponCollected) { beamPickup = null; return; }
         /* v11.15: y on AINA sama (teräsaidan vieressä, pelaajan alin jalkapiste) –
            satunnainen y vei esineen toisinaan lampputolpan taakse, josta sitä ei
            voinut poimia lainkaan. Vain x arvotaan, ja sekään ei aivan reunaan. */
@@ -2390,7 +2020,7 @@ const Street = (() => {
         if (!shootingStar || !shootingStar.active) {
             if (shootingStar) { shootingStar.timer -= dt; }
             if (!shootingStar || shootingStar.timer <= 0) {
-                if (chaosLevel !== 'normal' && (Math.random() < meteoriteChance() || badFinalePhase())) {
+                if (chaosFlags.anyChaos && (Math.random() < meteoriteChance() || badFinalePhase())) {
                     // Iso, hitaasti putoava meteoriitti (v10.15/v10.16) – tähdenlennon tilalla.
                     // v10.16: viisto laskeutumiskulma 40–60° vaakasuorasta (kuten tähdenlento),
                     // jotta ehtii nähdä ja säikähtää. Suunta oikealle/vasemmalle, lähtö vastakkaiselta reunalta.
@@ -2425,7 +2055,7 @@ const Street = (() => {
                         vx: Math.cos(ang) * spd,
                         vy: Math.sin(ang) * spd,
                         active: true, life: 120 + Math.random() * 180,
-                        trail: [], timer: cardState.meteorBurst ? (5 + Math.random() * 15) : nextSkyGap()
+                        trail: [], timer: StreetChaosCards.meteorBurst ? (5 + Math.random() * 15) : nextSkyGap()
                     };
                 }
             }
@@ -2523,222 +2153,30 @@ const Street = (() => {
         }
     }
 
-    function generateFullChaosSeed() {
-        const sun = randomSunColor();
-        return {
-            windSpeedMult: rnd(0.5, 3.5),
-            windDirFlip: Math.random() < 0.5,
-            trafficSpeedMult: rnd(0.6, 1.8),
-            trafficSpawnMult: rnd(0.4, 1.8),
-            dayCycleFrames: rndInt(4000, 22000),
-            skyDir: Math.random() < 0.5 ? -1 : 1,
-            birdMin: rndInt(0, 12),
-            birdMax: rndInt(12, 30),
-            coinRespawnFrames: rndInt(1800, 18000),
-            robberChance: rnd(0.05, 0.9),
-            robberSpeed: rnd(0.7, 2.0),
-            robberCooldown: rndInt(300, 3000),
-            robberTtl: rndInt(300, 2000),
-            // K3 (uhka) + K4 (keho/reppu) – v10.04. Kaikki kulkee portin läpi.
-            // v10.18: hidastus poistettu (tylsä) → vain normaali/nopeampi; hoipertelu korvaa sen.
-            playerSpeedMult: rnd(1.0, 1.6),
-            avengerChance: rnd(0, 0.6),
-            avengerSpeed: rnd(0.5, 1.4),
-            avengerTelegraph: rndInt(12, 45),
-            avengerFreeze: rndInt(0, 300),
-            avengerCooldown: rndInt(600, 6000),
-            avengerStun: rndInt(150, 600),
-            robberStun: rndInt(150, 900),
-            cabinetOnChance: rnd(0, 0.9),
-            // v10.32: aloituskolikot KIINTEÄT = sama kuin NO CHAOS (CHAOS_DEFAULTS2.startCoins = 2).
-            // Ennen rndInt(1, 100) → kolikkoja oli alussa liikaa, eikä meteoriittien
-            // ampumiselle ollut motivaatiota. Muut kaaosakselit ennallaan.
-            startCoins: CHAOS_DEFAULTS2.startCoins,
-            startBurgers: rndInt(2, 10),
-            hungerWakeGrace: rndInt(600, 1800),
-            burgerInterval: 2400,   // v11.31: FULLin kulutustahti KIINTEÄ 40 s (oli rndInt(1200,12000)
-                                    //   = jopa ~200 s / taso → vaikutti siltä, ettei 🍺/🍔 kulu lainkaan)
-            // K1 (v10.03) – visuaalinen
-            cloudCount: rndInt(4, 34),
-            cloudOpacityMult: rnd(0.6, 2.5),
-            cloudSizeMult: rnd(0.6, 2.5),
-            cloudBandTop: rndInt(10, 100), cloudBandH: rndInt(10, 100),
-            cloudCirrusShare: rnd(0, 1),
-            cloudDayAlpha: rndInt(1, 10),
-            daySkyTop: randomDarkSky(), daySkyMid: randomDarkSky(), daySkyHorizon: randomDarkSky(),
-            starCount: rndInt(0, 140), starSizeMult: rnd(0.5, 2),
-            sunColor: sun.sunColor, sunGlow: sun.sunGlow,
-            silhouetteChance: rnd(0.05, 0.95),
-            winDayFill: randomDarkSky(),
-            lampRadius: rndInt(20, 60),
-            lampHueShift: rndInt(0, 360),
-            animalSpeedMult: rnd(0.4, 2.5),
-            animalDirBias: rnd(0.1, 0.9),
-            animalTypeWeights: randomAnimalTypes(),
-            batSpawnFrames: rndInt(600, 3600),
-            batCountMax: rndInt(0, 12),
-            birdSpeedMult: rnd(0.6, 1.8),
-            beetleCount: rndInt(0, 4),
-            windowTargetMax: rndInt(0, 12),
-            windowDurMin: rndInt(3000, 60000), windowDurMax: rndInt(60000, 300000),
-            buildingPalette: randomHuePalette(),
-            // K2 + K6 (v10.05)
-            dayFadeFrames: rndInt(300, 3000), nightFadeFrames: rndInt(300, 3000),
-            cycleChangeDelayFrames: rndInt(120, 1800),
-            nightLampFirst: rndInt(4, 90), nightLampInterval: rndInt(2, 60), spawnLampDelay: rndInt(0, 900),
-            cabBlinkMin: rndInt(120, 600), cabBlinkMax: rndInt(600, 1200),
-            cabRerollMin: rndInt(300, 1800), cabRerollMax: rndInt(1800, 3600),
-            mosquitoDayDim: (Math.random() < 0.5 ? 0 : 1),
-            meteorTempoMult: rnd(0.1, 5), sfxVolumeMult: rnd(0.5, 1.5),
-            // Kaaos v10.18 – uudet akselit. Ikävät (oviukko/hoipertelu/tärinä) arvotaan:
-            // FULL voi saada ne tai olla ilman; BAD saa ne aina chaosProfile():ssa.
-            doorLockChance: rnd(0, 0.6),
-            staggerAmount: rnd(0, 1.0),
-            screenShakeAmount: rnd(0, 0.5),
-            lampRedFlicker: rnd(0, 0.03),
-            barBurntLetter: rndInt(-1, 2),
-            cabFlicker: rnd(0, 1),
-            sunSizeMult: rnd(0.6, 2.0)
-        };
-    }
 
-    function chaosProfile(level) {
-        switch (level) {
-            case 'mild':
-                return {
-                    windSpeedMult: rnd(0.8, 1.3), windDirFlip: false,
-                    trafficSpeedMult: rnd(0.85, 1.2), trafficSpawnMult: rnd(0.85, 1.2),
-                    dayCycleFrames: rndInt(7000, 16000), skyDir: 1,
-                    birdMin: rndInt(7, 13), birdMax: rndInt(13, 20),
-                    coinRespawnFrames: rndInt(4800, 9600),
-                    robberChance: rnd(0.25, 0.55), robberSpeed: rnd(0.9, 1.25),
-                    robberCooldown: rndInt(1000, 2000), robberTtl: rndInt(700, 1200),
-                    // K3 + K4 (v10.04) – v10.18: ei hidastusta (vain normaali/nopeampi)
-                    playerSpeedMult: rnd(1.0, 1.1),
-                    avengerChance: rnd(0.08, 0.16), avengerSpeed: rnd(0.9, 1.1),
-                    avengerTelegraph: rndInt(19, 23), avengerFreeze: rndInt(150, 210),
-                    avengerCooldown: rndInt(1400, 2200), avengerStun: rndInt(540, 660),
-                    robberStun: rndInt(810, 900), cabinetOnChance: rnd(0.4, 0.6),
-                    startBurgers: rndInt(4, 6), burgerInterval: rndInt(1800, 3600),
-                    hungerWakeGrace: rndInt(600, 900),
-                    cloudCount: rndInt(18, 26), cloudOpacityMult: 1.2, cloudSizeMult: 1.2,
-                    cloudBandTop: 40, cloudBandH: 40, cloudCirrusShare: 0.35, cloudDayAlpha: 5,
-                    starCount: rndInt(60, 100), starSizeMult: 1,
-                    sunColor: null, sunGlow: null,
-                    silhouetteChance: 0.3, winDayFill: '#151716',
-                    lampRadius: 30, lampHueShift: 0,
-                    animalSpeedMult: 1, animalDirBias: 0.5, animalTypeWeights: null,
-                    batSpawnFrames: 1800, batCountMax: 5,
-                    birdSpeedMult: 1, beetleCount: 1,
-                    windowTargetMax: rndInt(3, 6), windowDurMin: 10000, windowDurMax: 30000,
-                    buildingPalette: null,
-                    dayFadeFrames: 1200, nightFadeFrames: 1200, cycleChangeDelayFrames: 900,
-                    nightLampFirst: rndInt(21, 39), nightLampInterval: rndInt(13, 23), spawnLampDelay: 240,
-                    cabBlinkMin: 420, cabBlinkMax: 700, cabRerollMin: 900, cabRerollMax: 2100,
-                    mosquitoDayDim: 1, meteorTempoMult: 0.8, sfxVolumeMult: rnd(0.9, 1.1),
-                    // Kaaos v10.18 – MILD: ei ikäviä (oviukko/hoipertelu/tärinä = 0), vain hennot neutraalit efektit
-                    doorLockChance: 0, staggerAmount: 0, screenShakeAmount: 0,
-                    lampRedFlicker: rnd(0.0008, 0.002), barBurntLetter: -1,
-                    cabFlicker: rnd(0.1, 0.25), sunSizeMult: rnd(1.0, 1.1)
-                };
-            case 'good':
-                return {
-                    windSpeedMult: 0.6, windDirFlip: false,
-                    trafficSpeedMult: 0.85, trafficSpawnMult: 1.5,
-                    dayCycleFrames: 14400, skyDir: 1,
-                    birdMin: 14, birdMax: 22,
-                    coinRespawnFrames: 3600,
-                    robberChance: 0.12, robberSpeed: 0.8, robberCooldown: 2500, robberTtl: 600,
-                    // K3 + K4 (v10.04)
-                    playerSpeedMult: 1.0,
-                    avengerChance: rnd(0.02, 0.06), avengerSpeed: rnd(0.6, 0.8),
-                    avengerTelegraph: rndInt(26, 40), avengerFreeze: rndInt(240, 300),
-                    avengerCooldown: rndInt(3000, 5000), cabinetOnChance: rnd(0.10, 0.25),
-                    startBurgers: rndInt(6, 10), burgerInterval: rndInt(3000, 4800),
-                    hungerWakeGrace: rndInt(900, 1800),
-                    cloudCount: rndInt(8, 12), cloudOpacityMult: 0.8, cloudSizeMult: 0.8,
-                    cloudBandTop: 20, cloudBandH: 40, cloudCirrusShare: 0.5, cloudDayAlpha: 3,
-                    daySkyTop: '#4a90c8', daySkyMid: '#8ec4e8', daySkyHorizon: '#ffe9b8',
-                    starCount: rndInt(120, 140), starSizeMult: 1.2,
-                    sunColor: null, sunGlow: null,
-                    silhouetteChance: 0.05, winDayFill: '#2a2e2c',
-                    lampRadius: 34, lampHueShift: 35,
-                    animalSpeedMult: 1.2, animalDirBias: 0.5,
-                    animalTypeWeights: ['mouse', 'rabbit', 'rabbit', 'rabbit', 'rat'],
-                    batSpawnFrames: 1800, batCountMax: 3,
-                    birdSpeedMult: 1.2, beetleCount: 1,
-                    windowTargetMax: rndInt(5, 8), windowDurMin: 20000, windowDurMax: 60000,
-                    buildingPalette: WARM_PALETTE,
-                    dayFadeFrames: rndInt(1800, 2600), nightFadeFrames: rndInt(1800, 2600), cycleChangeDelayFrames: rndInt(1500, 2400),
-                    nightLampFirst: 45, nightLampInterval: 28, spawnLampDelay: 300,
-                    cabBlinkMin: 300, cabBlinkMax: 800, cabRerollMin: 1800, cabRerollMax: 3600,
-                    mosquitoDayDim: 1, meteorTempoMult: 1.5, sfxVolumeMult: rnd(0.7, 0.85),
-                    // Kaaos v10.18 – GOOD: ei ikäviä, vain hennot neutraalit efektit
-                    doorLockChance: 0, staggerAmount: 0, screenShakeAmount: 0,
-                    lampRedFlicker: rnd(0.0008, 0.002), barBurntLetter: -1,
-                    cabFlicker: rnd(0.1, 0.2), sunSizeMult: rnd(1.0, 1.15)
-                };
-            case 'bad':
-                return {
-                    windSpeedMult: rnd(2.0, 3.5), windDirFlip: true,
-                    trafficSpeedMult: 1.45, trafficSpawnMult: 0.55,
-                    dayCycleFrames: 5400, skyDir: -1,
-                    birdMin: 0, birdMax: 4,
-                    coinRespawnFrames: 14400,
-                    // Rosvo jahtaa vapaasti (robberChasesY) → ei saa ilmestyä useammin kuin 30 s välein (1800 f)
-                    robberChance: 0.75, robberSpeed: 1.5, robberCooldown: 1800, robberTtl: 1400,
-                    robberChasesY: true,
-                    // K3 + K4 (v10.04) – v10.18: ei hidastusta (hoipertelu korvaa sen)
-                    playerSpeedMult: 1.0,
-                    avengerChance: rnd(0.30, 0.50), avengerSpeed: rnd(1.2, 1.4),
-                    avengerTelegraph: rndInt(12, 21), avengerFreeze: rndInt(60, 180),
-                    avengerCooldown: rndInt(600, 1200), cabinetOnChance: rnd(0.70, 0.90),
-                    /* v11.26+ (parametri, ei versionnostoa): BAD = katsojamoodi –
-                       maailmanloppu katsotaan, ei pelata → kiinteä syntymäpaketti
-                       100 🪙 + 10 🍔 (klampit sallivat tasan nämä). Arvot luetaan
-                       init():n freshGame-portissa → uusi peli / hard reset
-                       (kuolema, ✕ "aloita alusta"); F5-soft reset ei nollaa
-                       (session + tallennettu saldo voittaa). Vanha 🍔-arpa jää
-                       paikoilleen mutta sen tulos ohitetaan, jotta BADin MUUT
-                       arvat eivät siirry (arvontajärjestys = 0 eroa). */
-                    startCoins: 100, startBurgers: (rndInt(2, 3), 10),
-                    burgerInterval: rndInt(1200, 2400),
-                    hungerWakeGrace: 600,
-                    cloudCount: rndInt(28, 34), cloudOpacityMult: 2.0, cloudSizeMult: 1.4,
-                    cloudBandTop: 10, cloudBandH: 70, cloudCirrusShare: 0.15, cloudDayAlpha: 9,
-                    daySkyTop: '#3a4044', daySkyMid: '#565e62', daySkyHorizon: '#6e6a5e',
-                    starCount: rndInt(15, 30), starSizeMult: 0.8,
-                    sunColor: '#c22f2f', sunGlow: ['rgba(200,60,60,0.45)', 'rgba(170,40,40,0.16)', 'rgba(140,30,30,0)'],
-                    silhouetteChance: 0.9, winDayFill: '#0c0d0c',
-                    lampRadius: 26, lampHueShift: 190,
-                    animalSpeedMult: 0.8, animalDirBias: 0.5,
-                    animalTypeWeights: ['rat', 'rat', 'rat'],
-                    batSpawnFrames: 600, batCountMax: 12,
-                    birdSpeedMult: 0.8, beetleCount: 1,
-                    windowTargetMax: rndInt(0, 2), windowDurMin: 3000, windowDurMax: 10000,
-                    buildingPalette: NEAR_BLACK_PALETTE,
-                    dayFadeFrames: rndInt(400, 700), nightFadeFrames: rndInt(400, 700), cycleChangeDelayFrames: rndInt(200, 450),
-                    nightLampFirst: 8, nightLampInterval: 4, spawnLampDelay: 60,
-                    cabBlinkMin: 200, cabBlinkMax: 400, cabRerollMin: 500, cabRerollMax: 900,
-                    mosquitoDayDim: 0, meteorTempoMult: 0.15, sfxVolumeMult: rnd(1.15, 1.35),   // v11.26: 0.3 -> 0.15 (tiheämpi tahti)
-                    // Kaaos v10.18 – BAD: ikävät päällä (lukitut ovet, hoipertelu, tärinä) + neutraalit rajummin
-                    doorLockChance: rnd(0.4, 0.6),
-                    staggerAmount: rnd(0.5, 1.0),
-                    screenShakeAmount: rnd(0.25, 0.5),
-                    lampRedFlicker: rnd(0.006, 0.02),
-                    barBurntLetter: rndInt(0, 2),
-                    cabFlicker: rnd(0.5, 0.8),
-                    sunSizeMult: rnd(1.6, 2.0)
-                };
-            case 'full':
-                return generateFullChaosSeed();
-            default:
-                return Object.assign({}, CHAOS_DEFAULTS);
-        }
+
+    /* Päivittää johdetut moodiliput chaosLevelistä. Kutsutaan AINA kun taso vaihtuu
+       (applyChaosProfile) → myös F5-palautus (?chaos= / sessionStorage) päivittyy. */
+    function applyChaosFlags() {
+        const isFull = chaosLevel === 'full';
+        const isBad = chaosLevel === 'bad';
+        const ruins = isBad || isFull;          // BAD ja FULL jakavat raunio-logiikan
+        chaosFlags.beer          = isFull;
+        chaosFlags.drunk         = isFull;
+        chaosFlags.beamWeapon    = isFull;
+        chaosFlags.meteorAlways  = isFull;
+        chaosFlags.meteorKill    = isFull;
+        chaosFlags.meteorHalf    = isBad;
+        chaosFlags.badDemo       = isBad;
+        chaosFlags.badFinale     = isBad;
+        chaosFlags.ruin          = ruins;
+        chaosFlags.mosquitoes    = ruins;
+        chaosFlags.anyChaos      = chaosLevel !== 'normal';
     }
 
     function applyChaosProfile(level, cfgOverride) {
         chaosLevel = level || 'normal';
+        applyChaosFlags();   // johdetut moodiliput (Vaihe 2)
         // cfgOverride = F5-soft reset: käytetään tallennettua ratkaistua configia
         // suoraan (klampataan idempotentisti turvaksi) – ei uutta arpaa.
         chaosCfg = cfgOverride ? clampChaosCfg(cfgOverride) : drawChaosCfg(chaosLevel);   // portti: klampit + validointi (pääsääntö 2)
@@ -2802,7 +2240,7 @@ const Street = (() => {
         CAB_REROLL_MAX      = chaosCfg.cabRerollMax;
         MOSQUITO_DAY_DIM    = chaosCfg.mosquitoDayDim;
         meteorTempoMult     = chaosCfg.meteorTempoMult;
-        sfxVolumeMult       = chaosCfg.sfxVolumeMult;
+        StreetSfx.setVolume(chaosCfg.sfxVolumeMult);
         fogAlpha            = chaosCfg.fogAlpha;
         // Kaaos v10.18 – uudet akselit
         doorLockChance      = chaosCfg.doorLockChance;
@@ -2815,7 +2253,7 @@ const Street = (() => {
         // Kaappien vilkuntajakso päivittyy uusiin CAB_BLINK-arvoihin
         for (const cab of electricCabinets) cab.period = CAB_BLINK_MIN + Math.random() * (CAB_BLINK_MAX - CAB_BLINK_MIN);
         // K7-korttipakka: aktivoi vain ei-NORMAL-tasoilla
-        chaosCardsReset();
+        StreetChaosCards.reset();
         // K3 (uhka) + K4 (keho/reppu) – v10.04: C-indeksi tuotantokäyttöön
         AVENGER_CHANCE      = chaosCfg.avengerChance;
         AVENGER_SPEED       = chaosCfg.avengerSpeed;
@@ -2898,250 +2336,65 @@ const Street = (() => {
        Kutsutaan tuotannossa vaiheissa v10.03/v10.04; tässä vaiheessa
        toiminnot ovat valmiina ja ?debug raportoi ne.
        ═══════════════════════════════════════════════════════════ */
-    function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
 
     // 1) Kyvykkyysindeksi C (luku 5.1)
     function chaosSpeedMult() { return chaosCfg.playerSpeedMult || 1; }
     // Portti käyttää ARVOTTAVAN configin arvoja (playerSpeedMult + startBurgers):
     // muuten C laskettaisiin vanhalla chaosCfg:llä ja väärällä 🍔-määrällä.
-    function chaosAbilityFor(cfg) {
-        return (cfg.playerSpeedMult || 1) * hungerMultFor(cfg.startBurgers);
-    }
     // Ajonaikainen C (liike, rosvon spawn) käyttää elävää 🍔-määrää.
     function chaosAbility()   { return chaosSpeedMult() * hungerSpeedMult(); }
-    function stunMaxOf(cfg)   { return Math.max(cfg.avengerStun, cfg.robberStun); }
 
     // 2) Selviytymisinvariantti (luku 5.2)
-    const BURGER_INTERVAL_FLOOR = 1200;                 // kova lattia
-    function burgerIntervalMin(cfg, C) {
-        return Math.max(BURGER_INTERVAL_FLOOR, Math.ceil(stunMaxOf(cfg) + 885 / (1.225 * C)));
-    }
 
     // 3) Uhka (luku 5.3)
-    function threatSpeedMax(C)     { return 1.4 * C; }
-    function threatTelegraphMin(C) { return Math.max(12, Math.ceil(21 / C)); }
-    function threatBudget(cfg) {                        // montako uhka-akselia ääripäässä (max 3)
-        const ext = (v, lo, hi) => (v <= lo + (hi - lo) * 0.1 || v >= hi - (hi - lo) * 0.1) ? 1 : 0;
-        return ext(cfg.avengerChance, 0, 0.6) + ext(cfg.avengerSpeed, 0.5, 1.4)
-             + ext(cfg.robberChance, 0, 0.9) + ext(cfg.robberSpeed, 0.7, 2.0)
-             + ext(cfg.trafficSpeedMult, 0.6, 1.6) + ext(cfg.trafficSpawnMult, 0.5, 2.5);
-    }
 
     // 4) Portti: klampit
-    function clampChaosCfg(cfg) {
-        const C = chaosAbilityFor(cfg);
-        const c = Object.assign({}, cfg);
-        c.playerSpeedMult  = clamp(c.playerSpeedMult, 1.0, 1.6);   // kävelynopeus (K4) – v10.18: ei hidastusta
-        c.cloudCount       = clamp(c.cloudCount, 4, 34);
-        c.cloudOpacityMult = clamp(c.cloudOpacityMult, 0.4, 2.5);
-        c.windSpeedMult    = clamp(c.windSpeedMult, 0.4, 3.5);
-        c.starCount        = clamp(c.starCount, 0, 140);
-        c.avengerChance    = clamp(c.avengerChance, 0, 0.6);
-        c.avengerSpeed     = clamp(c.avengerSpeed, 0.5, threatSpeedMax(C));
-        c.avengerTelegraph = clamp(c.avengerTelegraph, threatTelegraphMin(C), 45);
-        c.avengerFreeze    = clamp(c.avengerFreeze, 0, 300);       // BAD ≤ 180 (kiristetään tasoissa)
-        c.avengerCooldown  = clamp(c.avengerCooldown, 600, 6000);
-        c.avengerStun      = clamp(c.avengerStun, 150, 600);      // ei koskaan pidempi kuin nyt
-        c.robberStun       = clamp(c.robberStun, 150, 900);
-        c.robberSpeed      = clamp(c.robberSpeed, 0.7, threatSpeedMax(C));
-        // Liikenteen ylityssääntö (K3): hitainkin pelaaja ehtii kadun yli.
-        // ylitys 67 px @ 1.225·C · nopein auto 3.0 (ambulanssi) · 40 % turvamarginaali.
-        const crossMax = 0.6 * (WORLD_W + 80) / (3.0 * (67 / (1.225 * C)));
-        c.trafficSpeedMult = clamp(c.trafficSpeedMult, 0.6, Math.min(1.6, crossMax));
-        c.trafficSpawnMult = clamp(c.trafficSpawnMult, 0.5, 2.5);
-        c.cabinetOnChance  = clamp(c.cabinetOnChance, 0, 0.9);     // sähkökaappi päällä
-        c.startBurgers     = clamp(c.startBurgers, 2, 10);        // ehdoton
-        c.startCoins       = clamp(c.startCoins, 1, 100);
-        c.hungerWakeGrace  = clamp(c.hungerWakeGrace, 600, 1800);
-        c.burgerInterval   = Math.max(c.burgerInterval, burgerIntervalMin(c, C));  // 🍔-tahti
-        c.fogAlpha         = clamp(c.fogAlpha, 0, 0.5);
-        // K2 (kellon rytmit) + K6 (SFX) – v10.05
-        c.dayFadeFrames    = clamp(c.dayFadeFrames, 300, 3000);
-        c.nightFadeFrames  = clamp(c.nightFadeFrames, 300, 3000);
-        c.cycleChangeDelayFrames = clamp(c.cycleChangeDelayFrames, 120, 1800);
-        c.nightLampFirst   = clamp(c.nightLampFirst, 4, 90);
-        c.nightLampInterval = clamp(c.nightLampInterval, 2, 60);
-        c.spawnLampDelay   = clamp(c.spawnLampDelay, 0, 900);
-        c.cabBlinkMin      = clamp(c.cabBlinkMin, 120, 1200);
-        c.cabBlinkMax      = Math.max(clamp(c.cabBlinkMax, 120, 1200), c.cabBlinkMin + 50);
-        c.cabRerollMin     = clamp(c.cabRerollMin, 300, 3600);
-        c.cabRerollMax     = Math.max(clamp(c.cabRerollMax, 300, 3600), c.cabRerollMin + 50);
-        c.mosquitoDayDim   = clamp(c.mosquitoDayDim, 0, 1);
-        c.meteorTempoMult  = clamp(c.meteorTempoMult, 0.1, 5);
-        c.sfxVolumeMult    = clamp(c.sfxVolumeMult, 0.3, 2.0);
-        // Kaaos v10.18 – uudet akselit (visuaaliset/ei-tappavat → vain klampit, ei validointia)
-        c.doorLockChance   = clamp(c.doorLockChance, 0, 1);
-        c.staggerAmount    = clamp(c.staggerAmount, 0, 1);
-        c.screenShakeAmount= clamp(c.screenShakeAmount, 0, 1);
-        c.lampRedFlicker   = clamp(c.lampRedFlicker, 0, 0.05);
-        c.barBurntLetter   = clamp(Math.round(c.barBurntLetter), -1, 2);
-        c.cabFlicker       = clamp(c.cabFlicker, 0, 1);
-        c.sunSizeMult      = clamp(c.sunSizeMult, 0.6, 2.0);
-        return c;
-    }
 
     // 5) Portti: hyväksyntä – hylkää epäreilu arpa (pääsääntö 2)
-    function validateChaosCfg(cfg) {
-        const C = chaosAbilityFor(cfg), errs = [];
-        if (cfg.burgerInterval < burgerIntervalMin(cfg, C))     errs.push('burgerInterval < kaava');
-        if (cfg.avengerSpeed > threatSpeedMax(C))               errs.push('avenger liian nopea');
-        if (cfg.robberSpeed  > threatSpeedMax(C))               errs.push('robber liian nopea');
-        if (cfg.avengerTelegraph < threatTelegraphMin(C))       errs.push('varoitus liian lyhyt');
-        if (stunMaxOf(cfg) > 900)                               errs.push('tainnutus raja');
-        if (cfg.startBurgers < 2 || cfg.startBurgers > 10)      errs.push('aloitus🍔 raja');
-        if (threatBudget(cfg) > 3)                              errs.push('uhkabudjetti');
-        if (cfg.fogAlpha > 0.5)                                 errs.push('sumu liian sakea');
-        return errs;
-    }
 
     // 6) FULL-arpa: enintään 40 yritystä, muuten turvallinen klampattu arpa (v10.04)
-    function drawChaosCfg(level) {
-        if (level !== 'full') {
-            return clampChaosCfg(Object.assign({}, CHAOS_DEFAULTS2, chaosProfile(level)));
+
+
+    /* ── K7-kaaoskortit omasta tiedostosta (Vaihe 5 osa 5) ──
+       street/chaos-cards.js omistaa korttipakan tilan (cardState) ja korttidefit.
+       Tähän sidotaan ne street.js:n sulkeuman arvot, joita korttien
+       save/apply/restore muuttaa – get+set -pareina, jotta muutokset näkyvät
+       samoihin olioihin kuin ennen (esim. applyChaosProfile, render). */
+    StreetChaosCards.bind({
+        get anyChaos() { return chaosFlags.anyChaos; },
+        rng: chaosRng,
+        consts: { WORLD_W: WORLD_W, GROUND_Y: GROUND_Y },
+        fx: {
+            randomHuePalette: randomHuePalette,
+            randomizeBuildingColors: randomizeBuildingColors,
+            getAvailableWindows: getAvailableWindows,
+            pickColorType: pickColorType
+        },
+        state: {
+            get sunColor() { return sunColor; },               set sunColor(v) { sunColor = v; },
+            get sunGlow() { return sunGlow; },                 set sunGlow(v) { sunGlow = v; },
+            get daySkyTop() { return DAY_SKY_TOP; },           set daySkyTop(v) { DAY_SKY_TOP = v; },
+            get daySkyMid() { return DAY_SKY_MID; },           set daySkyMid(v) { DAY_SKY_MID = v; },
+            get daySkyHor() { return DAY_SKY_HORIZON; },       set daySkyHor(v) { DAY_SKY_HORIZON = v; },
+            get fogAlpha() { return fogAlpha; },               set fogAlpha(v) { fogAlpha = v; },
+            get windSpeed() { return windSpeed; },             set windSpeed(v) { windSpeed = v; },
+            get buildingPalette() { return buildingPalette; }, set buildingPalette(v) { buildingPalette = v; },
+            get animalSpawnTimer() { return animalSpawnTimer; }, set animalSpawnTimer(v) { animalSpawnTimer = v; },
+            get starCount() { return starCount; },
+            get starSizeMult() { return starSizeMult; },
+            get stars() { return stars; },
+            get litWindows() { return litWindows; }
         }
-        for (let i = 0; i < 40; i++) {
-            const cfg = clampChaosCfg(Object.assign({}, CHAOS_DEFAULTS2, generateFullChaosSeed()));
-            if (validateChaosCfg(cfg).length === 0) return cfg;
-        }
-        console.warn('[chaos] arpa hylättiin 40× – käytetään klampattua arpaa');
-        return clampChaosCfg(Object.assign({}, CHAOS_DEFAULTS2, generateFullChaosSeed()));
-    }
+    });
 
-
-    /* ═══════════════════════════════════════════════════════════
-       KAAOS K7 – tapahtumakortit (v10.05)
-       v1 = vain visuaalisia. Kortit laukeavat itsestään kesken
-       session ja palautuvat itsestään. Ei vahinkoa, ei taloutta,
-       ei uutta tekstiä. NORMALissa pois päältä (bitti-identtinen).
-       ═══════════════════════════════════════════════════════════ */
-    const CARD_FIRST_DELAY = 3600;                       // 60 s ennen ensimmäistä korttia
-    const CARD_GAP_MIN = 5400, CARD_GAP_MAX = 18000;     // 90–300 s korttien välillä
-    let cardState = {
-        enabled: false,
-        timer: CARD_FIRST_DELAY,        // frameä seuraavaan korttiin
-        left: 0,                        // kortteja jäljellä tässä sessiossa
-        active: null,                   // { id, t, dur, saved, restore }
-        meteorBurst: false,             // Tähtisade
-        lightsOut: false,               // Valot sammuvat
-        animalParade: 0                 // Eläinparaati: montako eläintä vielä
-    };
-
-    function chaosCardsReset() {
-        cardState.enabled = (chaosLevel !== 'normal');
-        cardState.timer = CARD_FIRST_DELAY;
-        cardState.left = (chaosLevel === 'normal') ? 0 : (3 + Math.floor(chaosRng() * 4)); // 3–6
-        cardState.active = null;
-        cardState.meteorBurst = false;
-        cardState.lightsOut = false;
-        cardState.animalParade = 0;
-    }
-
-    // Korttidekit: save() kaappaa tilan, apply() aloittaa, restore(saved) palauttaa.
-    function chaosCardDefs() {
-        const skyPresets = [
-            { sun: '#7dff7d', glow: ['rgba(120,255,120,0.55)','rgba(90,220,90,0.20)','rgba(70,180,70,0)'], top: '#2f5a2f', mid: '#4f7a4f', hor: '#7a9a6a' },
-            { sun: '#d37dff', glow: ['rgba(200,140,255,0.55)','rgba(170,110,230,0.20)','rgba(140,90,190,0)'], top: '#4a2f5a', mid: '#6a4f7a', hor: '#8a6a9a' },
-            { sun: '#ff4d4d', glow: ['rgba(255,100,100,0.55)','rgba(220,80,80,0.20)','rgba(180,60,60,0)'], top: '#5a2f2f', mid: '#7a4f4f', hor: '#9a6a6a' }
-        ];
-        return [
-            {   // 1. Vihreä hetki ⭐ – auringon väri + taivaan sävy
-                id: 'green', dur: [1200, 2400],
-                save: () => ({ sun: sunColor, glow: sunGlow, top: DAY_SKY_TOP, mid: DAY_SKY_MID, hor: DAY_SKY_HORIZON }),
-                apply: () => { const p = skyPresets[Math.floor(Math.random() * skyPresets.length)]; sunColor = p.sun; sunGlow = p.glow; DAY_SKY_TOP = p.top; DAY_SKY_MID = p.mid; DAY_SKY_HORIZON = p.hor; },
-                restore: (s) => { sunColor = s.sun; sunGlow = s.glow; DAY_SKY_TOP = s.top; DAY_SKY_MID = s.mid; DAY_SKY_HORIZON = s.hor; }
-            },
-            {   // 2. Tähtisade – 30–60 tähdenlentoa lyhyessä ajassa
-                id: 'meteor', dur: [360, 600],
-                save: () => ({}),
-                apply: () => { cardState.meteorBurst = true; },
-                restore: () => { cardState.meteorBurst = false; }
-            },
-            {   // 3. Sumu nousee – sumuverho α 0.25–0.45
-                id: 'fog', dur: [1800, 3600],
-                save: () => ({ fog: fogAlpha }),
-                apply: () => { fogAlpha = 0.25 + Math.random() * 0.20; },
-                restore: (s) => { fogAlpha = s.fog; }
-            },
-            {   // 4. Tuulenpuuska – tuuli ×2–3, puut nojaavat
-                id: 'gust', dur: [900, 1800],
-                save: () => ({ wind: windSpeed }),
-                apply: () => { windSpeed *= 2 + Math.random(); },
-                restore: (s) => { windSpeed = s.wind; }
-            },
-            {   // 5. Valot sammuvat – lamput + ikkunat pimeiksi hetkeksi
-                id: 'blackout', dur: [240, 480],
-                save: () => ({}),
-                apply: () => { cardState.lightsOut = true; },
-                restore: () => { cardState.lightsOut = false; }
-            },
-            {   // 6. Kaikki ikkunat syttyvät – 8–12 ikkunaa kerralla (raja 12)
-                id: 'windows', dur: [1200, 1800],
-                save: () => ({}),
-                apply: () => { cardFlashWindows(8 + Math.floor(Math.random() * 5)); },
-                restore: () => {}
-            },
-            {   // 7. Eläinparaati – 3–5 eläintä peräkkäin
-                id: 'parade', dur: [600, 1200],
-                save: () => ({}),
-                apply: () => { cardState.animalParade = 3 + Math.floor(Math.random() * 3); animalSpawnTimer = 0; },
-                restore: () => { cardState.animalParade = 0; }
-            },
-            {   // 8. Värien vaihto – talojen paletti sekoittuu (pysyvä)
-                id: 'palette', dur: [0, 0],
-                save: () => ({}),
-                apply: () => { buildingPalette = randomHuePalette(); randomizeBuildingColors(); },
-                restore: () => {}
-            },
-            {   // 9. Taivaan vaihto – päivätaivas hetkeksi myrskyiseksi
-                id: 'sky', dur: [1800, 3600],
-                save: () => ({ top: DAY_SKY_TOP, mid: DAY_SKY_MID, hor: DAY_SKY_HORIZON }),
-                apply: () => { DAY_SKY_TOP = '#3a4044'; DAY_SKY_MID = '#565e62'; DAY_SKY_HORIZON = '#6e6a5e'; },
-                restore: (s) => { DAY_SKY_TOP = s.top; DAY_SKY_MID = s.mid; DAY_SKY_HORIZON = s.hor; }
-            },
-            {   // 10. Tähtitaivas täyteen – tähdet 80 → 140
-                id: 'stars', dur: [1200, 2400],
-                save: () => ({}),
-                apply: () => { const add = Math.max(0, 140 - stars.length); for (let i = 0; i < add; i++) stars.push({ x: Math.random() * WORLD_W, y: Math.random() * (GROUND_Y - 30), r: (Math.random() * 1.5 + 0.5) * starSizeMult, blink: Math.random() * Math.PI * 2 }); },
-                restore: () => { if (stars.length > starCount) stars.length = starCount; }
-            }
-        ];
-    }
-
-    function cardFlashWindows(count) {
-        const avail = getAvailableWindows().filter(w =>
-            !litWindows.some(l => l.wx === w.wx && l.wy === w.wy && l.bldgIdx === w.bldgIdx));
-        const n = Math.max(0, Math.min(count, avail.length, 12 - litWindows.length));
-        for (let i = 0; i < n; i++) {
-            const w = avail[Math.floor(Math.random() * avail.length)];
-            litWindows.push({ wx: w.wx, wy: w.wy, bldgIdx: w.bldgIdx, offTime: Date.now() + 15000, colorType: pickColorType() });
-        }
-    }
-
-    function updateCards(dt) {
-        if (!cardState.enabled) return;
-        // Aktiivinen kortti käynnissä → tikitä ja palauta, kun aika täynnä
-        if (cardState.active) {
-            cardState.active.t += dt;
-            if (cardState.active.t >= cardState.active.dur) {
-                cardState.active.restore(cardState.active.saved);
-                cardState.active = null;
-                cardState.timer = CARD_GAP_MIN + Math.random() * (CARD_GAP_MAX - CARD_GAP_MIN);
-            }
-            return;
-        }
-        // Odotetaan seuraavaa korttia
-        if (cardState.left <= 0) return;
-        cardState.timer -= dt;
-        if (cardState.timer <= 0) {
-            const defs = chaosCardDefs();
-            const d = defs[Math.floor(Math.random() * defs.length)];
-            const dur = d.dur[0] + Math.random() * (d.dur[1] - d.dur[0]);
-            const saved = d.save();
-            d.apply();
-            cardState.active = { id: d.id, t: 0, dur: dur, saved: saved, restore: d.restore };
-            cardState.left--;
-        }
-    }
+    /* Testikytkin (ei tallenna mitään, kuten ?day / ?hole / ?cabs):
+       ?card=<id> pitää yhden K7-kortin päällä loputtomiin → jokainen kortti
+       on helppo katsoa yksi kerrallaan eikä tarvitse arvata, mikä ruudulla
+       on korteista. Id:t: green · meteor · fog · gust · blackout · windows ·
+       parade · palette · sky · stars.  Ilman parametria ei muuta mitään. */
+    const CARD_PARAM = (typeof location !== 'undefined' && typeof URLSearchParams !== 'undefined')
+        ? new URLSearchParams(location.search).get('card') : null;
+    if (CARD_PARAM) StreetChaosCards.setForcedCard(CARD_PARAM);
 
     function init(canvasEl) {
         canvas = canvasEl;
@@ -3154,7 +2407,7 @@ const Street = (() => {
            kokonaisina (korkeus/kyltti/rooli/ovi/lamppu mukana); NORMAL/MILD/GOOD
            eivät kutsu arvontaa (bitti-identtiset). */
         resetBuildingOrder();
-        if (chaosLevel === 'bad' || chaosLevel === 'full') shuffleBuildingOrder();
+        if (chaosFlags.ruin) shuffleBuildingOrder();   // BAD/FULL: talojärjestys arvotaan (v11.32)
         resetBuildingDamage();      // v11.22: talot ehjinä uudessa pelissä (vain muistissa)
         /* v11.34: laske jokaiselle lampulle sen vasemman puoleinen talo (naapuri).
            Lamppu on aina kahden talon välissä – bldgIdx kertoo oikean puolen,
@@ -3209,7 +2462,7 @@ const Street = (() => {
         }
         coin.collected = state.inventory.coin;
         coinCount = state.inventory.coinCount || 0;
-        coinRespawnTimer = coin.collected ? 1 : 0;
+        coin.respawnTimer = coin.collected ? 1 : 0;
         coin.despawnTimer = coin.collected ? 0 : 600;
         hamburgerCount = state.inventory.hamburgerCount || 5;
         hamburgerTimer = burgerInterval;
@@ -3217,7 +2470,7 @@ const Street = (() => {
         drunkTimer = burgerInterval;
         /* v11.31e: F5-soft reset palauttaa humalan kaaos-sessiosta; hard reset
            (✕ / kuolema / uusi välilehti) tyhjentää session → humala nollautuu. */
-        if (chaosLevel === 'full') {
+        if (chaosFlags.drunk) {
             const ds = loadChaosSession();
             if (ds && typeof ds.drunk === 'number') {
                 drunkLevel = Math.max(0, Math.min(DRUNK_MAX, Math.round(ds.drunk)));
@@ -3238,7 +2491,7 @@ const Street = (() => {
         beamCooldownTimer = 0;   // v11.14: uusi peli ei ala keskeneräisellä lukolla
         /* v11.24 BAD-avaus: BAD = BAD – laskuri viritetään tässä, mutta meteoriitti
            syntyy vasta kadulla ja yöllä (updateBadDemo yön haarassa). */
-        badDemoTimer = (chaosLevel === 'bad' && !BAD_DEMO_OFF) ? BAD_DEMO_DELAY : -1;
+        badDemoTimer = (chaosFlags.badDemo && !BAD_DEMO_OFF) ? BAD_DEMO_DELAY : -1;
         badDemoDone = false;
         /* Päivä/yö on tallennettu tila (state.isDay, v4.33):
              null  = ei vielä ratkaistu → 3 avainta nostaa päivän kerran
@@ -3435,138 +2688,302 @@ const Street = (() => {
         if (Math.abs(target - camX) < 0.5) camX = target;
     }
 
-    /* ── Liikenne: ajoneuvojen liike, spawnit ja törmäys ──────────
-       Kaksi ajorataa (LANE_DEFS). Päivällä liikennevirta tuplataan
-       (v4.37): spawn-laskuri kuluu TRAFFIC_DAY_MULT-kertaista vauhtia ja
-       kerroin liukuu dayT:n mukana (1 = yö, TRAFFIC_DAY_MULT = täysi päivä).
-       Sama 1 ajoneuvo per kaista ja samat nopeudet/törmäykset kuin ennen.
-       Palauttaa true, jos ajoneuvo osui pelaajaan tällä framella.
-       HUOM (v4.54): liikenne pyörii myös sanomalehteä lukiessa → kadulla
-       voi jäädä auton alle kesken lukemisen (lehti putoaa kädestä).
-       HUOM (v4.61): liikenne pyörii myös jukebox-huoneessa. Siellä pelaaja
-       on sisällä talossa → `playerSafe = true` ohittaa pelaajan
-       törmäystestin, joten auto ei voi tainnuttaa kesken musiikin valinnan
-       (muuten liike, spawnit ja äänet toimivat täsmälleen kuten kadulla).
-       HUOM (v11.09): sama periaate BARissa, makuuhuoneessa (myös nukkumisen
-       pimennyksen aikana) ja kaivoon putoamisen/kiipeämisen aikana
-       (`mhAction`) → liike, spawnit ja moottoriäänet eivät enää jäädy
-       näiden tilojen ajaksi. Ennen korjausta `v.x` seisoi, jolloin moottorin
-       panorointi (lasketaan v.x:stä) jäi jumiin ja ajoneuvo palasi kadulle
-       täsmälleen samasta kohdasta.
-       HUOM (v11.10): sama periaate myös tainnutuksessa (`update()`in
-       knockedDown-haara) – mutta VAIN jos kaataja ei ollut auto. Auton osuma
-       on kolari, johon liikenne on osallisena → silloin liikenne seisoo koko
-       tainnutuksen ajan (`player.knockFallY` asetetaan vain tässä funktiossa,
-       joten se toimii merkkinä auton osumasta).
-       `PLAYER_DEPTH_MAX_Y` (WORLD_H - 50 = 350) on sama raja kuin
-       update()in paikallinen PLAYER_Y_MAX (aidan yläreuna). */
-    function updateTraffic(dt, playerSafe) {
-        let playerHit = false;
+    /* v11.42 (Vaihe 5 osa 7): liikennologiikka siirrettiin street/traffic.js-moduuliin
+       (updateTraffic). Tila (vehicles, spawnTimers, player, kertoimet) sidotaan
+       gettereillä tuonnempana; kutsut ovat muotoa StreetTraffic.update(dt[, playerSafe]). */
 
-        // 1) Liike ja spawnit
-        for (let li = 0; li < LANE_DEFS.length; li++) {
-            const lane = LANE_DEFS[li];
-            if (!vehicles[li]) {
-                spawnTimers[li] -= dt * (1 + (TRAFFIC_DAY_MULT - 1) * dayT);
-                if (spawnTimers[li] <= 0) {
-                    const dir = lane.direction;
-                    let vehRnd = Math.random();
-                    let type, w, h, speed;
-                    if (chaosAllGone()) vehRnd = 0.74;   // v11.36: BAD/FULL rauniot – vain ambulanssit
-                    if (vehRnd < 0.37) {
-                        type = 'car'; w = 80; h = 30; speed = (1.0 + Math.random() * 0.5) * trafficSpeedMult;
-                    } else if (vehRnd < 0.74) {
-                        type = 'motorcycle'; w = 40; h = 22; speed = (1.5 + Math.random() * 1.0) * trafficSpeedMult;
-                    } else if (vehRnd < 0.98) {
-                        type = 'ambulance'; w = 80; h = 34; speed = (1.8 + Math.random() * 1.2) * trafficSpeedMult;
-                    } else {
-                        // Panssarivaunu on tarkoituksella todella harvinainen: ~2 %
-                        // (1/50) spawnauksista. Muu liikenne: auto 37 %, mopo 37 %,
-                        // ambulanssi 24 %. (Aiempi vaunun osuus oli 8 %.)
-                        type = 'tank'; w = 86; h = 36; speed = (0.4 + Math.random() * 0.4) * trafficSpeedMult;
+    /* Makuuhuone (talo 7): liikenne jatkaa taustalla (v11.09), nukkumisen pimennys vaihtaa päivä/yö-tilan ja antaa +1 🍔 (katto 10), Poistu ei muuta mitään. */
+    function updateSleepRoom(dt) {
+        // ── Makuuhuone (ex-palkintohuone, talo 7) ──
+        //   ▲ / W = Nuku     ▼ / S = Poistu   (valinta liikkuu reunoilla)
+        //   (o) / Space / Enter / ⚡ = vahvista valinta
+        //   Poistuminen ilman nukkumista ei muuta päivä/yö-tilaa mihinkään.
+        //   Nuku → pimennys (SLEEP_FADE_FRAMES) → tila vaihtuu → takaisin kadulle.
+        if (sleepRoom) {
+            /* LIIKENNE EI PYSÄHDY (v11.09): kadun autot ajavat taustalla myös
+               makuuhuoneessa ja nukkumisen pimennyksen aikana – sama periaate
+               kuin jukebox-huoneessa (v4.61). Muuten ajoneuvo jäisi jyrräämään
+               paikalleen (moottoriäänen panorointi seuraa v.x:ää) ja palaisi
+               kadulle täsmälleen samasta kohdasta. Pelaaja on sisällä talossa
+               → `playerSafe = true` (ei törmäystä, ei tainnutusta eikä
+               🍔-menetystä). Ei talousmuutoksia. */
+            StreetTraffic.update(dt, true);
+
+            // Nukkumisen pimennys: tila vaihtuu vasta pimennyksen lopussa
+            if (sleepPhase > 0) {
+                sleepPhase -= dt;
+                if (sleepPhase <= 0) {
+                    sleepPhase = 0;
+                    // Tila vaihtuu siitä, miltä katu parhaillaan näyttää
+                    // (toimii myös keskellä hämärtymistä ja ?day-testityökalulla)
+                    isDay = !(dayT >= 0.5);        // päivä → yö  TAI  yö → päivä
+                    // Uusi yö → kuu nousee uudelleen vasemmalta (v4.65), ei arvota.
+                    cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES + 1;  // uusi jakso alkaa (v4.89)
+                    if (!isDay) resetMoon();
+                    if (isDay) resetSun();              // aurinko alkuun (v4.89)
+                    if (!DAY_FORCE) {              // testityökalut eivät tallenna
+                        state.isDay = isDay;
+                        GameState.save(state);
                     }
-                    const vehicle = {
-                        type,
-                        x: dir > 0 ? -w : WORLD_W + w,
-                        y: lane.y,
-                        w, h,
-                        vx: dir * speed,
-                        direction: dir,
-                        hasHeadlight: (type === 'tank') ? false : (type !== 'motorcycle' || Math.random() < 0.5)
-                    };
-                    vehicle.engine = startVehicleEngine(vehicle);
-                    vehicles[li] = vehicle;
-                    spawnTimers[li] = (1200 + Math.random() * 1200) * trafficSpawnMult; // 20–40s (kaaos: tiheys)
+                    // +1 🍔 nukkumisesta (v4.44) – myös FULLissa (v11.31:
+                    // ainoa tapa hankkia 🍔 takaisin, koska BAR myy vain olutta)
+                    if (!DAY_FORCE && hamburgerCount < 10) {
+                        hamburgerCount++;
+                        state.inventory.hamburgerCount = hamburgerCount;
+                        GameState.save(state);
+                    }
+                    // Herätysrauha (v4.41): ajastin jatkuu siitä mihin se jäi,
+                    // mutta vähintään HUNGER_WAKE_GRACE-verran – muuten 1 🍔:lla
+                    // nukkunut voisi kuolla heti herätessään.
+                    hamburgerTimer = Math.max(hamburgerTimer, HUNGER_WAKE_GRACE);
+                    sleepRoom = false;
+                    sleepSel = 0;
+                    sleepHeldUp = false;
+                    sleepHeldDown = false;
+                    updateHUD();
                 }
-            } else {
-                const v = vehicles[li];
-                v.x += v.vx * dt;
-                updateVehicleEngine(v.engine, v);
-                if ((v.direction > 0 && v.x > WORLD_W + v.w + 10) || (v.direction < 0 && v.x < -v.w - 10)) {
-                    stopVehicleEngine(v.engine);
-                    vehicles[li] = null;
+                actionJustPressed = false;
+                return true;
+            }
+
+            const selUp = !!(keys['ArrowUp'] || keys['w'] || keys['W']);
+            const selDown = !!(keys['ArrowDown'] || keys['s'] || keys['S']);
+            if (selUp && !sleepHeldUp) sleepSel = Math.max(0, sleepSel - 1);
+            if (selDown && !sleepHeldDown) sleepSel = Math.min(1, sleepSel + 1);
+            sleepHeldUp = selUp;
+            sleepHeldDown = selDown;
+
+            if (actionJustPressed) {
+                if (sleepSel === 0) {
+                    sleepPhase = SLEEP_FADE_FRAMES;   // nukahdus käynnissä
+                } else {
+                    // Poistu: ei muutosta päivä/yö-tilaan
+                    sleepRoom = false;
+                    sleepSel = 0;
+                    sleepHeldUp = false;
+                    sleepHeldDown = false;
                 }
             }
+            actionJustPressed = false;
+            return true;
         }
-
-        // 2) Törmäys (molemmat kaistat) – ohitetaan, kun pelaaja on sisällä
-        if (!playerSafe && !player.knockedDown) {
-            const playerCY = player.y + player.h / 2;
-            const gapCenter = (LANE_DEFS[0].y + LANE_DEFS[1].y) / 2;  // 334
-            const inGap = Math.abs(playerCY - gapCenter) < 5;          // ±5px turvakaista
-
-            // Kumman kaistan auton kanssa pelaaja on enemmän limittäin?
-            const CAR_H = 30; // tyypillinen auton korkeus
-            const pTop = player.y, pBot = player.y + player.h;
-            const ov0 = Math.max(0, Math.min(pBot, LANE_DEFS[0].y + CAR_H) - Math.max(pTop, LANE_DEFS[0].y));
-            const ov1 = Math.max(0, Math.min(pBot, LANE_DEFS[1].y + CAR_H) - Math.max(pTop, LANE_DEFS[1].y));
-
-            for (let li = 0; li < LANE_DEFS.length; li++) {
-                const v = vehicles[li];
-                if (!v) continue;
-
-                // Pelaaja teräsaidan juuressa → ei kumpikaan kaista osu
-                if (player.y >= PLAYER_DEPTH_MAX_Y - 3) continue;
-
-                // Pelaaja kaistojen välisessä raossa → ei osumaa
-                if (inGap) continue;
-
-                // Pelaaja on vain lähimmällä kaistalla – kauemman kaistan autot menevät ohi
-                if (li === 0 && ov1 > ov0) continue;
-                if (li === 1 && ov0 > ov1) continue;
-
-                const vCollisionTop = v.y + v.h * 0.5;
-                if (v.x < player.x + player.w && v.x + v.w > player.x &&
-                    player.y + player.h > vCollisionTop && player.y < v.y + v.h) {
-                    player.knockedDown = true;
-                    player.knockdownTimer = 600;
-                    player.kicking = false;
-                    player.kickFrame = 0;
-                    // Kaadutaan 25 px ylös osumakohdasta (v4.78: 10 px, v11.12: 25 px,
-                    // jotta pysähtynyt auto ei osu heti uudelleen ylösnoustessa) – muuten
-                    // pelaaja jää makaamaan keskelle tietä ja autot kolarijatkuvat
-                    // katkeamatta päältä
-                    player.knockFallY = player.y + player.h - 25;
-                    spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#ffaa44', 15);
-                    playKnock();   // "Smack"-tömähdys
-                    vehicleShakeTimer = 90;  // ~1.5s tärinä
-                    collisionCost();   // v11.31: FULL → −1 🪙, muuten −1 🍔
-                    playerHit = true;
-                    break;
-                }
-            }
-        }
-
-        return playerHit;
+        return false;
     }
 
-    function update(dt) {
-        // Ajoneuvon törmäyksen tärinä (vain visuaalinen – ei jäädytä pelilogiikkaa)
-        if  (vehicleShakeTimer > 0) { vehicleShakeTimer -= dt; }
-        if (meteorShakeTimer > 0) { meteorShakeTimer -= dt; }
-        updateBuildingDamage(dt);   // v11.22: tuhoutuvien talojen animaatio etenee
+    /* BAR (talo 8): FULL myy olutta 🍺 (drunkLevel), muut tasot hampurilaisia; ▼ peruu vierailun ostot, (o)/Space poistuu. */
+    function updateBarRoom(dt) {
+        // BAR room – ostomäärää säädetään nuolilla, poistuminen toimintonapista
+        //   ▲ / W = osta 1 hampurilainen (1 kolikko)      ▼ / S = peru viimeisin osto
+        //   (o) / Space / Enter = poistu
+        if (barRoom) {
+            /* LIIKENNE EI PYSÄHDY (v11.09): sama periaate kuin jukebox-huoneessa
+               (v4.61) – kadun autot ajavat taustalla normaalisti, jotta
+               yksikään ajoneuvo ei jää jyrräämään paikalleen (moottoriäänen
+               panorointi seuraa v.x:ää) eikä palaa kadulle samasta kohdasta.
+               Pelaaja on sisällä talossa → `playerSafe = true` (ei törmäystä,
+               ei tainnutusta eikä 🍔-menetystä kesken ostosten). Ei
+               talousmuutoksia (ostot ja hinnat ennallaan). */
+            StreetTraffic.update(dt, true);
+
+            const buyUp = !!(keys['ArrowUp'] || keys['w'] || keys['W']);
+            const buyDown = !!(keys['ArrowDown'] || keys['s'] || keys['S']);
+
+            if (chaosFlags.beer) {
+                /* FULL (v11.31): BAR myy olutta 🍺 (1 🪙), katto DRUNK_MAX.
+                   Olut nostaa humalaa ja nollaa haihtumisajastimen. */
+                if (buyUp && !barBuyHeldUp && coinCount > 0 && drunkLevel < DRUNK_MAX) {
+                    drunkLevel++;
+                    drunkTimer = burgerInterval;
+                    saveChaosSession();   // v11.31e: F5 ei hukkaa humalaa
+                    coinCount--;
+                    barBuyQty++;
+                    state.inventory.coinCount = coinCount;
+                    GameState.save(state);
+                    updateHUD();
+                    playCoin();
+                }
+                if (buyDown && !barBuyHeldDown && barBuyQty > 0) {
+                    drunkLevel--;
+                    saveChaosSession();   // v11.31e
+                    coinCount++;
+                    barBuyQty--;
+                    state.inventory.coinCount = coinCount;
+                    GameState.save(state);
+                    updateHUD();
+                    playCoin();
+                }
+            } else {
+                if (buyUp && !barBuyHeldUp && coinCount > 0 && hamburgerCount < 10) {
+                    hamburgerCount++;
+                    coinCount--;
+                    barBuyQty++;
+                    state.inventory.hamburgerCount = hamburgerCount;
+                    state.inventory.coinCount = coinCount;
+                    GameState.save(state);
+                    updateHUD();
+                    playCoin();
+                }
+                if (buyDown && !barBuyHeldDown && barBuyQty > 0) {
+                    hamburgerCount--;
+                    coinCount++;
+                    barBuyQty--;
+                    state.inventory.hamburgerCount = hamburgerCount;
+                    state.inventory.coinCount = coinCount;
+                    GameState.save(state);
+                    updateHUD();
+                    playCoin();
+                }
+            }
+            barBuyHeldUp = buyUp;
+            barBuyHeldDown = buyDown;
+
+            if (actionJustPressed) {
+                barRoom = false;
+                barBuyQty = 0;
+                barBuyHeldUp = false;
+                barBuyHeldDown = false;
+            }
+            actionJustPressed = false;
+            return true;
+        }
+        return false;
+    }
+
+    /* Jukebox-huone (talo 5): monivalinta (v4.46), kursori vapaa myös soiton aikana (v4.99), poistuminen soittaa valitut (jukeboxExitAndPlay). */
+    function updateJukeboxRoom(dt) {
+        // JUKEBOX-huone (talo 5) – monivalinta (v4.46)
+        //   ▲ / W = kursori ylös   ▼ / S = kursori alas (0 = Poistu-rivi, 1..N = kappale)
+        //   (o) / Space / ⚡ = ota kappale listalle tai poista se
+        //   (o) / Space / ⚡ rivillä 0 = soita valitut & poistu
+        //   Enter = soita valitut & poistu mistä tahansa
+        //   Kun jono soi (valinta vapaana) Space/(o)/⚡ lisää jonoon, Enter = lisää & poistu
+        //   Ei valintoja → poistuminen ei veloita eikä soita mitään
+        //   Valitut soitetaan poistuttaessa yksi kerrallaan (1 → N), 1 🪙 / kappale
+        if (jukeboxRoom) {
+            /* Liikenne ei pysähdy (v4.61): kadun autot ajavat taustalla
+               normaalisti, jotta yksikään ajoneuvo ei jää jyrräämään
+               paikalleen huoneeseen mentäessä. Pelaaja on sisällä talossa →
+               `playerSafe = true` (ei törmäystestiä, ei tainnutusta eikä
+               🍔-menetystä kesken musiikin valinnan). Ei talousmuutoksia
+               (sääntö 04); nälkä kuluu kuten ennenkin (v4.49/v4.50). */
+            StreetTraffic.update(dt, true);
+
+            const selUp = !!(keys['ArrowUp'] || keys['w'] || keys['W']);
+            const selDown = !!(keys['ArrowDown'] || keys['s'] || keys['S']);
+            const trackCount = JUKEBOX_TRACKS.length;
+            // Space ja ⚡ asettavat saman keyn (' ') → sama reuna molemmille
+            const toggleDown = !!(keys[' '] || keys['o'] || keys['O']);
+            const enterDown = !!keys['Enter'];
+
+            // Kursori aina vapaana (v4.99): valinta onnistuu myös soiton aikana,
+            // jolloin uudet valinnat lisätään soivan jonon perään.
+            if (selUp && !jukeHeldUp) jukeSel = Math.max(0, jukeSel - 1);
+            if (selDown && !jukeHeldDown) jukeSel = Math.min(trackCount, jukeSel + 1);
+            jukeHeldUp = selUp;
+            jukeHeldDown = selDown;
+
+            // Ota / poista kappale (rivi 0 = Poistu: lisää valinnat jonoon & poistu).
+            // Soiton aikana Space/(o)/⚡ kappalerivillä togglaa valintaa (kuten normaalisti).
+            if (toggleDown && !jukeSpaceHeld) {
+                if (jukeSel === 0) jukeboxExitAndPlay();
+                else jukePick[jukeSel - 1] = !jukePick[jukeSel - 1];
+            }
+            jukeSpaceHeld = toggleDown;
+
+            // Enter: lisää valinnat jonoon & poistu mistä tahansa riviltä
+            if (enterDown && !jukeEnterHeld) jukeboxExitAndPlay();
+            jukeEnterHeld = enterDown;
+
+            actionJustPressed = false;
+            return true;
+        }
+        return false;
+    }
+
+    /* Sanomalehti (v4.53/v4.54): sivujen selaus; liikenne EI pysähdy → auto voi ajaa yli (lehti putoaa, tainnutus). */
+    function updateNewsRoom(dt) {
+        // SANOMALEHTI (v4.53/v4.54) – sivuttain selattava ohjelehti
+        //   ▲ / ▼ = edellinen / seuraava sivu (ei kierrä yli)
+        //   Space (⚡) = seuraava sivu; viimeisellä sivulla poistuu kadulle
+        //   (o) / Enter = poistu heti      ✕-nappi = sulje (closeRoom)
+        //   Ilmainen eikä muuta taloutta; nälkä kuluu kuten huoneissa.
+        //   LIIKENNE EI PYSÄHDY (v4.54): auto voi ajaa yli kesken lukemisen
+        //   → lehti putoaa kädestä ja pelaaja kaatuu kadulle (tainnutus +
+        //   −1 🍔 kuten muutenkin; 0 🍔 = kuolema). Turvassa ovat kaistojen
+        //   välinen rako sekä aivan aidan juuri – samat rajat kuin ennen.
+        if (newsRoom) {
+            if (StreetTraffic.update(dt)) {
+                closeNewspaper();          // lehti lentää kädestä
+                actionJustPressed = false;
+                return true;
+            }
+
+            const L = StreetNews.layout();
+            const lastIdx = Math.max(0, L.screens.length - 1);
+            const selUp = !!(keys['ArrowUp'] || keys['w'] || keys['W']);
+            const selDown = !!(keys['ArrowDown'] || keys['s'] || keys['S']);
+            if (selUp && !newsHeldUp) StreetNews.prev();
+            if (selDown && !newsHeldDown) StreetNews.next();
+            newsHeldUp = selUp;
+            newsHeldDown = selDown;
+
+            const nextDown = !!keys[' '];
+            if (nextDown && !newsSpaceHeld) {
+                if (StreetNews.index() < lastIdx) StreetNews.next();
+                else closeNewspaper();           // viimeinen sivu → takaisin kadulle
+            }
+            newsSpaceHeld = nextDown;
+
+            const exitDown = !!(keys['o'] || keys['O'] || keys['Enter']);
+            if (exitDown && !newsExitHeld) closeNewspaper();
+            newsExitHeld = exitDown;
+
+            actionJustPressed = false;
+            return true;
+        }
+        return false;
+    }
+
+    /* Tainnutus: liikenne pysähtyy vain auton kolarista (v11.10/v11.12), pudotus knockFallY-tasolle, maailma jäätyy mutta ajastimet/partikkelit/oviukko/meteoriitti pyörivät. */
+    function updateKnockedDown(dt) {
+        // Tainnutus - kukkaruukku osui
+        if (player.knockedDown) {
+            // LIIKENNE EI PYSÄHDY (v11.10): tainnutus jäädyttää kadun, mutta
+            // liikenne jatkaa – paitsi jos kaataja oli auto. Vain auton osuma
+            // on kolari, johon liikenne on osallisena (`player.knockFallY`
+            // asetetaan ainoastaan updateTrafficin törmäyksessä) → silloin
+            // liikenne seisoo koko tainnutuksen ajan, kuten ennenkin.
+            // Sähkökaappi, rosvo, kukkaruukku, lamppu ja oviukko eivät
+            // pysäytä liikennettä. `playerSafe = true`: makaavaan pelaajaan
+            // ei tule uutta osumaa (ei toistuvaa 🍔-menetystä).
+            if (player.knockFallY === undefined) StreetTraffic.update(dt, true);
+            player.knockdownTimer -= dt;
+            // Putoamistaso: auton osuma kaataa 25 px ylös osumakohdasta (v4.78: 10,
+            // v11.12: 25 px – pysähtynyt auto ei osu heti uudelleen ylösnoustessa);
+            // muilla tainnutuslähteillä oletus jalkakäytävän taso (GROUND_Y + 10).
+            const fallY = (player.knockFallY !== undefined) ? player.knockFallY : (GROUND_Y + 10);
+            player.vx = 0; player.vy += GRAVITY * dt; player.y += player.vy * dt;
+            if (player.y + player.h >= fallY) { player.y = fallY - player.h; player.vy = 0; }
+            if (player.knockdownTimer <= 0) { player.knockedDown = false; player.knockdownTimer = 0; player.knockFallY = undefined; }
+            if (player.kicking) { player.kickFrame += dt; if (player.kickFrame >= KICK_DURATION) { player.kicking = false; player.kickFrame = 0; } }
+            for (let i = particles.length - 1; i >= 0; i--) { const p = particles[i]; p.x += p.vx; p.y += p.vy; p.life--; if (p.life <= 0) particles.splice(i, 1); }
+            coin.sparkle += 0.05 * dt;
+            if (firstHouseWindowsLit && firstHouseWindowTimer > 0) { firstHouseWindowTimer -= dt; if (firstHouseWindowTimer <= 0) { firstHouseWindowsLit = false; firstHouseKickCount = 0; firstHouseKickTarget = 0; } }
+            for (const idx in smallHouseLights) { const sh = smallHouseLights[idx]; if (sh.lit && sh.timer > 0) { sh.timer -= dt; if (sh.timer <= 0) { sh.lit = false; sh.timer = 0; } } }
+            updateAvenger(dt);   // oviukko: paluu ovelle jatkuu tainnutuksen aikana
+            for (let i = 0; i < lamps.length; i++) { if (lamps[i].overheatTimer > 0) { lamps[i].overheatTimer -= dt; if (lamps[i].overheatTimer <= 0) { lamps[i].overheatTimer = 0; lamps[i].overheat = false; lamps[i].kickCount = 0; } } }
+            updateShootingStar(dt);
+            updateSatellite(dt);
+            actionJustPressed = false;
+            return true;
+        }
+        return false;
+    }
+
+    /* Savukiekurat tuhoutuneista taloista (v11.33/v11.36): nousevat ja hiipuvat, vain BAD/FULL. */
+    function updateBuildingSmoke(dt) {
         // ── Savukiekurat tuhoutuneista taloista (v11.33, v11.36: siirretty tänne) ──
-        if (chaosLevel === 'bad' || chaosLevel === 'full') {
+        if (chaosFlags.ruin) {
             for (const key in buildingDmg) {
                 if (buildingDmg[key] !== 'gone') continue;
                 const idx = Number(key);
@@ -3607,16 +3024,10 @@ const Street = (() => {
                 }
             }
         }
-        if (beamFireTimer > 0) { beamFireTimer -= dt; }
-        if (beamCooldownTimer > 0) { beamCooldownTimer -= dt; }   // v11.14: laukaisuväli
-        if (meteorFlash) { meteorFlash.t -= dt; if (meteorFlash.t <= 0) meteorFlash = null; }
+    }
 
-        // ── Hit pause: maailma jäätyy 2  frameä osumasta (render jatkaa) ──
-        if (hitPauseTimer > 0) { hitPauseTimer -= dt; return; }
-
-        // Animaatiokello (hengitys, silmän vilkahdus)
-        animClock += dt;
-
+    /* Päivä/yö: ensiauringonnousu (3 avainta), liuku kohti tavoitetta (pysähtyy huoneissa/iframessa), yön lamppushown viritys ja päivän lamppusammutus (v4.38/v4.42). */
+    function updateDayNight(dt) {
         // ── Päivä/yö: liuku kohti tallennettua tavoitetta ──
         // Ensiauringonnousu (v4.32-käytös): kun kaikki 3 avainta on koossa eikä
         // tilaa ole vielä ratkaistu, kadulle nousee päivä kerran. Sen jälkeen
@@ -3694,7 +3105,10 @@ const Street = (() => {
                 }
             }
         }
+    }
 
+    /* Spawn-lamppushow (v4.90): pelin alussa/kuoleman jälkeen 4 s → lamput syttyvät yksi kerrallaan. */
+    function updateSpawnLampShow(dt) {
         // ── Spawn-lamppushow (v4.90): pelin alussa/kuoleman jälkeen 4 s → lamput syttyvät ──
         // Käyttää samaa startNightLampShow()-mekaniikkaa kuin yön tullessa.
         if (spawnLampTimer > 0 && !isDay && !playerDead && !iframeOpen && !sleepRoom && !barRoom && !jukeboxRoom) {
@@ -3703,7 +3117,10 @@ const Street = (() => {
                 startNightLampShow();                    // sytytä lamput yksi kerrallaan
             }
         }
+    }
 
+    /* Jukebox-soiton tallennus (v4.92): seuraa positiota ja päivittää tilan F5:n yli. */
+    function updateJukeboxPersistence(dt) {
         // ── Jukebox-soiton tallennus (v4.92): seuraa positiota ja päivitä state F5:n yli ──
         if (StreetAudio.isJukeboxPlaying()) {
             const qPos = StreetAudio.getJukeboxQueuePos();
@@ -3720,7 +3137,10 @@ const Street = (() => {
             GameState.save(state);
             jukeSavedPos = -1;
         }
+    }
 
+    /* Yö/päivä-kierto (v4.89): kuu/aurinko liikkuu, CYCLE_CHANGE_DELAY_FRAMES odotus ja automaattinen vaihto; kellot tallennetaan ~2 s välein. */
+    function updateDayCycle(dt) {
         // ── Yö/päivä -kierto (v4.89): kuu liukuu yöllä, aurinko päivällä ──
         // Kun kuu/aurinko on kadonnut, odotetaan CYCLE_CHANGE_DELAY_FRAMES
         // (15 s) ja vaihdetaan automaattisesti seuraavaan vuorokaudenaikaan.
@@ -3772,7 +3192,10 @@ const Street = (() => {
                 saveSunClock();
             }
         }
+    }
 
+    /* Kuolemasekvenssi: pimennys etenee, sitten GameState.reset() + reload. true = kuolema vei vuoron. */
+    function updateDeathSequence(dt) {
         // ── Kuolemasekvenssi ─────────────────────────
         if (playerDead) {
             deathTimer -= dt;
@@ -3782,9 +3205,13 @@ const Street = (() => {
                 GameState.reset();
                 location.reload();
             }
-            return;
+            return true;
         }
+        return false;
+    }
 
+    /* Nälkä (1/60 s): kulutus jatkuu kaikkialla paitsi nukkuessa (v4.49); 0 🍔 → killPlayer + ulos piilosta (v4.50). true = nälkäkuolema vei vuoron. */
+    function updateHunger(dt) {
         // ── Nälkä (hampurilaisajastin, 1/60s) ────────────────────────
         // Kulutus jatkuu kaikkialla kuten kadulla (v4.49): myös BAR:ssa,
         // jukeboxissa ja iframe-peleissä → pelaajan pitää aina huolehtia,
@@ -3798,7 +3225,7 @@ const Street = (() => {
             /* FULL (v11.31): JOS olutta on, se kuluu ensin (humala haihtuu,
                🍔 säilyy). Vasta kun 🍺 = 0, klassinen 🍔-nälkä palaa. */
             let burgerHungerActive = true;
-            if (chaosLevel === 'full' && drunkLevel > 0) {
+            if (chaosFlags.drunk && drunkLevel > 0) {
                 burgerHungerActive = false;
                 drunkTimer -= dt;
                 if (drunkTimer <= 0) {
@@ -3822,11 +3249,15 @@ const Street = (() => {
                 if (hamburgerCount <= 0) {              // 0 🍔 → kuolema
                     killPlayer();                       // kuolinsekvenssi alkaa heti
                     if (insideHiddenState()) leaveHiddenStateForDeath();
-                    return;
+                    return true;
                 }
             }
         }
+        return false;
+    }
 
+    /* Paluu kadulle -vahti (v4.51): viemärinkannen tila voi muuttua huoneesta palatessa; rosvon ttl kuluu myös piilossa (v10.12). */
+    function updateHiddenTracking(dt) {
         // ── Paluu kadulle -vahti (v4.51): huone tai alapeli sulkeutui →
         //    1/10 mahdollisuus, että viemärinkannen tilanne muuttuu
         //    (kansi katoaa tai asennetaan takaisin paikalleen).
@@ -3840,7 +3271,10 @@ const Street = (() => {
                 if (robber.ttl <= 0) robber = null;
             }
         }
+    }
 
+    /* Kaivosarja käynnissä: katu on jäissä, liikenne jatkaa taustalla (v11.09), pelaaja ei ota osumia. true = sekvenssi vei vuoron. */
+    function updateManholeSequence(dt) {
         // ── Avoin kaivo: pudotus / ylöskiipeäminen käynnissä (v4.51) ──
         // Katu on jäissä sekvenssin ajan (kuten nukkumisen pimennys).
         // LIIKENNE EI PYSÄHDY (v11.09): sama periaate kuin jukebox-huoneessa
@@ -3848,279 +3282,12 @@ const Street = (() => {
         // jyrräämään paikalleen (moottoriäänen panorointi seuraa v.x:ää).
         // Pelaaja on reiässä (kadun ulkopuolella) → playerSafe = true:
         // ei törmäystä, ei tainnutusta eikä 🍔-menetystä kesken sekvenssin.
-        if (mhAction) { updateTraffic(dt, true); updateManholeAction(dt); return; }
+        if (manhole.action) { StreetTraffic.update(dt, true); updateManholeAction(dt); return true; }
+        return false;
+    }
 
-        // ── Makuuhuone (ex-palkintohuone, talo 7) ──
-        //   ▲ / W = Nuku     ▼ / S = Poistu   (valinta liikkuu reunoilla)
-        //   (o) / Space / Enter / ⚡ = vahvista valinta
-        //   Poistuminen ilman nukkumista ei muuta päivä/yö-tilaa mihinkään.
-        //   Nuku → pimennys (SLEEP_FADE_FRAMES) → tila vaihtuu → takaisin kadulle.
-        if (sleepRoom) {
-            /* LIIKENNE EI PYSÄHDY (v11.09): kadun autot ajavat taustalla myös
-               makuuhuoneessa ja nukkumisen pimennyksen aikana – sama periaate
-               kuin jukebox-huoneessa (v4.61). Muuten ajoneuvo jäisi jyrräämään
-               paikalleen (moottoriäänen panorointi seuraa v.x:ää) ja palaisi
-               kadulle täsmälleen samasta kohdasta. Pelaaja on sisällä talossa
-               → `playerSafe = true` (ei törmäystä, ei tainnutusta eikä
-               🍔-menetystä). Ei talousmuutoksia. */
-            updateTraffic(dt, true);
-
-            // Nukkumisen pimennys: tila vaihtuu vasta pimennyksen lopussa
-            if (sleepPhase > 0) {
-                sleepPhase -= dt;
-                if (sleepPhase <= 0) {
-                    sleepPhase = 0;
-                    // Tila vaihtuu siitä, miltä katu parhaillaan näyttää
-                    // (toimii myös keskellä hämärtymistä ja ?day-testityökalulla)
-                    isDay = !(dayT >= 0.5);        // päivä → yö  TAI  yö → päivä
-                    // Uusi yö → kuu nousee uudelleen vasemmalta (v4.65), ei arvota.
-                    cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES + 1;  // uusi jakso alkaa (v4.89)
-                    if (!isDay) resetMoon();
-                    if (isDay) resetSun();              // aurinko alkuun (v4.89)
-                    if (!DAY_FORCE) {              // testityökalut eivät tallenna
-                        state.isDay = isDay;
-                        GameState.save(state);
-                    }
-                    // +1 🍔 nukkumisesta (v4.44) – myös FULLissa (v11.31:
-                    // ainoa tapa hankkia 🍔 takaisin, koska BAR myy vain olutta)
-                    if (!DAY_FORCE && hamburgerCount < 10) {
-                        hamburgerCount++;
-                        state.inventory.hamburgerCount = hamburgerCount;
-                        GameState.save(state);
-                    }
-                    // Herätysrauha (v4.41): ajastin jatkuu siitä mihin se jäi,
-                    // mutta vähintään HUNGER_WAKE_GRACE-verran – muuten 1 🍔:lla
-                    // nukkunut voisi kuolla heti herätessään.
-                    hamburgerTimer = Math.max(hamburgerTimer, HUNGER_WAKE_GRACE);
-                    sleepRoom = false;
-                    sleepSel = 0;
-                    sleepHeldUp = false;
-                    sleepHeldDown = false;
-                    updateHUD();
-                }
-                actionJustPressed = false;
-                return;
-            }
-
-            const selUp = !!(keys['ArrowUp'] || keys['w'] || keys['W']);
-            const selDown = !!(keys['ArrowDown'] || keys['s'] || keys['S']);
-            if (selUp && !sleepHeldUp) sleepSel = Math.max(0, sleepSel - 1);
-            if (selDown && !sleepHeldDown) sleepSel = Math.min(1, sleepSel + 1);
-            sleepHeldUp = selUp;
-            sleepHeldDown = selDown;
-
-            if (actionJustPressed) {
-                if (sleepSel === 0) {
-                    sleepPhase = SLEEP_FADE_FRAMES;   // nukahdus käynnissä
-                } else {
-                    // Poistu: ei muutosta päivä/yö-tilaan
-                    sleepRoom = false;
-                    sleepSel = 0;
-                    sleepHeldUp = false;
-                    sleepHeldDown = false;
-                }
-            }
-            actionJustPressed = false;
-            return;
-        }
-
-        // BAR room – ostomäärää säädetään nuolilla, poistuminen toimintonapista
-        //   ▲ / W = osta 1 hampurilainen (1 kolikko)      ▼ / S = peru viimeisin osto
-        //   (o) / Space / Enter = poistu
-        if (barRoom) {
-            /* LIIKENNE EI PYSÄHDY (v11.09): sama periaate kuin jukebox-huoneessa
-               (v4.61) – kadun autot ajavat taustalla normaalisti, jotta
-               yksikään ajoneuvo ei jää jyrräämään paikalleen (moottoriäänen
-               panorointi seuraa v.x:ää) eikä palaa kadulle samasta kohdasta.
-               Pelaaja on sisällä talossa → `playerSafe = true` (ei törmäystä,
-               ei tainnutusta eikä 🍔-menetystä kesken ostosten). Ei
-               talousmuutoksia (ostot ja hinnat ennallaan). */
-            updateTraffic(dt, true);
-
-            const buyUp = !!(keys['ArrowUp'] || keys['w'] || keys['W']);
-            const buyDown = !!(keys['ArrowDown'] || keys['s'] || keys['S']);
-
-            if (chaosLevel === 'full') {
-                /* FULL (v11.31): BAR myy olutta 🍺 (1 🪙), katto DRUNK_MAX.
-                   Olut nostaa humalaa ja nollaa haihtumisajastimen. */
-                if (buyUp && !barBuyHeldUp && coinCount > 0 && drunkLevel < DRUNK_MAX) {
-                    drunkLevel++;
-                    drunkTimer = burgerInterval;
-                    saveChaosSession();   // v11.31e: F5 ei hukkaa humalaa
-                    coinCount--;
-                    barBuyQty++;
-                    state.inventory.coinCount = coinCount;
-                    GameState.save(state);
-                    updateHUD();
-                    playCoin();
-                }
-                if (buyDown && !barBuyHeldDown && barBuyQty > 0) {
-                    drunkLevel--;
-                    saveChaosSession();   // v11.31e
-                    coinCount++;
-                    barBuyQty--;
-                    state.inventory.coinCount = coinCount;
-                    GameState.save(state);
-                    updateHUD();
-                    playCoin();
-                }
-            } else {
-                if (buyUp && !barBuyHeldUp && coinCount > 0 && hamburgerCount < 10) {
-                    hamburgerCount++;
-                    coinCount--;
-                    barBuyQty++;
-                    state.inventory.hamburgerCount = hamburgerCount;
-                    state.inventory.coinCount = coinCount;
-                    GameState.save(state);
-                    updateHUD();
-                    playCoin();
-                }
-                if (buyDown && !barBuyHeldDown && barBuyQty > 0) {
-                    hamburgerCount--;
-                    coinCount++;
-                    barBuyQty--;
-                    state.inventory.hamburgerCount = hamburgerCount;
-                    state.inventory.coinCount = coinCount;
-                    GameState.save(state);
-                    updateHUD();
-                    playCoin();
-                }
-            }
-            barBuyHeldUp = buyUp;
-            barBuyHeldDown = buyDown;
-
-            if (actionJustPressed) {
-                barRoom = false;
-                barBuyQty = 0;
-                barBuyHeldUp = false;
-                barBuyHeldDown = false;
-            }
-            actionJustPressed = false;
-            return;
-        }
-
-        // JUKEBOX-huone (talo 5) – monivalinta (v4.46)
-        //   ▲ / W = kursori ylös   ▼ / S = kursori alas (0 = Poistu-rivi, 1..N = kappale)
-        //   (o) / Space / ⚡ = ota kappale listalle tai poista se
-        //   (o) / Space / ⚡ rivillä 0 = soita valitut & poistu
-        //   Enter = soita valitut & poistu mistä tahansa
-        //   Kun jono soi (valinta vapaana) Space/(o)/⚡ lisää jonoon, Enter = lisää & poistu
-        //   Ei valintoja → poistuminen ei veloita eikä soita mitään
-        //   Valitut soitetaan poistuttaessa yksi kerrallaan (1 → N), 1 🪙 / kappale
-        if (jukeboxRoom) {
-            /* Liikenne ei pysähdy (v4.61): kadun autot ajavat taustalla
-               normaalisti, jotta yksikään ajoneuvo ei jää jyrräämään
-               paikalleen huoneeseen mentäessä. Pelaaja on sisällä talossa →
-               `playerSafe = true` (ei törmäystestiä, ei tainnutusta eikä
-               🍔-menetystä kesken musiikin valinnan). Ei talousmuutoksia
-               (sääntö 04); nälkä kuluu kuten ennenkin (v4.49/v4.50). */
-            updateTraffic(dt, true);
-
-            const selUp = !!(keys['ArrowUp'] || keys['w'] || keys['W']);
-            const selDown = !!(keys['ArrowDown'] || keys['s'] || keys['S']);
-            const trackCount = JUKEBOX_TRACKS.length;
-            // Space ja ⚡ asettavat saman keyn (' ') → sama reuna molemmille
-            const toggleDown = !!(keys[' '] || keys['o'] || keys['O']);
-            const enterDown = !!keys['Enter'];
-
-            // Kursori aina vapaana (v4.99): valinta onnistuu myös soiton aikana,
-            // jolloin uudet valinnat lisätään soivan jonon perään.
-            if (selUp && !jukeHeldUp) jukeSel = Math.max(0, jukeSel - 1);
-            if (selDown && !jukeHeldDown) jukeSel = Math.min(trackCount, jukeSel + 1);
-            jukeHeldUp = selUp;
-            jukeHeldDown = selDown;
-
-            // Ota / poista kappale (rivi 0 = Poistu: lisää valinnat jonoon & poistu).
-            // Soiton aikana Space/(o)/⚡ kappalerivillä togglaa valintaa (kuten normaalisti).
-            if (toggleDown && !jukeSpaceHeld) {
-                if (jukeSel === 0) jukeboxExitAndPlay();
-                else jukePick[jukeSel - 1] = !jukePick[jukeSel - 1];
-            }
-            jukeSpaceHeld = toggleDown;
-
-            // Enter: lisää valinnat jonoon & poistu mistä tahansa riviltä
-            if (enterDown && !jukeEnterHeld) jukeboxExitAndPlay();
-            jukeEnterHeld = enterDown;
-
-            actionJustPressed = false;
-            return;
-        }
-
-        // SANOMALEHTI (v4.53/v4.54) – sivuttain selattava ohjelehti
-        //   ▲ / ▼ = edellinen / seuraava sivu (ei kierrä yli)
-        //   Space (⚡) = seuraava sivu; viimeisellä sivulla poistuu kadulle
-        //   (o) / Enter = poistu heti      ✕-nappi = sulje (closeRoom)
-        //   Ilmainen eikä muuta taloutta; nälkä kuluu kuten huoneissa.
-        //   LIIKENNE EI PYSÄHDY (v4.54): auto voi ajaa yli kesken lukemisen
-        //   → lehti putoaa kädestä ja pelaaja kaatuu kadulle (tainnutus +
-        //   −1 🍔 kuten muutenkin; 0 🍔 = kuolema). Turvassa ovat kaistojen
-        //   välinen rako sekä aivan aidan juuri – samat rajat kuin ennen.
-        if (newsRoom) {
-            if (updateTraffic(dt)) {
-                closeNewspaper();          // lehti lentää kädestä
-                actionJustPressed = false;
-                return;
-            }
-
-            const L = newsLayout();
-            const lastIdx = Math.max(0, L.screens.length - 1);
-            const selUp = !!(keys['ArrowUp'] || keys['w'] || keys['W']);
-            const selDown = !!(keys['ArrowDown'] || keys['s'] || keys['S']);
-            if (selUp && !newsHeldUp) newsScreen = Math.max(0, newsScreen - 1);
-            if (selDown && !newsHeldDown) newsScreen = Math.min(lastIdx, newsScreen + 1);
-            newsHeldUp = selUp;
-            newsHeldDown = selDown;
-
-            const nextDown = !!keys[' '];
-            if (nextDown && !newsSpaceHeld) {
-                if (newsScreen < lastIdx) newsScreen++;
-                else closeNewspaper();           // viimeinen sivu → takaisin kadulle
-            }
-            newsSpaceHeld = nextDown;
-
-            const exitDown = !!(keys['o'] || keys['O'] || keys['Enter']);
-            if (exitDown && !newsExitHeld) closeNewspaper();
-            newsExitHeld = exitDown;
-
-            actionJustPressed = false;
-            return;
-        }
-
-        updateClouds(dt);
-        updateForeground(dt);
-
-        // Tainnutus - kukkaruukku osui
-        if (player.knockedDown) {
-            // LIIKENNE EI PYSÄHDY (v11.10): tainnutus jäädyttää kadun, mutta
-            // liikenne jatkaa – paitsi jos kaataja oli auto. Vain auton osuma
-            // on kolari, johon liikenne on osallisena (`player.knockFallY`
-            // asetetaan ainoastaan updateTrafficin törmäyksessä) → silloin
-            // liikenne seisoo koko tainnutuksen ajan, kuten ennenkin.
-            // Sähkökaappi, rosvo, kukkaruukku, lamppu ja oviukko eivät
-            // pysäytä liikennettä. `playerSafe = true`: makaavaan pelaajaan
-            // ei tule uutta osumaa (ei toistuvaa 🍔-menetystä).
-            if (player.knockFallY === undefined) updateTraffic(dt, true);
-            player.knockdownTimer -= dt;
-            // Putoamistaso: auton osuma kaataa 25 px ylös osumakohdasta (v4.78: 10,
-            // v11.12: 25 px – pysähtynyt auto ei osu heti uudelleen ylösnoustessa);
-            // muilla tainnutuslähteillä oletus jalkakäytävän taso (GROUND_Y + 10).
-            const fallY = (player.knockFallY !== undefined) ? player.knockFallY : (GROUND_Y + 10);
-            player.vx = 0; player.vy += GRAVITY * dt; player.y += player.vy * dt;
-            if (player.y + player.h >= fallY) { player.y = fallY - player.h; player.vy = 0; }
-            if (player.knockdownTimer <= 0) { player.knockedDown = false; player.knockdownTimer = 0; player.knockFallY = undefined; }
-            if (player.kicking) { player.kickFrame += dt; if (player.kickFrame >= KICK_DURATION) { player.kicking = false; player.kickFrame = 0; } }
-            for (let i = particles.length - 1; i >= 0; i--) { const p = particles[i]; p.x += p.vx; p.y += p.vy; p.life--; if (p.life <= 0) particles.splice(i, 1); }
-            coin.sparkle += 0.05 * dt;
-            if (firstHouseWindowsLit && firstHouseWindowTimer > 0) { firstHouseWindowTimer -= dt; if (firstHouseWindowTimer <= 0) { firstHouseWindowsLit = false; firstHouseKickCount = 0; firstHouseKickTarget = 0; } }
-            for (const idx in smallHouseLights) { const sh = smallHouseLights[idx]; if (sh.lit && sh.timer > 0) { sh.timer -= dt; if (sh.timer <= 0) { sh.lit = false; sh.timer = 0; } } }
-            updateAvenger(dt);   // oviukko: paluu ovelle jatkuu tainnutuksen aikana
-            for (let i = 0; i < lamps.length; i++) { if (lamps[i].overheatTimer > 0) { lamps[i].overheatTimer -= dt; if (lamps[i].overheatTimer <= 0) { lamps[i].overheatTimer = 0; lamps[i].overheat = false; lamps[i].kickCount = 0; } } }
-            updateShootingStar(dt);
-            updateSatellite(dt);
-            actionJustPressed = false;
-            return;
-        }
-
+    /* Liike: 🍔/kaaos-vauhti, vaaka- ja pystyliike, humalan horjunta ja hallitsemattomat askeleet, lampputolppien estoblokki, kamera ja kävely-/potkuanimaatio. */
+    function updateMovement(dt) {
         // ── Liike ──────────────────────────────────
         /* Vauhti riippuu 🍔-määrästä (hungerSpeedMult) ja kaaos-kävelynopeudesta
            (playerSpeedMult, K4): chaosAbility() = molemmat kerrointa. PLAYER_SPEED
@@ -4146,7 +3313,7 @@ const Street = (() => {
 
         player.x += player.vx * dt;
 
-        const wobble = (chaosLevel === 'full') ? drunkWobble() : staggerAmount;
+        const wobble = chaosFlags.drunk ? drunkWobble() : staggerAmount;
         const moving = (moveX !== 0 || moveY !== 0);
         if (wobble > 0 && moving) {
             const t = Date.now() * 0.001;
@@ -4158,7 +3325,7 @@ const Street = (() => {
            HALLITSEMATTOMIA askeleita suuntaan tai toiseen – myös ilman
            ohjausta. Pituus ja tahti kasvavat humalan mukana. Askel LIPUU
            pehmeästi DRUNK_STEP_FRAMES framen yli (ei nykäystä). */
-        if (chaosLevel === 'full' && !moving && drunkLevel >= DRUNK_IDLE_WOBBLE_MIN) {
+        if (chaosFlags.drunk && !moving && drunkLevel >= DRUNK_IDLE_WOBBLE_MIN) {
             drunkStepTimer -= dt;
             if (drunkStepTimer <= 0) {
                 const strong = (drunkLevel - DRUNK_IDLE_WOBBLE_MIN) / (DRUNK_MAX - DRUNK_IDLE_WOBBLE_MIN);
@@ -4233,7 +3400,10 @@ const Street = (() => {
                 player.kickFrame = 0;
             }
         }
+    }
 
+    /* Kadun kolikon keräys: osuessa saldo +1, tallennus ja pling. */
+    function updateCoinPickup(dt) {
         // ── Kolikon keräys ──────────────────────────
         if (!coin.collected) {
             const dx = (player.x + player.w/2) - coin.x;
@@ -4246,12 +3416,15 @@ const Street = (() => {
                 GameState.save(state);
                 coin.collected = true; coin.x = -100; coin.y = -100;
                 playCoin();
-                coinRespawnTimer = COIN_RESPAWN_FRAMES;  // 120s @ 60fps (kaaos: väli)
+                coin.respawnTimer = COIN_RESPAWN_FRAMES;  // 120s @ 60fps (kaaos: väli)
                 spawnParticles(cx, cy, '#ffd700', 12);
                 updateHUD();
             }
         }
+    }
 
+    /* Sädeaseen poiminta (v10.20): FULL-aseen nosto kadulta, kun jalkapiste osuu esineeseen. */
+    function updateBeamPickup(dt) {
         // ── Sädeaseen poiminta (v10.20) ──────────────
         if (beamPickup) {
             const dx = (player.x + player.w/2) - beamPickup.x;
@@ -4267,15 +3440,18 @@ const Street = (() => {
                 updateHUD();
             }
         }
+    }
 
+    /* Kolikon ajastimet: respawn 120 s, katoaminen 10 s ja cooldown (kaaos K5 voi muuttaa tahtia). */
+    function updateCoinTimers(dt) {
         // ── Kolikon respawn (120s välein) ──────
-        if (coin.collected && coinRespawnTimer > 0) {
-            coinRespawnTimer -= dt;
-            if (coinRespawnTimer <= 0) {
+        if (coin.collected && coin.respawnTimer > 0) {
+            coin.respawnTimer -= dt;
+            if (coin.respawnTimer <= 0) {
                 coin.collected = false;
                 coin.x = randomCoinX(); coin.y = randomCoinY();
                 coin.despawnTimer = 600;  // 10s katoamisajastin
-                coinRespawnTimer = 0;
+                coin.respawnTimer = 0;
             }
         }
 
@@ -4297,20 +3473,27 @@ const Street = (() => {
                 coin.despawnTimer = 600;  // uusi 10s
             }
         }
+    }
 
+    /* Avoin kaivo: astuminen reiän päälle laukaisee putoamisen (reunaehtoinen). true = putoaminen alkoi. */
+    function updateManholeStep(dt) {
         // ── Avoin kaivo: astuminen reiän päälle (v4.51) ─────────────
         // Reunaehtoinen: putoaminen laukeaa vain kun jalkapiste siirtyy
         // ellipsin sisään. Jos kansi katoaa jalkojen alta (paluu huoneesta),
         // putoaminen ei laukea ennen kuin pelaaja astuu pois ja takaisin.
-        if (manholeOpen != null && !iframeOpen && !player.knockedDown) {
-            const inside = manholeHit(manholeOpen);
-            if (inside && !mhInside[manholeOpen]) {
-                startManholeFall(manholeOpen);
-                return;
+        if (manhole.open != null && !iframeOpen && !player.knockedDown) {
+            const inside = manholeHit(manhole.open);
+            if (inside && !manhole.inside[manhole.open]) {
+                startManholeFall(manhole.open);
+                return true;
             }
-            mhInside[manholeOpen] = inside;
+            manhole.inside[manhole.open] = inside;
         }
+        return false;
+    }
 
+    /* Sähkökaapit (v4.85): tilakello arpoo päälle/pois omalla tahdilla (?cabs jäädyttää) ja päällä oleva kaappi antaa sähköiskun (tainnutus + −1 🍔 / FULL −1 🪙). */
+    function updateElectricCabinets(dt) {
         // ── Sähkökaapit: tilakello (v4.85) ────────────────
         // Kaappi voi sammua tai käynnistyä itsestään: jokaisella on oma
         // satunnainen väli (CAB_REROLL_MIN..MAX frameä), jonka jälkeen tila
@@ -4347,14 +3530,10 @@ const Street = (() => {
                 collisionCost();   // v11.31: FULL → −1 🪙, muuten −1 🍔
             }
         }
+    }
 
-        // HUOM (v4.49): hampurilaisajastin siirrettiin update():n alkuun
-        // (kuolemasekvenssin jälkeen) → kulutus jatkuu myös BAR:ssa,
-        // jukeboxissa ja iframe-peleissä eikä pysähdy huoneisiin.
-
-        // ── Toiminto ────────────────────────────────
-        if (actionJustPressed) handleAction();
-
+    /* Partikkelit: liike ja elinikä. */
+    function updateParticles(dt) {
         // ── Partikkelit ─────────────────────────────
         for (let i = particles.length - 1; i >= 0; i--) {
             const p = particles[i];
@@ -4363,7 +3542,10 @@ const Street = (() => {
             p.life--;
             if (p.life <= 0) particles.splice(i, 1);
         }
+    }
 
+    /* Kadun ajastimet: lamppujen ylikuumeneminen, kolikon kimaltelu, talon 0 ikkuna-ajastin ja pienten talojen valoajastin. */
+    function updateStreetTimers(dt) {
         // ── Lamppujen ylikuumenemisajastin ─────────
         for (let i = 0; i < lamps.length; i++) {
             if (lamps[i].overheatTimer > 0) {
@@ -4395,7 +3577,10 @@ const Street = (() => {
             const sh = smallHouseLights[idx];
             if (sh.lit && sh.timer > 0) { sh.timer -= dt; if (sh.timer <= 0) { sh.lit = false; sh.timer = 0; } }
         }
+    }
 
+    /* Kukkaruukun fysiikka: putoaa ja osuu pelaajaan → tainnutus + −1 🍔. */
+    function updatePot(dt) {
         // ── Kukkaruukun fysiikka ──────────────────────
         if (flowerPot && flowerPot.active) {
             flowerPot.vy += 0.12 * dt; flowerPot.x += flowerPot.vx * dt; flowerPot.y += flowerPot.vy * dt; flowerPot.rotation += 0.08 * dt;
@@ -4411,12 +3596,15 @@ const Street = (() => {
                 flowerPot = null;
             }
         }
+    }
 
+    /* Potkusta pudonnut kolikko: fysiikka, poiminta ja salaisen kolikkopalkkion (cheat) putken vanheneminen. */
+    function updateKickCoin(dt) {
         // ── Potkusta pudonneen kolikon fysiikka ──────
         if (kickCoinCooldown > 0) kickCoinCooldown -= dt;
         // Salainen kolikkopalkkio: putken vanheneminen + cooldown
-        if (coinCheatGapTimer > 0) { coinCheatGapTimer -= dt; if (coinCheatGapTimer <= 0) { coinCheatGapTimer = 0; coinCheatStreak = 0; } }
-        if (coinCheatCooldown > 0) { coinCheatCooldown -= dt; if (coinCheatCooldown < 0) coinCheatCooldown = 0; }
+        if (coinCheat.gapTimer > 0) { coinCheat.gapTimer -= dt; if (coinCheat.gapTimer <= 0) { coinCheat.gapTimer = 0; coinCheat.streak = 0; } }
+        if (coinCheat.cooldown > 0) { coinCheat.cooldown -= dt; if (coinCheat.cooldown < 0) coinCheat.cooldown = 0; }
         if (kickCoin) {
             if (!kickCoin.landed) {
                 kickCoin.vy += 0.12 * dt;
@@ -4445,7 +3633,10 @@ const Street = (() => {
                 }
             }
         }
+    }
 
+    /* Vastustajat: oviukon cooldown + liike, rosvon cooldown + jahtaus (v4.66) ja K7-korttipakan kesto. */
+    function updateEnemies(dt) {
         // ── Oviukko (Avenger) ────────────────────────
         if (avengerCooldown > 0) avengerCooldown -= dt;
         updateAvenger(dt);
@@ -4455,8 +3646,11 @@ const Street = (() => {
         updateRobber(dt);
 
         // ── K7-korttipakka (v10.05): laukaisee/palauttaa visuaaliset kortit ──
-        updateCards(dt);
+        StreetChaosCards.update(dt);
+    }
 
+    /* Katueläin: spawnaus, liike ja poistuminen (vain NORMAL/ei-kaaos-raunioissa). */
+    function updateAnimal(dt) {
         // ── Katueläin ────────────────────────────────
         if (!groundAnimal) {
             if (!chaosAllGone()) {   // v11.36: BAD/FULL rauniot – ei eläimiä kadulla
@@ -4471,7 +3665,7 @@ const Street = (() => {
                     else if (type==='rat') { w=14; h=6; speed=(1.2+Math.random()*0.8)*animalSpeedMult; }
                     else { w=10; h=10; speed=(1.5+Math.random()*0.8)*animalSpeedMult; }
                     groundAnimal = { type,w,h,x:dir>0?-w:WORLD_W+w,y:baseY-h,vx:dir*speed,direction:dir,hopY:0,hopVel:0,animTimer:0,pauseTimer:0 };
-                    if (cardState.animalParade > 0) { cardState.animalParade--; animalSpawnTimer = 60; }
+                    if (StreetChaosCards.animalParade > 0) { StreetChaosCards.consumeAnimalParade(); animalSpawnTimer = 60; }
                     else animalSpawnTimer = 900;
                 }
             }
@@ -4488,12 +3682,10 @@ const Street = (() => {
             }
             if ((a.direction>0 && a.x>WORLD_W+a.w+10) || (a.direction<0 && a.x<-a.w-10)) groundAnimal = null;
         }
+    }
 
-        // ── Ajoneuvot: liike, spawnit ja törmäys ──────────
-        //    Siirretty omaan funktioonsa (v4.54), jotta sama liikenne
-        //    pyörii myös sanomalehteä lukiessa (ks. newsRoom-haara yllä).
-        updateTraffic(dt);
-
+    /* Taivas: tähdenlento, meteoriitit (spawnit, tähdätty meteoriitti, osuma) ja satelliitti – vain yöllä; nollaa kesken lennon olleet päivän alkaessa. */
+    function updateSky(dt) {
         // ── Tähdenlento + satelliitti (vain yöllä) ────
         // Päivällä (dayT > 0) niitä ei enää spawnata; update() nollaa
         // kesken lennon olleet oliot päivän alkaessa.
@@ -4588,7 +3780,10 @@ const Street = (() => {
             // Päivällä lepakot poistetaan
             if (bats.length) bats = [];
         }
+    }
 
+    /* Päivälinnut (v5.00): istuskelevat puissa, siirtyvät ajoittain uuteen paikkaan; yöllä poistetaan. */
+    function updateBirds(dt) {
         // ── Päivälinnut (v5.00) ────────────
         if (isDay) {
             // Alusta tavoitemäärä jos ei ole asetettu tai kaikki linnut ovat kuolleet
@@ -4680,30 +3875,118 @@ const Street = (() => {
         }
     }
 
-/* ── Toimintopainikkeen käsittely ──────────────── */
-    function handleAction() {
-        const px = player.x + player.w / 2;
-        const py = player.y + player.h / 2;
+    function update(dt) {
+        // Ajoneuvon törmäyksen tärinä (vain visuaalinen – ei jäädytä pelilogiikkaa)
+        if  (vehicleShakeTimer > 0) { vehicleShakeTimer -= dt; }
+        if (meteorShakeTimer > 0) { meteorShakeTimer -= dt; }
+        updateBuildingDamage(dt);   // v11.22: tuhoutuvien talojen animaatio etenee
+        updateBuildingSmoke(dt);
+        if (beamFireTimer > 0) { beamFireTimer -= dt; }
+        if (beamCooldownTimer > 0) { beamCooldownTimer -= dt; }   // v11.14: laukaisuväli
+        if (meteorFlash) { meteorFlash.t -= dt; if (meteorFlash.t <= 0) meteorFlash = null; }
 
+        // ── Hit pause: maailma jäätyy 2  frameä osumasta (render jatkaa) ──
+        if (hitPauseTimer > 0) { hitPauseTimer -= dt; return; }
+
+        // Animaatiokello (hengitys, silmän vilkahdus)
+        animClock += dt;
+
+        updateDayNight(dt);
+
+        updateSpawnLampShow(dt);
+
+        updateJukeboxPersistence(dt);
+
+        updateDayCycle(dt);
+
+        if (updateDeathSequence(dt)) return;
+
+        if (updateHunger(dt)) return;
+
+        updateHiddenTracking(dt);
+
+        if (updateManholeSequence(dt)) return;
+
+        /* Huonerekisteri (Vaihe 3): makuuhuone → BAR → jukebox → sanomalehti.
+           Huone on modaalinen → true = koko frame käsitelty, update() palaa. */
+        for (const room of rooms) if (room.update(dt)) return;
+
+        updateClouds(dt);
+        updateForeground(dt);
+
+        if (updateKnockedDown(dt)) return;
+
+        updateMovement(dt);
+
+        updateCoinPickup(dt);
+
+        updateBeamPickup(dt);
+
+        updateCoinTimers(dt);
+
+        if (updateManholeStep(dt)) return;
+
+        updateElectricCabinets(dt);
+
+        // HUOM (v4.49): hampurilaisajastin siirrettiin update():n alkuun
+        // (kuolemasekvenssin jälkeen) → kulutus jatkuu myös BAR:ssa,
+        // jukeboxissa ja iframe-peleissä eikä pysähdy huoneisiin.
+
+        // ── Toiminto ────────────────────────────────
+        if (actionJustPressed) handleAction();
+
+        updateParticles(dt);
+
+        updateStreetTimers(dt);
+
+        updatePot(dt);
+
+        updateKickCoin(dt);
+
+        updateEnemies(dt);
+
+        updateAnimal(dt);
+
+        // ── Ajoneuvot: liike, spawnit ja törmäys ──────────
+        //    Siirretty omaan funktioonsa (v4.54), jotta sama liikenne
+        //    pyörii myös sanomalehteä lukiessa (ks. newsRoom-haara yllä).
+        StreetTraffic.update(dt);
+
+        updateSky(dt);
+
+        updateBirds(dt);
+    }
+
+/* ── Toimintopainikkeen käsittely ──────────────── */
+    /* Sanomalehden poiminta (v4.53/v4.54): tainnutettuna ei voi poimia. */
+    function tryNewspaper() {
         // 0. SANOMALEHTI (v4.53) – kadulla lojuva lehti: poimimalla aukeaa
         //    peliohjeet. Ilmainen eikä vaikuta talouteen (sääntö 04).
         //    Lehti on sijoitettu kauas ovista ja lampuista, joten tämä
         //    tarkistus ei varasta minkään muun kohteen toimintoa.
         //    Tainnutettuna lehteä ei voi poimia (v4.54).
-        if (!player.knockedDown && nearNewspaper()) { openNewspaper(); return; }
+        if (!player.knockedDown && StreetNews.near()) { openNewspaper(); return true; }
+        return false;
+    }
 
+    /* Hedelmäpeli (talo 7): auki vain öisin, ei lamppua eikä avainta (v4.34). */
+    function tryFruitDoor(px, py) {
         // 0. HEDELMÄPELI (talo 7, buildings[6], x 560–610) – ei lamppua eikä avainta,
         //    mutta auki vain öisin (v4.34)
         const fruitDoor = doorCenter(buildings[6]);
         const fdx = px - fruitDoor.x, fdy = py - fruitDoor.y;
         if (Math.sqrt(fdx * fdx + fdy * fdy) < DOOR_RADIUS) {
-            if (buildingGone(6)) return;   // v11.22: tuhoutunut talo – musta ovi ei toimi
-            if (nightOnlyClosed()) { showNotification(CLOSED_SIGN); return; }
-            if (doorLocked()) return;                       // kaaos v10.18: ovi satunnaisesti lukossa (ei ilmoitusta)
+            if (buildingGone(6)) return true;   // v11.22: tuhoutunut talo – musta ovi ei toimi
+            if (nightOnlyClosed()) { showNotification(CLOSED_SIGN); return true; }
+            if (doorLocked()) return true;                       // kaaos v10.18: ovi satunnaisesti lukossa (ei ilmoitusta)
             enterGame('fruitgame/game_main.html');
-            return;
+            return true;
         }
+        return false;
+    }
 
+    /* Jukebox (talo 5): 1. painallus sytyttää ikkunat, 2. painallus avaa huoneen; auki vain öisin. */
+    function tryJukeboxDoor(px, py) {
         // 0.5 JUKEBOX (talo 5, buildings[4], ovi x 410) – auki vain öisin (v4.34);
         //     yöllä ovi aukeaa vasta kun talon ikkunat palavat
         //     (1. painallus ovella = potku → valot syttyvät 20 s)
@@ -4711,10 +3994,10 @@ const Street = (() => {
         const jkLights = smallHouseLights[JUKEBOX_BLDG_IDX];
         const jkdx = px - jkDoor.x, jkdy = py - jkDoor.y;
         const jkInReach = Math.sqrt(jkdx * jkdx + jkdy * jkdy) < DOOR_RADIUS;
-        if (jkInReach && buildingGone(JUKEBOX_BLDG_IDX)) return;   // v11.22: tuhoutunut talo
-        if (jkInReach && nightOnlyClosed()) { showNotification(CLOSED_SIGN); return; }
+        if (jkInReach && buildingGone(JUKEBOX_BLDG_IDX)) return true;   // v11.22: tuhoutunut talo
+        if (jkInReach && nightOnlyClosed()) { showNotification(CLOSED_SIGN); return true; }
         if (jkLights && jkLights.lit && jkInReach) {
-            if (doorLocked()) return;                       // kaaos v10.18: ovi satunnaisesti lukossa (ei ilmoitusta)
+            if (doorLocked()) return true;                       // kaaos v10.18: ovi satunnaisesti lukossa (ei ilmoitusta)
             jukeboxRoom = true;
             jukeSel = 0;
             jukeHeldUp = false;
@@ -4725,9 +4008,13 @@ const Street = (() => {
             jukePick = [];
             for (let i = 0; i < JUKEBOX_TRACKS.length; i++) jukePick.push(false);
             if (!StreetAudio.isJukeboxPlaying()) jukeQueue = [];  // ei vanhaa "♪ SOI" -riviä
-            return;
+            return true;
         }
+        return false;
+    }
 
+    /* Laivanupotus (talo 2): aina auki; 1. painallus sytyttää valot, 2. avaa pelin. */
+    function trySinkshipDoor(px, py) {
         // 0.6 LAIVANUPOTUS (talo 2, buildings[2]) – aina auki yöllä ja päivällä;
         //     1. painallus ovella = potku → valot syttyvät 20 s
         //     2. painallus valaistulla ovella = Laivanupotus aukeaa
@@ -4735,12 +4022,16 @@ const Street = (() => {
         const ssLights = smallHouseLights[SINKSHIP_BLDG_IDX];
         const ssdx = px - ssDoor.x, ssdy = py - ssDoor.y;
         const ssInReach = Math.sqrt(ssdx * ssdx + ssdy * ssdy) < DOOR_RADIUS;
-        if (ssInReach && buildingGone(SINKSHIP_BLDG_IDX)) return;   // v11.22: tuhoutunut talo
+        if (ssInReach && buildingGone(SINKSHIP_BLDG_IDX)) return true;   // v11.22: tuhoutunut talo
         if (ssLights && ssLights.lit && ssInReach) {
             enterGame('sinkship/game_main.html');
-            return;
+            return true;
         }
+        return false;
+    }
 
+    /* Ovet ja potkut: ovista kävellään sisään (BAR, makuuhuone, pelitalot), talon 0 ovi potkii ikkunat valaistuiksi, muut talot syttyvät potkusta ja lamppu toggleaa/ylikuumenee (sis. salaiset cheatit). */
+    function tryDoorsAndKicks(px, py) {
         // 1. OVET ENSIN – ei potkua, kävellään suoraan sisään
         for (let i = 0; i < lamps.length; i++) {
             const lamp = lamps[i];
@@ -4851,15 +4142,15 @@ const Street = (() => {
                 // Avain-cheatin jatko: vitoslamppu 20 potkua putkeen → +20 kolikkoa.
                 // Hiljainen: ei popuppia, ei ääntä, ei hiukkasia → vain saldo kasvaa.
                 if (i === COIN_CHEAT_LAMP) {
-                    if (coinCheatCooldown > 0) {
-                        coinCheatStreak = 0;             // cooldownin aikana ei kerrytetä
+                    if (coinCheat.cooldown > 0) {
+                        coinCheat.streak = 0;             // cooldownin aikana ei kerrytetä
                     } else {
-                        coinCheatStreak++;
-                        coinCheatGapTimer = COIN_CHEAT_GAP;
-                        if (coinCheatStreak >= COIN_CHEAT_KICKS) {
-                            coinCheatStreak = 0;
-                            coinCheatGapTimer = 0;
-                            coinCheatCooldown = COIN_CHEAT_COOLDOWN;
+                        coinCheat.streak++;
+                        coinCheat.gapTimer = COIN_CHEAT_GAP;
+                        if (coinCheat.streak >= COIN_CHEAT_KICKS) {
+                            coinCheat.streak = 0;
+                            coinCheat.gapTimer = 0;
+                            coinCheat.cooldown = COIN_CHEAT_COOLDOWN;
                             coinCount += COIN_CHEAT_REWARD;
                             state.inventory.coin = true;
                             state.inventory.coinCount = coinCount;
@@ -4868,7 +4159,7 @@ const Street = (() => {
                         }
                     }
                 } else {
-                    coinCheatStreak = 0;                 // välissä toinen lamppu → putki katki
+                    coinCheat.streak = 0;                 // välissä toinen lamppu → putki katki
                 }
 
                 if (lamps[i].kickCount >= 5) {
@@ -4907,6 +4198,21 @@ const Street = (() => {
                 return;
             }
         }
+    }
+
+    function handleAction() {
+        const px = player.x + player.w / 2;
+        const py = player.y + player.h / 2;
+
+        if (tryNewspaper()) return;
+
+        if (tryFruitDoor(px, py)) return;
+
+        if (tryJukeboxDoor(px, py)) return;
+
+        if (trySinkshipDoor(px, py)) return;
+
+        tryDoorsAndKicks(px, py);
     }
 
     /* Lähettää kadun kolikkosaldon hedelmäpeliin (postMessage) */
@@ -5111,7 +4417,7 @@ const Street = (() => {
        kuluu (v4.49/v4.50) ja ✕-nappi sulkee (closeRoom). */
     function openNewspaper() {
         newsRoom = true;
-        newsScreen = 0;
+        StreetNews.reset();
         /* Estä sama painallus laukaisemasta sivunvaihtoa heti perään
            (sama kikka kuin jukeboxissa: jukeSpaceHeld). */
         newsHeldUp = !!(keys['ArrowUp'] || keys['w'] || keys['W']);
@@ -5122,7 +4428,7 @@ const Street = (() => {
 
     function closeNewspaper() {
         newsRoom = false;
-        newsScreen = 0;
+        StreetNews.reset();
         newsHeldUp = false;
         newsHeldDown = false;
         newsSpaceHeld = false;
@@ -5131,11 +4437,17 @@ const Street = (() => {
 
     /* ═══ SULJE HUONE (sanomalehti/BAR/sleep/jukebox) ✕-napista ═════════════ */
     /* Palauttaa true jos huone suljettiin, false jos ei oltu huoneessa. */
-    function closeRoom() {
+    /* Sulkee sanomalehden (✕ / poistuminen). true = oli auki. */
+    function closeNewsRoom() {
         if (newsRoom) {           // sanomalehti kiinni (✕ / poistuminen)
             closeNewspaper();
             return true;
         }
+        return false;
+    }
+
+    /* Sulkee BARin; peruu tämän vierailun ostot (barBuyQty = 0). true = oli auki. */
+    function closeBarRoom() {
         if (barRoom) {
             barRoom = false;
             barBuyQty = 0;
@@ -5143,6 +4455,11 @@ const Street = (() => {
             barBuyHeldDown = false;
             return true;
         }
+        return false;
+    }
+
+    /* Sulkee makuuhuoneen; kesken nukkumisen pimennys katkeaa (sleepPhase = 0). true = oli auki. */
+    function closeSleepRoom() {
         if (sleepRoom) {
             sleepRoom = false;
             sleepSel = 0;
@@ -5151,11 +4468,21 @@ const Street = (() => {
             if (sleepPhase > 0) { sleepPhase = 0; }  // kesken nukkumisen → herätä
             return true;
         }
+        return false;
+    }
+
+    /* Sulkee jukebox-huoneen: valinnat pois ILMAN veloitusta (v4.46). true = oli auki. */
+    function closeJukeboxRoom() {
         if (jukeboxRoom) {
             // ✕ = peruuta: valinnat pois ilman veloitusta (v4.46)
             resetJukeboxRoom();
             return true;
         }
+        return false;
+    }
+
+    function closeRoom() {
+        for (const room of rooms) if (room.isOpen() && room.close()) return true;
         return false;
     }
 
@@ -5202,12 +4529,10 @@ const Street = (() => {
             lamps[i].overheatTimer = 0;
         }
         // Salainen kolikkopalkkio: ei siirry elämältä/istunnolta toiselle
-        coinCheatStreak = 0;
-        coinCheatGapTimer = 0;
-        coinCheatCooldown = 0;
+        coinCheat.reset();
         coin.collected = state.inventory.coin;
         coinCount = state.inventory.coinCount || 0;
-        coinRespawnTimer = coin.collected ? 1 : 0;
+        coin.respawnTimer = coin.collected ? 1 : 0;
         coin.despawnTimer = coin.collected ? 0 : 600;
         /* 0 🍔 pysyy 0:na (ei `|| 5`): nälkäkuolema ei saa "parantua" siitä,
            että closeGame sulkee alapelin kesken kuolinsekvenssiä (v4.50). */
@@ -5298,7 +4623,7 @@ const Street = (() => {
         }
         status += ' | 💰 Coins: ' + coinCount;
         if (beamWeaponCollected) status += ' 🔫';   // sädease ansaittu (v10.20)
-        if (chaosLevel === 'full') {
+        if (chaosFlags.beer) {
             /* FULL (v11.31): 🍔 = peruskerros (kuluu vasta kun 🍺 loppu),
                🍺 = ylin kerros. Näytetään todelliset määrät; 🍔 vilkkuu
                kuten ennenkin, kun ≤ HUNGER_WARN (3). */
@@ -5785,19 +5110,22 @@ const Street = (() => {
 /* ═══════════════════════════════════════════════════
        PIIRTO – tausta, talot, maa
        ═══════════════════════════════════════════════════ */
-    function render() {
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, viewW, WORLD_H);
+    /* Huoneet ovat modaalisia: koko näkymä on huone ja kamera keskittää (jukebox v4.22, BAR v4.25, lehti v4.53). true = huone piirrettiin. */
+    function drawRoomView() {
+        for (const room of rooms) {
+            if (!room.isOpen()) continue;
+            camX = (WORLD_W - viewW) / 2;                 // kamera keskittää huoneen
+            ctx.save();
+            ctx.translate(-Math.round(camX), 0);
+            room.draw();
+            ctx.restore();
+            return true;
+        }
+        return false;
+    }
 
-        if (sleepRoom) { camX = (WORLD_W - viewW) / 2; ctx.save(); ctx.translate(-Math.round(camX), 0); drawSleepRoom(); ctx.restore(); return; }
-
-        if (barRoom) { camX = (WORLD_W - viewW) / 2; ctx.save(); ctx.translate(-Math.round(camX), 0); drawBarRoom(); ctx.restore(); return; }
-
-        if (jukeboxRoom) { camX = (WORLD_W - viewW) / 2; ctx.save(); ctx.translate(-Math.round(camX), 0); drawJukeboxRoom(); ctx.restore(); return; }
-
-        // Sanomalehti (v4.53) – oma huonekäsittely, kamera keskittää arkin
-        if (newsRoom) { camX = (WORLD_W - viewW) / 2; ctx.save(); ctx.translate(-Math.round(camX), 0); drawNewspaperView(); ctx.restore(); return; }
-
+    /* Maailman muunnos: kamera + tärinät (oviukon isku, ajoneuvon törmäys, meteoriitti, kaaoksen jatkuva huojunta). HUOM: ctx.restore() on render():n lopussa. */
+    function pushWorldTransform() {
         ctx.save();
         ctx.translate(-Math.round(camX), 0);
         // Oviukon isku: 1–2 px tärinä jäädytyksen aikana (hitPauseTimer toimii kellona)
@@ -5823,7 +5151,10 @@ const Street = (() => {
                 Math.round(Math.sin(t * 11.3 + 0.5) * screenShakeAmount * 1.1)
             );
         }
+    }
 
+    /* Yötaivas + päivätaivaan liuku (dayT). */
+    function drawSkyGradient() {
         // Taivas
         const skyGrad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
         skyGrad.addColorStop(0, '#0a0a1e');
@@ -5844,7 +5175,10 @@ const Street = (() => {
             ctx.fillRect(0, 0, WORLD_W, GROUND_Y);
             ctx.restore();
         }
+    }
 
+    /* Aurinko: hehku, hitaasti pyörivä sädekehä ja kiekko (kaaos voi vaihtaa värin ja koon). */
+    function drawSun() {
         // Aurinko (päivä) – liukuu vasemmalta oikealle päivän aikana (v4.89)
         if (dayT > 0) {
             ctx.save();
@@ -5880,7 +5214,10 @@ const Street = (() => {
             ctx.beginPath(); ctx.arc(sunX, SUN_Y, SR, 0, Math.PI*2); ctx.fill();
             ctx.restore();
         }
+    }
 
+    /* Tähdet: jokaisella oma twinkle; himmenevät päivän tullessa. */
+    function drawStars() {
         // Tähdet (jokaisella oma random twinkle) – himmenevät päivän tullessa
         if (dayT < 1) {
             const starFade = 1 - dayT;
@@ -5897,7 +5234,10 @@ const Street = (() => {
                 }
             }
         }
+    }
 
+    /* Sirppikuu: hehku, kuva tai proseduraalinen fallback, kraatterit, maavalo + terminaattori, limb darkening. */
+    function drawMoon() {
         /* ── Sirppikuu (v4.72) ──
            Piirretään tähtien jälkeen (kuu peittää tähdet) mutta ennen pilviä
            (pilvi kuun edessä on oikein). Kuu liukuu yön aikana vasemmalta
@@ -5985,9 +5325,10 @@ const Street = (() => {
             ctx.restore();
         }
 
-        // Pilvet (kapea cirrus/hazy-kaistale) – kuun edessä (oikein)
-        drawClouds();
+    }
 
+    /* Tähdenlento ja meteoriitti (v11.24: kaikki meteoriitit tässä kerroksessa → talot peittävät ne). */
+    function drawShootingStars() {
         // Tähdenlento / meteoriitti (vain yöllä)
         if (dayT <= 0 && shootingStar && shootingStar.active) {
             if (shootingStar.kind === 'meteorite') {
@@ -6012,7 +5353,10 @@ const Street = (() => {
                 ctx.beginPath(); ctx.arc(shootingStar.x, shootingStar.y, 4, 0, Math.PI*2); ctx.fill();
             }
         }
+    }
 
+    /* Satelliitti: pieni vilkkuva piste, vain yöllä. */
+    function drawSatellite() {
         // Satelliitti (pieni vilkkuva piste) – vain yöllä
         if (dayT <= 0 && satellite && satellite.active) {
             const blink = Math.sin(satellite.blinkPhase) * 0.5 + 0.5;
@@ -6020,13 +5364,113 @@ const Street = (() => {
             ctx.fillStyle = 'rgba(255,255,255,' + alpha + ')';
             ctx.beginPath(); ctx.arc(satellite.x, satellite.y, 1.5, 0, Math.PI*2); ctx.fill();
         }
+    }
 
+    /* Meteoriitin törmäysvälähdys: koko taivas välähtää (piirretään talojen taakse). */
+    function drawMeteorFlash() {
         // Meteoriitin törmäysvälähdys (v10.16): koko taivas välähtää salaman lailla (talojen takana)
         if (meteorFlash) {
             const k = meteorFlash.t / METEOR_FLASH_FRAMES;   // 1 → 0
             ctx.fillStyle = 'rgba(255,255,235,' + (0.8 * k) + ')';
             ctx.fillRect(0, 0, WORLD_W, GROUND_Y);
         }
+    }
+
+    /* Ruudun päälliskerrokset järjestyksessä: päivänvalo (additive), kuun laskun pimennys, sumuverho, oviukon iskun vinjetti + tähdet, kuoleman pimennys. */
+    function drawScreenEffects() {
+        // ── Päivänvalo (lopputila: kaikki 3 avainta) ──
+        // Yksi additive-kerros kirkastaa koko kadun (asfaltti, talot, siluetti,
+        // puut, ajoneuvot, pelaaja) ilman että yhtään piirtofunktiota tai
+        // väripalettia tarvitsee säätää uudelleen. Piirretään ennen oviukon
+        // vinjettiä ja kuoleman pimennystä → ne toimivat ennallaan.
+        if (dayT > 0) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.fillStyle = 'rgba(' + DAY_LIGHT_RGB[0] + ',' + DAY_LIGHT_RGB[1] + ',' + DAY_LIGHT_RGB[2] + ',' + (DAY_LIGHT_ALPHA * dayT).toFixed(3) + ')';
+            ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+            ctx.restore();
+        }
+
+        // ── Kuu laskeutui → maisema pimenee hiukan (v4.65) ──
+        if (moonDark > 0) {
+            ctx.save();
+            ctx.fillStyle = 'rgba(0,0,0,' + moonDark.toFixed(3) + ')';
+            ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+            ctx.restore();
+        }
+
+        // ── Sumuverho (kaaos K1 / K7-kortti "Sumu nousee", v10.05) ──
+        // Peittävyys ≤ 0.5 (luettavuus). Vaalea harmaasävy peittää koko
+        // kadun mutta jättää hahmon ja ovet erottuviksi.
+        if (fogAlpha > 0.001) {
+            ctx.save();
+            ctx.globalAlpha = Math.min(0.5, fogAlpha);
+            const fogGrad = ctx.createLinearGradient(0, 0, 0, WORLD_H);
+            fogGrad.addColorStop(0, '#aebfd0');
+            fogGrad.addColorStop(1, '#8a9bab');
+            ctx.fillStyle = fogGrad;
+            ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+            ctx.restore();
+        }
+
+        // ── Oviukon isku: jäädytyksen vinjetti + iskuvälähdys + tähdet ──
+        if (avenger && avenger.phase === 'hold') {
+            const hk = 1 - Math.max(0, Math.min(1, hitPauseTimer / AVENGER_FREEZE));   // 0 → 1
+            // Iskuvälähdys heti kontaktissa
+            if (hk < 0.10) {
+                ctx.fillStyle = 'rgba(255,235,205,' + (0.45 * (1 - hk / 0.10)).toFixed(3) + ')';
+                ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+            }
+            // Tummenevat reunat (vinjetti) koko 3 s jäädytyksen ajan
+            const vg = ctx.createRadialGradient(WORLD_W / 2, 190, 70, WORLD_W / 2, 190, 430);
+            vg.addColorStop(0, 'rgba(0,0,0,0)');
+            vg.addColorStop(1, 'rgba(0,0,0,' + (0.6 * Math.min(1, hk * 1.6)).toFixed(3) + ')');
+            ctx.fillStyle = vg;
+            ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+            // Tähdet alkavat kiertää pään ympäri jo ennen kosahtamista
+            const sx0 = player.x + player.w / 2, sy0 = player.y + 6;
+            const st = (AVENGER_FREEZE - Math.max(0, hitPauseTimer)) * 0.07;
+            ctx.strokeStyle = '#ffdd44'; ctx.lineWidth = 1;
+            for (let si = 0; si < 3; si++) {
+                const ang = st + si * 2.1;
+                const ax2 = sx0 + Math.cos(ang) * 14, ay2 = sy0 + Math.sin(ang) * 8;
+                ctx.beginPath();
+                ctx.moveTo(ax2 - 2, ay2 - 2); ctx.lineTo(ax2 + 2, ay2 + 2);
+                ctx.moveTo(ax2 + 2, ay2 - 2); ctx.lineTo(ax2 - 2, ay2 + 2);
+                ctx.stroke();
+            }
+        }
+
+        // ── Kuoleman pimennys ─────────────────────────
+        if (playerDead) {
+            ctx.fillStyle = 'rgba(0,0,0,' + deathAlpha + ')';
+            ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+        }
+    }
+
+    function render() {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, viewW, WORLD_H);
+
+        if (drawRoomView()) return;
+
+        pushWorldTransform();
+
+        drawSkyGradient();
+
+        drawSun();
+
+        drawStars();
+
+        drawMoon();
+        // Pilvet (kapea cirrus/hazy-kaistale) – kuun edessä (oikein)
+        drawClouds();
+
+        drawShootingStars();
+
+        drawSatellite();
+
+        drawMeteorFlash();
 
         // Kaukainen kaupunkisiluetti (parallaksi 0.4×) – tähtien/taivaan päällä, talojen takana
         drawBackdrop(camX * (1 - BACKDROP_PARALLAX));
@@ -6100,11 +5544,11 @@ const Street = (() => {
         // pylväillä (v4.73). Tässä kohtaa takapylväitä ei voi olla (ne
         // vaatisivat pelaajan jalkapisteen < LAMP_BASE_Y 325), joten autot
         // pysyvät yhä pylväiden edessä kuten ennenkin.
-        if (vehicles[1] && vehicles[1].y + vehicles[1].h / 2 < lampFeetY) drawVehicle(vehicles[1]);
-        if (vehicles[0] && vehicles[0].y + vehicles[0].h / 2 < lampFeetY) drawVehicle(vehicles[0]);
+        if (vehicles[1] && vehicles[1].y + vehicles[1].h / 2 < lampFeetY) StreetTraffic.drawVehicle(vehicles[1]);
+        if (vehicles[0] && vehicles[0].y + vehicles[0].h / 2 < lampFeetY) StreetTraffic.drawVehicle(vehicles[0]);
 
         // Pelaaja – avoimessa kaivossa vajoaa/kiipeää (v4.51)
-        if (mhAction) { drawPlayerManhole(); } else { drawPlayer(); }
+        if (manhole.action) { drawPlayerManhole(); } else { drawPlayer(); }
 
         // Sädease: säde + tähtäysristikko (v10.20)
         drawBeam();
@@ -6113,7 +5557,7 @@ const Street = (() => {
         drawManholeOverlay();
 
         // Sanomalehden poimintavihje pelaajan yläpuolelle (v4.53)
-        drawNewspaperHint();
+        StreetNews.drawHint();
 
         // Pelaajan TAKANA olevat lamppupylväät – piirretään vasta nyt, jotta
         // pylväs peittää pelaajan (v4.73) ja rosvon (aina takana, v4.76).
@@ -6127,8 +5571,8 @@ const Street = (() => {
         // Ajoneuvot, jotka ovat pelaajaa LÄHEMPÄNÄ (keskipiste Y >= pelaajan
         // jalkapiste): piirretään pelaajan jälkeen kuten ennenkin.
         // Ylempi kaista (1, kauempana) ensin, alempi (0, lähempänä) päälle.
-        if (vehicles[1] && vehicles[1].y + vehicles[1].h / 2 >= lampFeetY) drawVehicle(vehicles[1]);
-        if (vehicles[0] && vehicles[0].y + vehicles[0].h / 2 >= lampFeetY) drawVehicle(vehicles[0]);
+        if (vehicles[1] && vehicles[1].y + vehicles[1].h / 2 >= lampFeetY) StreetTraffic.drawVehicle(vehicles[1]);
+        if (vehicles[0] && vehicles[0].y + vehicles[0].h / 2 >= lampFeetY) StreetTraffic.drawVehicle(vehicles[0]);
 
         // Rauta-aita (etualalla, pelaajan takana → piirretään pelaajan päälle)
         if (foreground && foreground.ironFence) { drawIronFence(); }
@@ -6143,74 +5587,7 @@ const Street = (() => {
         }
         ctx.globalAlpha = 1;
 
-        // ── Päivänvalo (lopputila: kaikki 3 avainta) ──
-        // Yksi additive-kerros kirkastaa koko kadun (asfaltti, talot, siluetti,
-        // puut, ajoneuvot, pelaaja) ilman että yhtään piirtofunktiota tai
-        // väripalettia tarvitsee säätää uudelleen. Piirretään ennen oviukon
-        // vinjettiä ja kuoleman pimennystä → ne toimivat ennallaan.
-        if (dayT > 0) {
-            ctx.save();
-            ctx.globalCompositeOperation = 'lighter';
-            ctx.fillStyle = 'rgba(' + DAY_LIGHT_RGB[0] + ',' + DAY_LIGHT_RGB[1] + ',' + DAY_LIGHT_RGB[2] + ',' + (DAY_LIGHT_ALPHA * dayT).toFixed(3) + ')';
-            ctx.fillRect(0, 0, WORLD_W, WORLD_H);
-            ctx.restore();
-        }
-
-        // ── Kuu laskeutui → maisema pimenee hiukan (v4.65) ──
-        if (moonDark > 0) {
-            ctx.save();
-            ctx.fillStyle = 'rgba(0,0,0,' + moonDark.toFixed(3) + ')';
-            ctx.fillRect(0, 0, WORLD_W, WORLD_H);
-            ctx.restore();
-        }
-
-        // ── Sumuverho (kaaos K1 / K7-kortti "Sumu nousee", v10.05) ──
-        // Peittävyys ≤ 0.5 (luettavuus). Vaalea harmaasävy peittää koko
-        // kadun mutta jättää hahmon ja ovet erottuviksi.
-        if (fogAlpha > 0.001) {
-            ctx.save();
-            ctx.globalAlpha = Math.min(0.5, fogAlpha);
-            const fogGrad = ctx.createLinearGradient(0, 0, 0, WORLD_H);
-            fogGrad.addColorStop(0, '#aebfd0');
-            fogGrad.addColorStop(1, '#8a9bab');
-            ctx.fillStyle = fogGrad;
-            ctx.fillRect(0, 0, WORLD_W, WORLD_H);
-            ctx.restore();
-        }
-
-        // ── Oviukon isku: jäädytyksen vinjetti + iskuvälähdys + tähdet ──
-        if (avenger && avenger.phase === 'hold') {
-            const hk = 1 - Math.max(0, Math.min(1, hitPauseTimer / AVENGER_FREEZE));   // 0 → 1
-            // Iskuvälähdys heti kontaktissa
-            if (hk < 0.10) {
-                ctx.fillStyle = 'rgba(255,235,205,' + (0.45 * (1 - hk / 0.10)).toFixed(3) + ')';
-                ctx.fillRect(0, 0, WORLD_W, WORLD_H);
-            }
-            // Tummenevat reunat (vinjetti) koko 3 s jäädytyksen ajan
-            const vg = ctx.createRadialGradient(WORLD_W / 2, 190, 70, WORLD_W / 2, 190, 430);
-            vg.addColorStop(0, 'rgba(0,0,0,0)');
-            vg.addColorStop(1, 'rgba(0,0,0,' + (0.6 * Math.min(1, hk * 1.6)).toFixed(3) + ')');
-            ctx.fillStyle = vg;
-            ctx.fillRect(0, 0, WORLD_W, WORLD_H);
-            // Tähdet alkavat kiertää pään ympäri jo ennen kosahtamista
-            const sx0 = player.x + player.w / 2, sy0 = player.y + 6;
-            const st = (AVENGER_FREEZE - Math.max(0, hitPauseTimer)) * 0.07;
-            ctx.strokeStyle = '#ffdd44'; ctx.lineWidth = 1;
-            for (let si = 0; si < 3; si++) {
-                const ang = st + si * 2.1;
-                const ax2 = sx0 + Math.cos(ang) * 14, ay2 = sy0 + Math.sin(ang) * 8;
-                ctx.beginPath();
-                ctx.moveTo(ax2 - 2, ay2 - 2); ctx.lineTo(ax2 + 2, ay2 + 2);
-                ctx.moveTo(ax2 + 2, ay2 - 2); ctx.lineTo(ax2 - 2, ay2 + 2);
-                ctx.stroke();
-            }
-        }
-
-        // ── Kuoleman pimennys ─────────────────────────
-        if (playerDead) {
-            ctx.fillStyle = 'rgba(0,0,0,' + deathAlpha + ')';
-            ctx.fillRect(0, 0, WORLD_W, WORLD_H);
-        }
+        drawScreenEffects();
 
         ctx.restore();
     }
@@ -6296,6 +5673,11 @@ const Street = (() => {
 
     // Apufunktio: vaalentaa hex-väriä lisäämällä offsetin RGB-kanaviin
     function lightenHex(hex, offset) {
+        /* v11.43 (bugikorjaus): vahti – jos tulo ei ole #rrggbb, palautetaan se
+           sellaisenaan. Muuten parseInt tuottaisi NaN → '#NaNNaNxx', jonka selain
+           hylkää hiljaa (canvas jäisi edelliseen väriin). NORMAL: hex sisään →
+           bitti-identtinen ulos. */
+        if (typeof hex !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(hex)) return hex;
         const r = Math.min(255, parseInt(hex.slice(1,3), 16) + offset);
         const g = Math.min(255, parseInt(hex.slice(3,5), 16) + offset);
         const b = Math.min(255, parseInt(hex.slice(5,7), 16) + offset);
@@ -6306,6 +5688,11 @@ const Street = (() => {
     function mixHex(a, b, t) {
         if (t <= 0) return a;
         if (t >= 1) return b;
+        /* v11.43: vahti – ei-hex tai kelvoton t palauttaa a:n (ennen: '#NaNNaNxx'
+           tai läpinäkyväksi tulkittu '#000000' → "musta maski" kesken siirtymän). */
+        if (typeof a !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(a)) return a;
+        if (typeof b !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(b)) return a;
+        if (!Number.isFinite(t)) return a;
         const ca = parseInt(a.slice(1), 16), cb = parseInt(b.slice(1), 16);
         const ch = v => (v & 255).toString(16).padStart(2, '0');
         const r  = Math.round(((ca >> 16) & 255) + (((cb >> 16) & 255) - ((ca >> 16) & 255)) * t);
@@ -6348,8 +5735,13 @@ const Street = (() => {
         ctx.fill();
     }
 
-    // Alusta: 0..windowTargetMax ikkunaa heti palamaan
-    for (let i = 0; i < Math.floor(Math.random() * (windowTargetMax + 1)); i++) addRandomLitWindow();
+    /* Kylvä 0..windowTargetMax ikkunaa heti palamaan. Kutsutaan moduulin latauksessa
+       (alla) ja aina kun talojärjestys vaihtuu – ks. shuffle/resetBuildingOrder,
+       v11.41 bugikorjaus. */
+    function seedLitWindows() {
+        for (let i = 0; i < Math.floor(Math.random() * (windowTargetMax + 1)); i++) addRandomLitWindow();
+    }
+    seedLitWindows();
 
     // Palauttaa ikkunan värit tyypin perusteella: keltainen, sinertävä (TV), punertava (tunnelma)
     function getWindowColors(colorType, wx, wy) {
@@ -6421,7 +5813,7 @@ const Street = (() => {
             ctx.fillStyle = bodyC;
             ctx.fillRect(b.x, GROUND_Y - b.h, b.w, b.h);
             // Ikkunat
-            const houseLit = !cardState.lightsOut && ((idx === 0 && firstHouseWindowsLit) || (smallHouseLights[idx] && smallHouseLights[idx].lit));
+            const houseLit = !StreetChaosCards.lightsOut && ((idx === 0 && firstHouseWindowsLit) || (smallHouseLights[idx] && smallHouseLights[idx].lit));
             // Oven "ei-ikkunaa" -alue (sis. +2px syvennysreunus) – ikkunoita ei piirretä oven taakse
             const dLeft = b.x + b.w / 2 - DOOR_W / 2 - 2;
             const dTop = GROUND_Y - DOOR_H - 2;
@@ -6447,7 +5839,7 @@ const Street = (() => {
                         ctx.fillStyle = glow;
                         ctx.fillRect(wx-6, wy-5, 22, 24);
                     } else {
-                        const litWin = cardState.lightsOut ? null : litWindows.find(w => w.wx === wx && w.wy === wy && w.bldgIdx === idx);
+                        const litWin = StreetChaosCards.lightsOut ? null : litWindows.find(w => w.wx === wx && w.wy === wy && w.bldgIdx === idx);
                         if (litWin) {
                             const ct = litWin.colorType || 'yellow';
                             const wc = getWindowColors(ct, wx, wy);
@@ -7238,7 +6630,7 @@ const Street = (() => {
         // Viemärinkannet
         if (foreground) { drawManholes(); }
         // Sanomalehti
-        if (foreground && foreground.newspaper) { drawNewspaper(); }
+        if (foreground && foreground.newspaper) { StreetNews.drawOnStreet(); }
 
         // Kuoriaiset
         if (foreground && foreground.beetles) { for (const b of foreground.beetles) drawBeetle(b); }
@@ -7433,7 +6825,7 @@ const Street = (() => {
             ctx.beginPath();
             ctx.ellipse(mx + 1, my + 2, 15, 8, 0, 0, Math.PI * 2);
             ctx.fill();
-            if (manholeOpen === i) {
+            if (manhole.open === i) {
                 // Kansi puuttuu → musta aukko (v4.51)
                 drawManholeHole(mx, my);
             } else {
@@ -7493,240 +6885,18 @@ const Street = (() => {
     /* Putoamisen aikana musta aukko piirretään vasta pelaajan jälkeen →
        pelaaja vajoaa reikään ja katoaa (v4.51). */
     function drawManholeOverlay() {
-        if (!mhAction) return;
-        const mh = (foreground && foreground.manholes) ? foreground.manholes[mhAction.idx] : null;
+        if (!manhole.action) return;
+        const mh = (foreground && foreground.manholes) ? foreground.manholes[manhole.action.idx] : null;
         if (!mh) return;
         drawManholeHole(mh.x, mh.y);
         drawManholeSteam(mh);
     }
 
-    /* ═══ SANOMALEHTI: sisältö ja poiminta (v4.53) ═════════════════════
-       Kadulla lojuva lehti voidaan poimia toimintonapilla (⚡ / Space /
-       Enter) → aukeaa sanomalehtinäkymä, jossa ovat pelin omat peliohjeet.
-       Lukeminen on ILMAISTA eikä muuta taloutta (sääntö 04); nälkä kuluu
-       myös lukiessa, kuten huoneissa (v4.49/v4.50). Lehti jää katuun, joten
-       ohjeet voi lukea uudelleen – ei tallennettavaa tilaa eikä uutta
-       localStorage-avainta (gameState.js ei muutu). */
-    const NEWS_READ_R = 26;      // kuinka läheltä lehden voi poimia (px)
 
-    /* Manuaalisivu (5. sivu, v4.55): sama rahavirta ASCII-piirroksena.
-       Kaksi leveyttä – leveä PC:lle/vaakanäytölle ja kapea pystykännykälle;
-       `newsLayout()` valitsee sen, jolla teksti on ruudulla isompi.
-       Rivit on rakennettu niin, että reunat ovat tarkalleen kohdakkain
-       (leveä = 64 merkkiä, kapea = 40 merkkiä). */
-    const NEWS_MANUAL_WIDE = [
-        '┌───────────────── kadun tulot ────────────────────────────────┐',
-        '│ katu-kolikko 1 kpl / 120 s · kolikko potkusta 1/5 (30 s cd)  │',
-        '│ hedelmäpelitalo (ilmainen pyöräytys 1/120 s)                 │',
-        '└───────────────────────────────┬──────────────────────────────┘',
-        '                                ▼',
-        '┌──────────── käytön kohteet (raha pois) ──────────────────────┐',
-        '│ BAR:         1 kolikko = 1 🍔 (katto 10)                      │',
-        '│ Jukebox:     1 kolikko = 1 koko kappale                      │',
-        '│ Hedelmäpeli: 1 kolikko / pyöräytys, RTP 78,5 %               │',
-        '│ Makuuhuone:  aina auki (Nuku/Poistu ilmainen)                │',
-        '│ Avoin kaivo: ≤ 2 🪙 (3 → 1, 2 → 0, 1 → 0)                     │',
-        '└───────────────────────────────┬──────────────────────────────┘',
-        '                                ▼',
-        '┌──────────── paine (pakko pitää huolta) ──────────────────────┐',
-        '│ 🍔 5 alussa, +1 / 40 s · osuma (oviukko, ruukku,              │',
-        '│ kukkaruukka, sähkökaappi) = −1 🍔 · 🍔 0 → kuolema + reload    │',
-        '└──────────────────────────────────────────────────────────────┘',
-    ];
 
-    const NEWS_MANUAL_NARROW = [
-        '┌───────── kadun tulot ────────────────┐',
-        '│ katu-kolikko 1 kpl / 120 s           │',
-        '│ kolikko potkusta 1/5 (30 s cd)       │',
-        '│ hedelmäpelitalo: ilmainen 1/120 s    │',
-        '└───────────────────┬──────────────────┘',
-        '                    ▼',
-        '┌─────── käytön kohteet ───────────────┐',
-        '│ BAR: 1 kolikko = 1 🍔 (katto 10)      │',
-        '│ Jukebox: 1 kolikko / kappale         │',
-        '│ Hedelmäpeli: 1 kolikko, RTP 78,5 %   │',
-        '│ Makuuhuone: ilmainen (Nuku/Poistu)   │',
-        '│ Avoin kaivo: ≤ 2 🪙 (3 → 1, 2 → 0)    │',
-        '└───────────────────┬──────────────────┘',
-        '                    ▼',
-        '┌─────────── paine ────────────────────┐',
-        '│ 🍔 5 alussa, +1 / 40 s                │',
-        '│ osuma (oviukko, kukkaruukka,         │',
-        '│ sähkökaappi) = −1 🍔 · 🍔 0            │',
-        '│ → kuolema + reload                   │',
-        '└──────────────────────────────────────┘',
-    ];
 
-    /* Lehden sisältö: yksi alkio = yksi sivu. Tyhjä merkkijono = riviväli.
-       Rivin alun välilyönnit = sisennys (säilyy tekstin kääriytyessä). */
-    const NEWSPAPER_PAGES = [
-        {
-            title: 'AI CHAOS STREET',
-            lines: [
-                'Move with the arrows or WASD. On the phone: the D-pad and the ⚡ button.',
-                'Action ⚡ (Space / Enter): at a door you step in, elsewhere you kick.',
-                'Kick a street lamp and the light turns on and the door opens. In daylight the doors are open without lights.',
-                '🪙 There is one coin on the street at a time – walk over it. A kick can drop more.',
-                '🍔 A burger is your life: hunger takes one every 40 seconds. When 🍔 runs out, you die!',
-                'The gauge blinks red when 🍔 is three or less.',
-                'Beware the cars, the moped, the flower pot, the fuse box and the door knocker – a hit takes 1 🍔.',
-                'An open manhole swallows you: at most 2 🪙 vanish from your wallet.',
-                '✕ = restart the whole game – all progress is lost.'
-            ]
-        },
-        {
-            title: 'SLEEP & LIGHT',
-            lines: [
-                '🛏️ The bedroom is always open (right side of the street):',
-                '   Sleep = hunger is on hold, you wake with +1 🍔 and the day turns to night (or night to day).',
-                '   Exit = changes nothing and costs nothing.',
-                'When the three keys are collected, one morning dawns on the street – after that the bedroom changes the time of day.',
-                '🎵 The jukebox and the 🍒 fruit machine are open only at night, 8pm–6am.',
-                'In daylight the door shows a sign: Open, 8pm - 6am.'
-            ]
-        },
-        {
-            title: 'HOUSE GAMES',
-            lines: [
-                '⛏️ DIG GAME – dig through the dirt, collect the diamonds and find the key.',
-                '   The arrows move, Space digs. Hold Space down and press a direction = remote digging.',
-                '💎 DIG DÄSH – four levels and a time limit. Collect enough diamonds and the key and the exit opens.',
-                '   A falling rock on you = one life gone. Three lives.',
-                '✈️ BLUE MÄX – fly with the arrows and destroy the buildings.',
-                '   Space or G = machine gun, B = bomb, L = land. Enter = start.',
-                'Keys travel from house to house: the Dig Game key opens Dig Däsh, and its key opens Blue Mäx.'
-            ]
-        },
-        {
-            title: 'SLOTS',
-            lines: [
-                '🍒 Fruit machine: bet 1 🪙 / spin. Space, Enter or a tap spins.',
-                'A free spin every other minute.',
-                'Wins: 💎 35 · 🍔 20 · 🔔 12 · 🍋 7 · 🍒 4. Two of a kind = bet back.',
-                'Payout about 78.5 % – the house wins in the long run.',
-                '🎵 Jukebox: kick the windows lit and the door opens. 1 🪙 = 1 track.',
-                'Pick even three tracks – they play one after another when you leave the room.',
-                '🍔 BAR: one coin = one burger. ▼ undoes the purchases of this visit.'
-            ]
-        },
-        {
-            /* Manuaali (5. sivu, v4.55) – rahavirta piirroksena.
-               `art` = leveä, `artNarrow` = kapea; newsLayout valitsee. */
-            title: 'MANUAL',
-            art: NEWS_MANUAL_WIDE,
-            artNarrow: NEWS_MANUAL_NARROW
-        },
-        {
-            /* 6. sivu – vinkkejä (30.9.2026, käyttäjän teksti) */
-            title: 'TIPS',
-            lines: [
-                'A few tips for playing',
-                '',
-                'You can earn money by working: in the games keep replaying the start and just grab the coin.',
-                'Sleeping gives you 1 burger.',
-                'You can play 1 free round of the fruit machine every 120s.',
-                '',
-                '💡 5 kicks in a row on the 6th lamp:',
-                '   all the lamps light up + all the keys.',
-                '   If you go on to 20 kicks = +20 🪙. The streak breaks',
-                '   if you kick another lamp or wait over 2 s.'
-            ]
-        }
-    ];
 
-    function drawNewspaper() {
-        const n = foreground.newspaper;
-        const t = Date.now() * 0.0008;
-        const flipAngle = n.angle + Math.sin(t + n.x * 0.01) * 0.04;
-        ctx.save();
-        ctx.translate(n.x, n.y);
-        ctx.rotate(flipAngle);
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.fillRect(1, 2, 22, 12);
-        ctx.fillStyle = '#999';
-        ctx.fillRect(0, 0, 22, 12);
-        ctx.fillStyle = '#aaa';
-        ctx.fillRect(0, 0, 22, 1);
-        ctx.fillStyle = '#666';
-        ctx.fillRect(2, 3, 12, 1);
-        ctx.fillRect(2, 5, 16, 1);
-        ctx.fillRect(2, 7, 10, 1);
-        ctx.fillRect(12, 7, 4, 1);
-        ctx.fillStyle = '#777';
-        ctx.fillRect(2, 9, 14, 1);
-        ctx.restore();
-    }
 
-    /* Onko pelaaja lehden kohdalla? (sama ajatus kuin kolikon keräys) */
-    function nearNewspaper() {
-        const n = (foreground && foreground.newspaper) ? foreground.newspaper : null;
-        if (!n) return false;
-        const dx = (player.x + player.w / 2) - (n.x + 11);
-        const dy = (player.y + player.h / 2) - (n.y + 6);
-        return (dx * dx + dy * dy) <= NEWS_READ_R * NEWS_READ_R;
-    }
-
-    /* Pieni vihje lehden yläpuolella, kun sen voi poimia (v4.53) */
-    function drawNewspaperHint() {
-        if (newsRoom || iframeOpen) return;
-        const n = (foreground && foreground.newspaper) ? foreground.newspaper : null;
-        if (!n || !nearNewspaper()) return;
-        const label = 'Read';
-        const cx = n.x + 11;
-        const cy = n.y - 16;
-        ctx.save();
-        ctx.font = 'bold 8px "Courier New", monospace';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        const w = Math.round(ctx.measureText(label).width) + 10;
-        const bx = Math.round(cx - w / 2);
-        ctx.fillStyle = 'rgba(8,8,14,0.82)';
-        ctx.fillRect(bx, cy - 7, w, 14);
-        ctx.strokeStyle = '#8a836f';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(bx + 0.5, cy - 6.5, w - 1, 13);
-        ctx.fillStyle = '#ffe9a8';
-        ctx.fillText(label, cx, cy);
-        ctx.restore();
-    }
-
-    /* Käärii yhden kappaleen näkyvään sarakeleveyteen sana kerrallaan */
-    function wrapNewsText(text, maxW) {
-        const out = [];
-        let line = '';
-        const words = String(text).split(' ');
-        for (let i = 0; i < words.length; i++) {
-            const word = words[i];
-            const test = line ? line + ' ' + word : word;
-            if (ctx.measureText(test).width <= maxW) { line = test; continue; }
-            if (line) { out.push(line); line = ''; }
-            if (ctx.measureText(word).width > maxW) {
-                // Yksittäinen sana on saraketta leveämpi → pilkotaan merkki kerrallaan
-                let part = '';
-                for (const ch of word) {
-                    if (part && ctx.measureText(part + ch).width > maxW) { out.push(part); part = ch; }
-                    else { part += ch; }
-                }
-                line = part;
-            } else {
-                line = word;
-            }
-        }
-        if (line) out.push(line);
-        return out;
-    }
-
-    /* Sovittaa fontin niin, ettei teksti valu sarakkeen ulkopuolelle */
-    function fitNewsFont(text, maxW, baseFs, minFs, family, weight) {
-        const pre = weight ? weight + ' ' : '';
-        let fs = Math.max(minFs, baseFs);
-        ctx.font = pre + fs + 'px ' + family;
-        while (fs > minFs && ctx.measureText(text).width > maxW) {
-            fs--;
-            ctx.font = pre + fs + 'px ' + family;
-        }
-        return fs;
-    }
 
     function drawTuft(tx, ty, blades, phase, scale, t) {
         const sway = Math.sin(t + phase) * 2 * scale;
@@ -7763,223 +6933,7 @@ const Street = (() => {
         }
     }
 
-    /* ── Sanomalehden asettelu (v4.53) ────────────────────────────
-       Sama näyttösovitus kuin huoneissa (winW, vs, needPx): kapea kännykkä
-       zoomataan 1:1:tä suuremmaksi, joten fontin maailmakoko voi olla
-       pienempi ja näkyä silti isona. Kaikki kappaleet kääritään sarakkeen
-       leveyteen ja jaetaan näkyvän korkeuden mittaisiin "näyttöihin" →
-       mitään ei koskaan leikata millään näytöllä. Tulos välimuistiin. */
-    let newsCache = { key: '', layout: null };
 
-    function newsLayout() {
-        const winW = Math.round(Math.min(WORLD_W, Math.max(VIEWW_MIN, viewW)));
-        const vs = (canvas && canvas.height && canvas.clientHeight)
-            ? canvas.clientHeight / canvas.height : 1;
-        const vsafe = (vs > 0.25) ? vs : 1;
-        const needPx = (target, base, max) =>
-            Math.round(Math.max(base, Math.min(max, target / vsafe)));
-
-        const panelW = Math.max(196, Math.min(560, winW - 20));
-        const panelX = Math.round(400 - panelW / 2);
-        const padX   = 12;
-        const rowX   = panelX + padX;
-        const rowW   = panelW - padX * 2;
-
-        const mastFs  = needPx(17, 12, 18);   // mastoke (AI CHAOS STREET)
-        const titleFs = needPx(13, 10, 13);   // sivun otsikko
-        const bodyFs  = needPx(15, 13, 20);   // leipäteksti
-        const smallFs = needPx(10, 9, 11);    // ylä- ja alatunniste
-        const lineH   = Math.round(bodyFs * 1.45);
-
-        const paperTop = 10, paperBottom = 390;
-        const subY    = paperTop + smallFs + 8;
-        const mastY   = subY + mastFs + 8;
-        const ruleY   = mastY + 8;
-        const titleY  = ruleY + 6 + titleFs + 10;
-        const textTop = titleY + 6;
-        const textBottom = paperBottom - 26;
-        const footerY = paperBottom - 12;
-        const maxLines = Math.max(3, Math.floor((textBottom - textTop) / lineH));
-
-        const key = winW + '|' + bodyFs + '|' + mastFs + '|' + titleFs + '|' + smallFs;
-        if (newsCache.key === key && newsCache.layout) return newsCache.layout;
-
-        ctx.save();
-        ctx.font = bodyFs + 'px "Courier New", monospace';
-        const screens = [];
-        for (let p = 0; p < NEWSPAPER_PAGES.length; p++) {
-            const page = NEWSPAPER_PAGES[p];
-
-            /* Manuaalisivu (v4.55): ASCII-piirros piirretään merkki
-               kerrallaan kiinteälle ruudukolle, joten reunat pysyvät
-               kohdakkain myös emojien kanssa. Leveä ja kapea versio –
-               valitaan se, jolla teksti on ruudulla isompi. */
-            if (page.art) {
-                const availH = textBottom - textTop;
-                const rateArt = (lines) => {
-                    let cols = 0;
-                    for (const l of lines) cols = Math.max(cols, Array.from(l).length);
-                    const fsW = Math.floor(rowW / (0.6 * cols));
-                    const fsH = Math.floor(availH / (lines.length * 1.3));
-                    return { lines: lines, cols: cols,
-                             fs: Math.max(6, Math.min(bodyFs, fsW, fsH)) };
-                };
-                const wideArt = rateArt(page.art);
-                const narrowArt = page.artNarrow ? rateArt(page.artNarrow) : null;
-                const chosen = (narrowArt && narrowArt.fs > wideArt.fs) ? narrowArt : wideArt;
-                const artLineH = Math.max(6, Math.round(chosen.fs * 1.3));
-                ctx.font = chosen.fs + 'px "Courier New", monospace';
-                const cellW = Math.max(2, ctx.measureText('M').width);
-                const perScreen = Math.max(3, Math.floor(availH / artLineH));
-                for (let i = 0; i < chosen.lines.length; i += perScreen) {
-                    const chunk = chosen.lines.slice(i, i + perScreen);
-                    const artH = chunk.length * artLineH;
-                    screens.push({
-                        page: p,
-                        lines: [],
-                        art: {
-                            fs: chosen.fs, cellW: cellW, lineH: artLineH, cols: chosen.cols,
-                            top: textTop + Math.round((availH - artH) / 2),
-                            lines: chunk
-                        }
-                    });
-                }
-                continue;
-            }
-
-            const vis = [];
-            for (const raw of page.lines) {
-                const src = String(raw);
-                if (src.trim() === '') { vis.push(''); continue; }   // riviväli
-                const indent = (src.match(/^\s*/) || [''])[0];
-                const indentPx = indent ? ctx.measureText(indent).width : 0;
-                const wrapped = wrapNewsText(src.trim(), Math.max(40, rowW - indentPx));
-                for (let i = 0; i < wrapped.length; i++) vis.push(indent + wrapped[i]);
-            }
-            let i = 0;
-            do {
-                const chunk = vis.slice(i, i + maxLines);
-                while (chunk.length && chunk[0] === '') chunk.shift();               // ei tyhjää alkua
-                while (chunk.length && chunk[chunk.length - 1] === '') chunk.pop();  // eikä loppua
-                screens.push({ page: p, lines: chunk });
-                i += maxLines;
-            } while (i < vis.length);
-        }
-        ctx.restore();   // mittauksen fontti ei vuoda kadun piirtoon
-
-        const layout = {
-            winW: winW, panelX: panelX, panelW: panelW, padX: padX, rowX: rowX, rowW: rowW,
-            mastFs: mastFs, titleFs: titleFs, bodyFs: bodyFs, smallFs: smallFs, lineH: lineH,
-            paperTop: paperTop, paperBottom: paperBottom, subY: subY, mastY: mastY, ruleY: ruleY,
-            titleY: titleY, textTop: textTop, textBottom: textBottom, footerY: footerY,
-            maxLines: maxLines, screens: screens
-        };
-        newsCache = { key: key, layout: layout };
-        return layout;
-    }
-
-    /* Sanomalehtinäkymä (v4.53): vaalea paperiarkki, tumma selkeä teksti.
-       Piirto on save()/restore()-parin sisällä, ettei tila vuoda kadulle. */
-    function drawNewspaperView() {
-        const L = newsLayout();
-        const idx = Math.max(0, Math.min(L.screens.length - 1, newsScreen));
-        const scr = L.screens[idx];
-        const pageCount = NEWSPAPER_PAGES.length;
-        const page = NEWSPAPER_PAGES[scr.page];
-        const pageScreens = L.screens.filter(s => s.page === scr.page).length;
-        const onPage = L.screens.slice(0, idx + 1).filter(s => s.page === scr.page).length;
-        const pageTxt = 'PAGE ' + (scr.page + 1) + '/' + pageCount +
-                        (pageScreens > 1 ? '  (' + onPage + '/' + pageScreens + ')' : '');
-        const hint = '▲/▼ = page   Space = next   (o)/Enter = exit';
-
-        ctx.save();
-        ctx.shadowBlur = 0;
-        ctx.shadowColor = 'rgba(0,0,0,0)';
-        ctx.textBaseline = 'alphabetic';
-
-        // 1) Tausta: katu jää tummaksi arkin taakse
-        ctx.fillStyle = '#07070c';
-        ctx.fillRect(0, 0, WORLD_W, WORLD_H);
-
-        // 2) Paperiarkki, varjo ja ohut reuna
-        ctx.fillStyle = 'rgba(0,0,0,0.55)';
-        ctx.fillRect(L.panelX + 3, L.paperTop + 5, L.panelW, L.paperBottom - L.paperTop);
-        ctx.fillStyle = '#f4eede';
-        ctx.fillRect(L.panelX, L.paperTop, L.panelW, L.paperBottom - L.paperTop);
-        ctx.strokeStyle = '#c6bca2';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(L.panelX + 0.5, L.paperTop + 0.5, L.panelW - 1, L.paperBottom - L.paperTop - 1);
-
-        // 3) Ylätunniste: lehden nimi (vasen) ja sivunumero (oikea).
-        //    Jos kadulla on ajoneuvo liikkeellä, vasen teksti vaihtuu
-        //    vilkkuvaksi varoitukseksi (v4.54) – lukija ehtii sulkea lehden.
-        const trafficComing = !!(vehicles[0] || vehicles[1]);
-        const topTxt = trafficComing ? '⚠ WATCH OUT – TRAFFIC NEVER STOPS!'
-                                     : 'NEWS · GAME GUIDE';
-        ctx.fillStyle = '#6a6250';
-        ctx.textAlign = 'left';
-        ctx.font = 'bold ' + L.smallFs + 'px "Courier New", monospace';
-        const pageW = ctx.measureText(pageTxt).width;
-        fitNewsFont(topTxt, L.rowW - pageW - 10, L.smallFs, 7, '"Courier New", monospace', 'bold');
-        if (trafficComing) {
-            ctx.fillStyle = (Math.sin(Date.now() * 0.012) > 0) ? '#a51212' : '#c07a12';
-        }
-        ctx.fillText(topTxt, L.rowX, L.subY);
-        // Sivunumero omalla fontillaan, vaikka varoitusteksti olisi kutistettu
-        ctx.font = 'bold ' + L.smallFs + 'px "Courier New", monospace';
-        ctx.textAlign = 'right';
-        ctx.fillText(pageTxt, L.rowX + L.rowW, L.subY);
-
-        // 4) Mastoke + kaksinkertainen viiva
-        ctx.textAlign = 'center';
-        fitNewsFont('AI CHAOS STREET', L.rowW, L.mastFs, 9, '"Press Start 2P", monospace', 'normal');
-        ctx.fillStyle = '#141414';
-        ctx.fillText('AI CHAOS STREET', 400, L.mastY);
-        ctx.fillRect(L.panelX + 8, L.ruleY, L.panelW - 16, 2);
-        ctx.fillRect(L.panelX + 8, L.ruleY + 3, L.panelW - 16, 1);
-
-        // 5) Sivun otsikko
-        fitNewsFont(page.title, L.rowW - 8, L.titleFs, 8, '"Press Start 2P", monospace', 'normal');
-        ctx.fillStyle = '#8c1d1d';
-        ctx.fillText(page.title, 400, L.titleY);
-
-        // 6) Leipäteksti (valmiiksi käärityt rivit) TAI manuaalin ASCII-piirros
-        ctx.fillStyle = '#16150f';
-        if (scr.art) {
-            const A = scr.art;
-            const x0 = L.rowX + Math.max(0, Math.round((L.rowW - A.cols * A.cellW) / 2));
-            ctx.font = A.fs + 'px "Courier New", monospace';
-            ctx.textAlign = 'center';
-            for (let i = 0; i < A.lines.length; i++) {
-                const chars = Array.from(A.lines[i]);      // emoji = yksi merkki
-                const baseline = A.top + A.fs + i * A.lineH;
-                for (let c = 0; c < chars.length; c++) {
-                    if (chars[c] === ' ') continue;
-                    ctx.fillText(chars[c], x0 + (c + 0.5) * A.cellW, baseline);
-                }
-            }
-            ctx.textAlign = 'left';
-        } else {
-            ctx.textAlign = 'left';
-            ctx.font = L.bodyFs + 'px "Courier New", monospace';
-            for (let i = 0; i < scr.lines.length; i++) {
-                if (!scr.lines[i]) continue;
-                ctx.fillText(scr.lines[i], L.rowX, L.textTop + L.bodyFs + i * L.lineH);
-            }
-        }
-
-        // 7) Alatunniste: ohjeet (vasen) ja sivunumero (oikea)
-        fitNewsFont(hint, L.rowW - pageW - 12, L.smallFs, 7, '"Courier New", monospace', 'bold');
-        ctx.fillStyle = '#6a6250';
-        ctx.textAlign = 'left';
-        ctx.fillText(hint, L.rowX, L.footerY);
-        ctx.font = 'bold ' + L.smallFs + 'px "Courier New", monospace';
-        ctx.textAlign = 'right';
-        ctx.fillText(pageTxt, L.rowX + L.rowW, L.footerY);
-        ctx.textAlign = 'left';
-
-        ctx.restore();
-    }
 
     function drawBeetle(b) {
         const bx = b.x, by = b.y;
@@ -8118,1019 +7072,35 @@ const Street = (() => {
         drawGapPost(f.gapEnd);
     }
 
-    /* ── Makuuhuone (ex-palkintohuone, talo 7) ────
-       Ovi aina auki (v4.43: ei avaimia eikä lamppua). Huoneessa on kaksi valintaa:
-         Nuku   = vaihtaa päivä/yö-tilan (päivä → yö TAI yö → päivä)
-         Poistu = ei muuta mitään
-       Molemmat ovat ilmaisia. Sänky on piirretty sivusta (pääty, paksu patja,
-       tyyny, peitto ja jalat), ja ikkunasta näkyy tämänhetkinen tila.
-
-       SISÄLTÖ SOVITETAAN NÄKYVÄÄN IKKUNAAN (kuten jukebox v4.22): mobiilissa
-       canvas on vain `viewW` (260–800) leveä ja kamera keskittää huoneen, joten
-       kaikki sijoitetaan x = 400:n ympärille ja enintään `winW − 24` leveäksi.
-       Koko piirto on save()/restore()-parin sisällä, ettei tila vuoda kadulle. */
-    function drawSleepRoom() {
-        const W = WORLD_W, H = WORLD_H;
-        const now = Date.now();
-
-        ctx.save();
-        ctx.shadowBlur = 0;
-        ctx.shadowColor = 'rgba(0,0,0,0)';
-        ctx.textBaseline = 'alphabetic';
-
-        /* Ikkunasovitus + fonttikoko (näytön skaala: kapea kännykkä zoomataan) */
-        const winW   = Math.round(Math.min(WORLD_W, Math.max(VIEWW_MIN, viewW)));
-        const wide   = winW >= 560;                 // sivuikkunalle jää tilaa
-        const panelW = Math.max(196, winW - 24);
-        const panelX = Math.round(400 - panelW / 2);
-        const padX   = 12;
-        const rowX   = panelX + padX;
-        const rowW   = panelW - padX * 2;
-        const vs = (canvas && canvas.height && canvas.clientHeight)
-            ? canvas.clientHeight / canvas.height : 1;
-        const vsafe = (vs > 0.25) ? vs : 1;
-        const needPx = (target, base, max) =>
-            Math.round(Math.max(base, Math.min(max, target / vsafe)));
-
-        /* Pystyasettelu: paneeli ylhäällä, sänky alhaalla */
-        const titleY  = 80;
-        const stateY  = titleY + 22;
-        const nameFs  = needPx(15, 12, 15);
-        const rowH    = Math.max(18, Math.round(nameFs * 1.5));
-        const rowGap  = 6;
-        const listTop = stateY + 14;
-        const listH   = 2 * (rowH + rowGap) - rowGap;
-        const hintY   = listTop + listH + 18;
-        const panelTop    = titleY - 26;
-        const panelBottom = hintY + 10;
-
-        // 1) Tausta: seinä (yöllä kylmä, päivällä lämmin) + lattia
-        ctx.fillStyle = isDay ? '#241d2c' : '#07070f';
-        ctx.fillRect(0, 0, W, H);
-        const wall = ctx.createLinearGradient(0, 40, 0, GROUND_Y);
-        if (isDay) {
-            wall.addColorStop(0, '#3b3149');
-            wall.addColorStop(1, '#4c4058');
-        } else {
-            wall.addColorStop(0, '#151326');
-            wall.addColorStop(1, '#221f36');
-        }
-        ctx.fillStyle = wall;
-        ctx.fillRect(40, 40, W - 80, GROUND_Y - 40);
-        // Lattia + lautojen perspektiivi (sänky seisoo tällä)
-        ctx.fillStyle = isDay ? '#2c2434' : '#0f0d18';
-        ctx.fillRect(40, GROUND_Y, W - 80, H - GROUND_Y - 40);
-        ctx.strokeStyle = isDay ? '#1d1722' : '#08070e';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        for (let i = 0; i <= 8; i++) {
-            const fx = 40 + i * (W - 80) / 8;
-            ctx.moveTo(fx, GROUND_Y + 1);
-            ctx.lineTo(fx + (fx - W / 2) * 0.16, H - 40);
-        }
-        ctx.stroke();
-
-        // 2) Paneeli: otsikko + nykyinen tila + valinnat (yksi tumma laatta)
-        ctx.fillStyle = '#0b0812';
-        ctx.fillRect(panelX, panelTop, panelW, panelBottom - panelTop);
-        ctx.strokeStyle = '#3a3348';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(panelX + 0.5, panelTop + 0.5, panelW - 1, panelBottom - panelTop - 1);
-        // Yläreunan sävy kertoo tilan: keltainen = päivä, sininen = yö
-        ctx.fillStyle = isDay ? '#ffd070' : '#7c8ad8';
-        ctx.fillRect(panelX, panelTop, panelW, 2);
-
-        ctx.textAlign = 'center';
-        ctx.font = needPx(16, 12, 16) + 'px "Press Start 2P", monospace';
-        ctx.fillStyle = '#eae4f2';
-        ctx.fillText('BEDROOM', 400, titleY);
-
-        ctx.font = 'bold ' + nameFs + 'px "Courier New", monospace';
-        ctx.fillStyle = isDay ? '#ffdd88' : '#c8d8ff';
-        ctx.fillText('Now: ' + (isDay ? '☀️ Day' : '🌙 Night'), 400, stateY);
-
-        /* 3) Valinnat: 0 = Nuku, 1 = Poistu
-              ▲/▼ liikuttaa valintaa, ⚡ / Space / (o) vahvistaa */
-        const rows = [
-            { label: 'Sleep',  note: isDay ? '→ night' : '→ day' },
-            { label: 'Exit',   note: 'no change' }
-        ];
-        for (let i = 0; i < rows.length; i++) {
-            const y = listTop + i * (rowH + rowGap);
-            const selected = (i === sleepSel);
-            const bg     = selected ? '#ffd070' : '#171122';
-            const border = selected ? '#fff3d0' : '#3a3348';
-            const fg     = selected ? '#1c1400' : '#eae4f2';
-            const dim    = selected ? '#5c4400' : '#948ca8';
-
-            ctx.fillStyle = bg;
-            ctx.fillRect(rowX, y, rowW, rowH);
-            ctx.strokeStyle = border;
-            ctx.lineWidth = 1;
-            ctx.strokeRect(rowX + 0.5, y + 0.5, rowW - 1, rowH - 1);
-
-            ctx.textBaseline = 'middle';
-            const cy = Math.round(y + rowH / 2) + 1;
-            ctx.textAlign = 'left';
-            ctx.font = nameFs + 'px "Courier New", monospace';
-            ctx.fillStyle = fg;
-            ctx.fillText((selected ? '▶ ' : '   ') + rows[i].label, rowX + 8, cy);
-            ctx.textAlign = 'right';
-            ctx.fillStyle = dim;
-            ctx.fillText(rows[i].note, rowX + rowW - 8, cy);
-        }
-        ctx.textBaseline = 'alphabetic';
-        ctx.textAlign = 'center';
-        ctx.font = Math.max(10, Math.min(nameFs - 1, 13)) + 'px Arial, sans-serif';
-        ctx.fillStyle = '#e9e9ef';
-        ctx.fillText('▲/▼ = select   ⚡/Space = confirm', 400, hintY);
-        ctx.textAlign = 'left';
-
-        // 4) Sänky sivusta: pääty, paksu patja, tyyny, peitto ja jalat
-        const bedW  = Math.min(340, panelW - 16);
-        const bedL  = Math.round(400 - bedW / 2);
-        const bedR  = bedL + bedW;
-        const bedFoot = GROUND_Y - 2;              // 308 – jalkojen pohja
-        const legH = 10, frameH = 12, mattH = 38;
-        const legTop   = bedFoot - legH;           // 298
-        const frameTop = legTop - frameH;          // 286
-        const mattTop  = frameTop - mattH;         // 248
-        const headTop  = mattTop - 34;             // 214 – päädyn yläreuna
-        const headW    = 13;
-        const pillowW  = Math.round(bedW * 0.24);
-
-        // Jalat
-        ctx.fillStyle = '#241812';
-        ctx.fillRect(bedL + 16, legTop, 9, legH);
-        ctx.fillRect(bedR - 27, legTop, 9, legH);
-
-        // Runko (patjan alla)
-        ctx.fillStyle = '#2e2019';
-        ctx.fillRect(bedL + 4, frameTop, bedW - 8, frameH);
-        ctx.fillStyle = '#3d2a1d';
-        ctx.fillRect(bedL + 4, frameTop, bedW - 8, 3);
-
-        // Pääty (vasemmassa reunassa)
-        ctx.fillStyle = '#33241a';
-        ctx.fillRect(bedL, headTop, headW, frameTop - headTop + 6);
-        ctx.fillStyle = '#48321f';
-        ctx.fillRect(bedL + 3, headTop + 6, 7, frameTop - headTop - 14);
-
-        // Tyyny
-        ctx.fillStyle = '#efe6d2';
-        ctx.fillRect(bedL + 18, mattTop - 12, pillowW, 20);
-        ctx.fillStyle = '#fbf5e6';
-        ctx.fillRect(bedL + 18, mattTop - 12, pillowW, 3);
-        ctx.fillStyle = '#d8ceb6';
-        ctx.fillRect(bedL + 18, mattTop + 4, pillowW, 4);
-
-        // Paksu patja (yläreuna, runko, keskiviiva, alavarjo)
-        ctx.fillStyle = '#cfc6b2';
-        ctx.fillRect(bedL + 8, mattTop, bedW - 16, mattH);
-        ctx.fillStyle = '#e7dfcb';
-        ctx.fillRect(bedL + 8, mattTop, bedW - 16, 5);
-        ctx.fillStyle = '#b8af9b';
-        ctx.fillRect(bedL + 8, mattTop + Math.round(mattH / 2), bedW - 16, 1);
-        ctx.fillStyle = '#a89f8c';
-        ctx.fillRect(bedL + 8, mattTop + mattH - 5, bedW - 16, 5);
-
-        // Peitto (jalkopää peittyy, tyyny jää näkyviin)
-        const blkL = bedL + 24 + pillowW;
-        const blkR = bedR - 8;
-        ctx.fillStyle = '#3b4c86';
-        ctx.fillRect(blkL, mattTop - 6, blkR - blkL, mattH + 8);
-        ctx.fillStyle = '#4d61a6';
-        ctx.fillRect(blkL, mattTop - 6, blkR - blkL, 4);
-        ctx.fillStyle = '#2f3c6c';
-        ctx.fillRect(blkL, mattTop + 12, blkR - blkL, 2);
-        ctx.fillRect(blkL, mattTop + 24, blkR - blkL, 2);
-
-        // 5) Ikkuna (vain kun sille jää tilaa): näyttää tämänhetkisen tilan
-        if (wide) {
-            const wx = 626, wy = 204, ww = 92, wh = 72;
-            ctx.fillStyle = '#241d2e';
-            ctx.fillRect(wx - 4, wy - 4, ww + 8, wh + 8);
-            const sky = ctx.createLinearGradient(0, wy, 0, wy + wh);
-            if (isDay) { sky.addColorStop(0, '#4b8fd0'); sky.addColorStop(1, '#a8d4f0'); }
-            else       { sky.addColorStop(0, '#0a1030'); sky.addColorStop(1, '#1b2352'); }
-            ctx.fillStyle = sky;
-            ctx.fillRect(wx, wy, ww, wh);
-
-            if (isDay) {
-                // Aurinko: tasainen keltainen kiekko (ei valkoista palloa keskellä)
-                ctx.fillStyle = '#ffe066';
-                ctx.beginPath(); ctx.arc(wx + ww * 0.7, wy + wh * 0.34, 11, 0, Math.PI * 2); ctx.fill();
-                ctx.strokeStyle = 'rgba(255,224,120,0.85)';
-                ctx.lineWidth = 1;
-                for (let i = 0; i < 8; i++) {
-                    const a = i * Math.PI / 4 + 0.3;
-                    ctx.beginPath();
-                    ctx.moveTo(wx + ww * 0.7 + Math.cos(a) * 15, wy + wh * 0.34 + Math.sin(a) * 15);
-                    ctx.lineTo(wx + ww * 0.7 + Math.cos(a) * 20, wy + wh * 0.34 + Math.sin(a) * 20);
-                    ctx.stroke();
-                }
-            } else {
-                // Sirppikuu + pari tähteä
-                ctx.fillStyle = '#fff8cc';
-                ctx.beginPath(); ctx.arc(wx + ww * 0.7, wy + wh * 0.34, 11, 0, Math.PI * 2); ctx.fill();
-                ctx.fillStyle = '#0a1030';
-                ctx.beginPath(); ctx.arc(wx + ww * 0.7 + 5, wy + wh * 0.34 - 1, 9, 0, Math.PI * 2); ctx.fill();
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(wx + 12, wy + 14, 2, 2);
-                ctx.fillRect(wx + 27, wy + 24, 2, 2);
-                ctx.fillRect(wx + 16, wy + 50, 2, 2);
-            }
-
-            // Ikkunaristikko + verhojen varjot reunoissa
-            ctx.strokeStyle = '#2b2438';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(wx + ww / 2, wy); ctx.lineTo(wx + ww / 2, wy + wh);
-            ctx.moveTo(wx, wy + wh / 2); ctx.lineTo(wx + ww, wy + wh / 2);
-            ctx.stroke();
-            ctx.fillStyle = 'rgba(0,0,0,0.25)';
-            ctx.fillRect(wx, wy, 5, wh);
-            ctx.fillRect(wx + ww - 5, wy, 5, wh);
-        }
-
-        // 6) Nukkumisen pimennys: ruutu tummuu mustaksi ~0,75 s aikana
-        //    (SLEEP_DARK_FRAMES), minkä jälkeen itse "ZZzzZZzzzZzzz…"-efekti näkyy ~3 s
-        //    (SLEEP_ZZZ_FRAMES) – yhteensä ~3,75 s. Tila vaihtuu vasta lopussa.
-        //    HUOM: pimennys lasketaan KULUNEESTA ajasta (ei jäljellä olevasta),
-        //    muuten musta kerros ja Zzz ehtivät mukaan vasta aivan lopussa.
-        if (sleepPhase > 0) {
-            const elapsed = SLEEP_FADE_FRAMES - sleepPhase;              // kulunut aika
-            const fade = Math.max(0, Math.min(1, elapsed / SLEEP_DARK_FRAMES));
-            ctx.fillStyle = 'rgba(0,0,0,' + fade.toFixed(3) + ')';
-            ctx.fillRect(0, 0, W, H);
-            if (fade > 0.05) {
-                ctx.globalAlpha = fade;          // Zzz himmenee sisään pimennyksen mukana
-                ctx.textAlign = 'center';
-                ctx.font = 'bold ' + needPx(20, 16, 22) + 'px "Courier New", monospace';
-                ctx.fillStyle = '#ffe9a8';
-                ctx.fillText('ZZzzZZzzzZzzz…', 400, 250 + Math.round(Math.sin(now / 300) * 3));
-                ctx.textAlign = 'left';
-                ctx.globalAlpha = 1;
-            }
-        }
-
-        ctx.restore();
-    }
-
-    /* ── Jukebox-huone (talo 5) ────────────────────
-       Monivalinta (v4.46): rivi 0 = Poistu, rivit 1..N = kappaleet (1 🪙 /
-       kappale). Valitut soitetaan poistuttaessa yksi kerrallaan (1 → N).
-       HUOM: jukebox ei muuta peliääniä mitenkään.
-
-       SELKEYS (v4.22): kaikki tekstit piirretään terävinä (ei
-       shadowBlur-sumennusta eikä läpinäkyvää tekstiä) ja koko asettelu
-       sovitetaan siihen ikkunaan, joka ruudulla oikeasti näkyy. Mobiilissa
-       canvas on vain `viewW` leveä ja kamera keskittää huoneen (camX), joten
-       kiinteä 800 px:n asettelu (tekstit x 62…) jäi kankaan ulkopuolelle –
-       kapealla kännykällä näkyi vain listan keskikohta. Sisältö on nyt
-       keskitetty x = 400:n ympärille ja enintään `winW − 24` leveäksi. */
-    function drawJukeboxRoom() {
-        const W = WORLD_W, H = WORLD_H;
-        const now = Date.now();
-        const playing = StreetAudio.isJukeboxPlaying();
-        const trackCount = JUKEBOX_TRACKS.length;
-        /* Soiva kappale jonon sijainnista (v4.46): montako on jo soitettu.
-           jukeQueue = kadun oma kopio soitettavista raidoista (1..N). */
-        const qPos = StreetAudio.getJukeboxQueuePos();
-        const curTrack = (playing && qPos >= 0 && qPos < jukeQueue.length) ? jukeQueue[qPos] : 0;
-        let pickCount = 0;
-        for (let i = 0; i < jukePick.length; i++) { if (jukePick[i]) pickCount++; }
-
-        ctx.save();
-        // Ei pehmennystä: nollataan kadulta mahdollisesti periytynyt hehku
-        ctx.shadowBlur = 0;
-        ctx.shadowColor = 'rgba(0,0,0,0)';
-        ctx.textBaseline = 'alphabetic';
-
-        /* Sovitus näkyvään ikkunaan (ks. selitys yllä) */
-        const winW = Math.round(Math.min(WORLD_W, Math.max(VIEWW_MIN, viewW)));
-        const wide = winW >= 620;                 // jukebox-kaappi mahtuu viereen
-        const CAB_W = 176, CAB_GAP = 26, PANEL_MAX = 520;
-        const panelW = Math.round(wide
-            ? Math.min(PANEL_MAX, winW - CAB_W - CAB_GAP - 26)
-            : Math.max(196, winW - 24));
-        const panelX = Math.round(400 - (wide ? panelW + CAB_GAP + CAB_W : panelW) / 2);
-        const padX = 12;
-        const rowX = panelX + padX;
-        const rowW = panelW - padX * 2;
-
-        /* Näytön skaala (canvas CSS-px / puskurin px): kapea kännykkä
-           zoomataan 1:1:tä suuremmaksi → fontin maailmakoko voi olla
-           pienempi ja näkyä silti isona. `needPx` valitsee fontin
-           maailmakoon niin, että ruudulla näkyy vähintään `target` px. */
-        const vs = (canvas && canvas.height && canvas.clientHeight)
-            ? canvas.clientHeight / canvas.height : 1;
-        const vsafe = (vs > 0.25) ? vs : 1;
-        const needPx = (target, base, max) =>
-            Math.round(Math.max(base, Math.min(max, target / vsafe)));
-
-        /* Sarakeleveydet paneelin leveydestä; pisin kappalenimi on 25 merkkiä
-           → fonttikoko ei koskaan ylitä nimen saraketta. Oikea sarake on
-           hieman leveämpi kuin ennen, koska valittu rivi näyttää "✓ 1 🪙". */
-        const numW     = Math.max(20, Math.round(rowW * 0.055));
-        const priceW   = Math.max(52, Math.round(rowW * 0.16));
-        const nameMaxW = rowW - numW - priceW - 16;
-        /* Lista on kasvanut (v4.60: 6 kappaletta = 7 riviä). Kun rivejä on
-           enemmän kuin 4, rivit tiivistetään ja koko lista sovitetaan niin,
-           ettei paneeli valu lattialle (GROUND_Y) eikä peitä alaohjetta.
-           3 kappaleen ulkoasu säilyy täsmälleen ennallaan (compact = false). */
-        const totalRows = trackCount + 1;         // rivi 0 = Poistu
-        const compact   = totalRows > 4;
-        const nameFs = compact
-            ? Math.max(9, Math.min(needPx(12, 11, 12),
-                     Math.floor(nameMaxW / (0.62 * 25))))
-            : Math.max(9, Math.min(needPx(16, 13, 16),
-                     Math.floor(nameMaxW / (0.62 * 25))));
-
-        /* Pystyasettelu */
-        const titleY   = compact ? 74 : 82;
-        const stacked  = panelW < 470;            // kolikkosaldo omalle rivilleen
-        const balY     = stacked ? titleY + (compact ? 20 : 22) : titleY;
-        const listTop  = stacked ? balY + (compact ? 14 : 20) : titleY + (compact ? 20 : 22);
-        /* Tilatekstilaatikolle varataan tila (enintään 2 riviä) ennen kuin
-           rivikorkeus lasketaan – muuten 7 rivin lista työntäisi paneelin
-           alareunan lattialle asti. */
-        const infoFsPre = Math.max(9, Math.min(nameFs - 2, 15));
-        const infoHPre  = 2 * (infoFsPre + 4) + 10;
-        const listMaxH  = Math.max(48, (GROUND_Y - 6) - listTop - 10 - infoHPre - 8);
-        let rowGap = compact ? 3 : 6;
-        let rowH   = compact ? Math.max(16, Math.round(nameFs * 1.7))
-                             : Math.max(18, Math.round(nameFs * 1.9));
-        if (compact) {
-            // Tiivistä rivejä, kunnes koko lista mahtuu seinälle
-            while (totalRows * (rowH + rowGap) - rowGap > listMaxH &&
-                   (rowH > 16 || rowGap > 2)) {
-                if (rowGap > 2) rowGap--; else rowH--;
-            }
-        }
-        const listH = totalRows * (rowH + rowGap) - rowGap;
-
-        /* Tilatekstit: yksi rivi = yksi fillText, jotta rivi ei koskaan
-           katkea keskeltä (luettavuus + testit nojaavat kokonaisiin riveihin) */
-        const info = [];
-        if (playing) {
-            const tr = (curTrack > 0) ? JUKEBOX_TRACKS[curTrack - 1] : null;
-            const t = tr ? tr.title : '';
-            info.push({ text: '🔊 NOW PLAYING: ' + t, color: '#ffdd88' });
-            if (jukeQueue.length > 1) {
-                info.push({ text: '📋 In queue: ' + jukeQueue.length + ' track(s)',
-                            color: '#8ce88c' });
-            }
-            info.push({ text: 'Pick more => exit = add to queue', color: '#8ce88c' });
-        } else if (pickCount > 0) {
-            info.push({ text: 'Selected: ' + pickCount + ' – ' + pickCount + ' 🪙',
-                        color: '#ffffff' });
-            if (coinCount >= pickCount) {
-                info.push({ text: 'Exit (⚡/Space/Enter) = play selected', color: '#8ce88c' });
-            } else if (coinCount > 0) {
-                info.push({ text: '💰 Not enough coins for all – playing ' + coinCount + '/' + pickCount,
-                            color: '#ffcc66' });
-            } else {
-                info.push({ text: '💰 No coins!', color: '#ff8080' });
-            }
-        } else {
-            info.push({ text: 'No selection – leaving costs nothing', color: '#d8d2e2' });
-        }
-        const infoFs     = Math.max(9, Math.min(nameFs - 2, 15));
-        const infoLineH  = infoFs + 4;
-        const infoTop    = listTop + listH + 10;
-        const infoH      = info.length * infoLineH + 10;
-        const infoBottom = infoTop + infoH;
-
-        /* Yksi yhtenäinen tumma paneeli koko sisällölle = paras kontrasti
-           (ei läpinäkyvyyttä eikä seinän kohinaa tekstin alla) */
-        const panelTop    = titleY - 24;
-        const panelBottom = infoBottom + 8;
-
-        /* Fontin asetus + koon sovitus: asettaa `ctx.font`in ja palauttaa
-           käytetyn koon, jolla teksti mahtuu enintään maxW:iin (≥ minFs) */
-        const setFitFont = (text, maxW, baseFs, minFs, family) => {
-            ctx.font = baseFs + 'px ' + family;
-            const w = ctx.measureText(text).width;
-            let fs = baseFs;
-            if (w > maxW) fs = Math.max(minFs, Math.floor(baseFs * maxW / w));
-            ctx.font = fs + 'px ' + family;
-            return fs;
-        };
-
-        // 1) Tausta + lämminvioletti seinä
-        ctx.fillStyle = '#08060e';
-        ctx.fillRect(0, 0, W, H);
-        const wall = ctx.createLinearGradient(0, 50, 0, GROUND_Y);
-        wall.addColorStop(0, '#1c1122');
-        wall.addColorStop(1, '#2b1a2e');
-        ctx.fillStyle = wall;
-        ctx.fillRect(40, 50, W - 80, GROUND_Y - 50);
-        // Lattia + lautojen perspektiivi
-        ctx.fillStyle = '#120d16';
-        ctx.fillRect(40, GROUND_Y, W - 80, H - GROUND_Y - 40);
-        ctx.fillStyle = 'rgba(255,255,255,0.05)';
-        ctx.fillRect(40, GROUND_Y, W - 80, 1);
-        ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        for (let i = 0; i <= 8; i++) {
-            const fx = 40 + i * (W - 80) / 8;
-            ctx.moveTo(fx, GROUND_Y + 1);
-            ctx.lineTo(fx + (fx - W / 2) * 0.16, H - 40);
-        }
-        ctx.stroke();
-
-        // 2) Paneeli: yksi tumma laatta listalle ja tilateksteille
-        ctx.fillStyle = '#0b0710';
-        ctx.fillRect(panelX, panelTop, panelW, panelBottom - panelTop);
-        ctx.strokeStyle = '#3a3348';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(panelX + 0.5, panelTop + 0.5, panelW - 1, panelBottom - panelTop - 1);
-        // Ohut neonreuna (terävä viiva, ei hehkua)
-        ctx.fillStyle = '#ff4f96';
-        ctx.fillRect(panelX, panelTop, panelW, 2);
-
-        // 3) Otsikko + kolikkosaldo (yksiväriset, ei hehkua)
-        ctx.textAlign = 'left';
-        setFitFont('♪ JUKEBOX', stacked ? rowW : Math.round(rowW * 0.5),
-                   needPx(16, 12, 16), 10, '"Press Start 2P", monospace');
-        ctx.fillStyle = '#ff4f96';
-        ctx.fillText('♪ JUKEBOX', rowX, titleY);
-
-        const balText = '💰 Coins: ' + coinCount;
-        setFitFont(balText, rowW * (stacked ? 1 : 0.5),
-                   Math.max(11, Math.min(nameFs, 14)), 10, '"Courier New", monospace');
-        ctx.fillStyle = '#ffd700';
-        ctx.textAlign = stacked ? 'left' : 'right';
-        ctx.fillText(balText, stacked ? rowX : rowX + rowW, balY);
-
-        // 4) Kappalelista: rivi 0 = Poistu, rivit 1..N = kappaleet (valitut ✓)
-        for (let i = 0; i <= trackCount; i++) {
-            const y = listTop + i * (rowH + rowGap);
-            const selected = (i === jukeSel);
-            const picked = (i > 0) && !!jukePick[i - 1];
-            const playingRow = playing && i > 0 && i === curTrack;
-            // Tausta: kursori = kirkas pinkki (tumma teksti), soitossa = kulta,
-            // listalle otettu = violetti, muut = tumma
-            const bg     = selected ? '#ff3d7f' : (playingRow ? '#2b2410' : (picked ? '#241a3a' : '#171122'));
-            const border = selected ? '#ffd0e2' : (playingRow ? '#ffdd88' : (picked ? '#ffd700' : '#3a3348'));
-            const fg     = selected ? '#1c000a' : (playingRow ? '#ffe9a8' : '#eae4f2');
-            const dim    = selected ? '#5c1230' : (playingRow ? '#c9a95f' : '#948ca8');
-
-            ctx.fillStyle = bg;
-            ctx.fillRect(rowX, y, rowW, rowH);
-            ctx.strokeStyle = border;
-            ctx.lineWidth = 1;
-            ctx.strokeRect(rowX + 0.5, y + 0.5, rowW - 1, rowH - 1);
-
-            ctx.textBaseline = 'middle';
-            const cy = Math.round(y + rowH / 2) + 1;
-            const sideFs = Math.max(11, nameFs - 1);
-
-            // Numero
-            ctx.textAlign = 'left';
-            ctx.fillStyle = fg;
-            ctx.font = Math.max(8, Math.min(10, Math.round(nameFs * 0.62))) +
-                       'px "Press Start 2P", monospace';
-            ctx.fillText(String(i), rowX + 10, cy);
-
-            // Kappaleen nimi + kesto (leikataan nimi, jos ei mahdu)
-            let trackName = (i === 0) ? 'Exit' : JUKEBOX_TRACKS[i - 1].title;
-            const durStr = (i > 0) ? ' (' + JUKEBOX_TRACKS[i - 1].duration + ')' : '';
-            ctx.font = nameFs + 'px "Courier New", monospace';
-            const durW = ctx.measureText(durStr).width;
-            const maxW = Math.max(20, nameMaxW - durW);
-            while (trackName.length > 4 && ctx.measureText(trackName).width > maxW) {
-                trackName = trackName.slice(0, -2) + '…';
-            }
-            trackName += durStr;
-            ctx.fillStyle = fg;
-            ctx.fillText(trackName, rowX + 10 + numW, cy);
-
-            // Oikea reuna: soitossa ♪ SOI, valitulla ✓ + hinta, muilla hinta,
-            // Poistu-rivillä valittujen määrä
-            ctx.textAlign = 'right';
-            if (playingRow) {
-                ctx.font = 'bold ' + sideFs + 'px "Courier New", monospace';
-                ctx.fillStyle = selected ? fg : '#ffdd88';
-                ctx.fillText('♪ PLAYING', rowX + rowW - 10, cy);
-            } else if (i > 0) {
-                ctx.font = sideFs + 'px "Courier New", monospace';
-                ctx.fillStyle = selected ? fg : (picked ? '#ffe9a8' : '#ffd700');
-                ctx.fillText((picked ? '✓ ' : '') + '1 🪙', rowX + rowW - 10, cy);
-            } else if (pickCount > 0) {
-                ctx.font = sideFs + 'px "Courier New", monospace';
-                ctx.fillStyle = selected ? fg : '#8ce88c';
-                ctx.fillText('▶ ' + pickCount + ' track(s)', rowX + rowW - 10, cy);
-            } else {
-                ctx.font = sideFs + 'px "Courier New", monospace';
-                ctx.fillStyle = dim;
-                ctx.fillText('–', rowX + rowW - 10, cy);
-            }
-        }
-        ctx.textBaseline = 'alphabetic';
-        // 5) Tilatekstit omassa laatikossaan (yksivärinen, ei läpinäkyvyyttä)
-        ctx.fillStyle = '#16101f';
-        ctx.fillRect(rowX, infoTop, rowW, infoH);
-        ctx.strokeStyle = '#4a4160';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(rowX + 0.5, infoTop + 0.5, rowW - 1, infoH - 1);
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        for (let i = 0; i < info.length; i++) {
-            const it = info[i];
-            setFitFont(it.text, rowW - 16, infoFs, 9, '"Courier New", monospace');
-            ctx.fillStyle = it.color;
-            ctx.fillText(it.text, rowX + 8, Math.round(infoTop + infoH / 2 +
-                         (i - (info.length - 1) / 2) * infoLineH));
-        }
-        ctx.textBaseline = 'alphabetic';
-
-        // 6) Jukebox-kone oikealla – vain kun sille jää tilaa (ei peitä listaa)
-        if (wide) {
-            /* Soivan kappaleen kansikuva (v4.61): raidat 4–6 → kuva, muut → null */
-            const cover = (curTrack > 0) ? jukeCovers[curTrack - 1] : null;
-            drawJukeboxCabinet(panelX + panelW + CAB_GAP, GROUND_Y + 4, now, playing,
-                               jukeSel > 0 || pickCount > 0, cover);
-        }
-
-        // 7) Alaohje (kiinteä ja terävä – ei vilkkumista)
-        const helpTxt = '▲/▼ = select   (o)/Space = pick/remove   Enter = play & exit';
-        ctx.textAlign = 'center';
-        setFitFont(helpTxt, winW - 16, 12, 9, 'Arial, sans-serif');
-        ctx.fillStyle = '#e9e9ef';
-        ctx.fillText(helpTxt, 400, 380);
-        ctx.textAlign = 'left';
-
-        ctx.restore();
-    }
-
-    /* Jukebox-kone: Wurlitzer-henkinen kaappi (proseduraalinen, ei kuvatiedostoja
-       – paitsi soivan kappaleen kansikuva, jos sellainen on, v4.61) */
-    function drawJukeboxCabinet(x, baseY, now, playing, armed, cover) {
-        const w = 176, h = 210;
-        const top = baseY - h;
-        const cx = x + w / 2;
-
-        // Varjo lattialla
-        ctx.fillStyle = 'rgba(0,0,0,0.45)';
-        ctx.beginPath();
-        ctx.ellipse(cx, baseY + 2, w * 0.5, 8, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Runko: tumma puu/metal, kaareva huippu
-        const body = ctx.createLinearGradient(x, 0, x + w, 0);
-        body.addColorStop(0, '#20120c');
-        body.addColorStop(0.35, '#5a3a22');
-        body.addColorStop(0.7, '#3a2418');
-        body.addColorStop(1, '#20120c');
-        ctx.fillStyle = body;
-        ctx.beginPath();
-        ctx.moveTo(x, baseY);
-        ctx.lineTo(x, top + 46);
-        ctx.quadraticCurveTo(x, top, cx, top);
-        ctx.quadraticCurveTo(x + w, top, x + w, top + 46);
-        ctx.lineTo(x + w, baseY);
-        ctx.closePath();
-        ctx.fill();
-
-        // Neonkaari: vuorotellen pinkki ja keltainen, hidas pulssi
-        const segs = 9;
-        const pulse = (Math.sin(now / 260) + 1) / 2;
-        ctx.lineWidth = 5;
-        for (let i = 0; i < segs; i++) {
-            const a0 = Math.PI + (i / segs) * Math.PI;
-            const a1 = Math.PI + ((i + 1) / segs) * Math.PI;
-            if (i % 2 === 0) {
-                ctx.strokeStyle = 'rgba(255,0,85,' + (0.5 + pulse * 0.45).toFixed(2) + ')';
-                ctx.shadowColor = '#FF0055';
-            } else {
-                ctx.strokeStyle = 'rgba(255,221,136,' + (0.45 + (1 - pulse) * 0.45).toFixed(2) + ')';
-                ctx.shadowColor = '#ffdd88';
-            }
-            ctx.shadowBlur = 8;
-            ctx.beginPath();
-            ctx.ellipse(cx, top + 46, w * 0.44, 40, 0, a0, a1);
-            ctx.stroke();
-        }
-        ctx.shadowBlur = 0;
-
-        // Kromirivat kaaren alta alas
-        for (let i = 1; i < 7; i++) {
-            const rx = x + (w * i) / 7;
-            const g = ctx.createLinearGradient(rx - 2, 0, rx + 2, 0);
-            g.addColorStop(0, 'rgba(255,255,255,0.04)');
-            g.addColorStop(0.5, 'rgba(255,255,255,0.3)');
-            g.addColorStop(1, 'rgba(0,0,0,0.3)');
-            ctx.fillStyle = g;
-            ctx.fillRect(rx - 2, top + 62, 4, baseY - top - 64);
-        }
-
-        /* Levypesä + levy. Jos **soivalla** kappaleella on kansikuva (raidat
-           4–6) ja se on latautunut, kuva piirretään levypesän paikalle
-           kuvasuhde säilyttäen; muuten levy piirretään täsmälleen kuten ennen
-           (raidat 1–3 sekä tilanne, jossa mikään ei soi). */
-        const recY = top + 80, recR = 28;
-        ctx.fillStyle = '#0d0a10';
-        ctx.beginPath(); ctx.arc(cx, recY, recR + 4, 0, Math.PI * 2); ctx.fill();
-        const showCover = playing && !!cover && cover.ready;
-        if (showCover) {
-            const box = (recR + 4) * 2;                        // koko tumman ympyrän kattava alue
-            const iw  = cover.img.naturalWidth  || 1;
-            const ih  = cover.img.naturalHeight || 1;
-            const k   = Math.min(box / iw, box / ih);          // kuvasuhde säilyy
-            const dw  = Math.max(1, Math.round(iw * k));
-            const dh  = Math.max(1, Math.round(ih * k));
-            const dx  = Math.round(cx - dw / 2);
-            const dy  = Math.round(recY - dh / 2);
-            ctx.fillStyle = '#120e18';                         // taustalaatta
-            ctx.fillRect(cx - recR - 4, recY - recR - 4, box, box);
-            ctx.imageSmoothingEnabled = true;                  // valokuva → pehmennetty
-            ctx.drawImage(cover.img, dx, dy, dw, dh);
-            ctx.imageSmoothingEnabled = false;
-            ctx.strokeStyle = 'rgba(255,221,136,0.55)';        // ohut kehys
-            ctx.lineWidth = 1;
-            ctx.strokeRect(cx - recR - 4 + 0.5, recY - recR - 4 + 0.5, box - 1, box - 1);
-        } else {
-            ctx.fillStyle = '#171320';
-            ctx.beginPath(); ctx.arc(cx, recY, recR, 0, Math.PI * 2); ctx.fill();
-            ctx.strokeStyle = 'rgba(255,255,255,0.10)';
-            ctx.lineWidth = 1;
-            for (let r = 9; r < recR - 3; r += 3) { ctx.beginPath(); ctx.arc(cx, recY, r, 0, Math.PI * 2); ctx.stroke(); }
-            ctx.fillStyle = '#ffdd88';
-            ctx.beginPath(); ctx.arc(cx, recY, 3, 0, Math.PI * 2); ctx.fill();
-        }
-        if (playing) {
-            /* Kierto näkyy myös kuvan päällä: piste levypesän reunalla */
-            const spin = (now / 300) % (Math.PI * 2);
-            const spinR = showCover ? recR + 2 : 18;
-            ctx.fillStyle = showCover ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.4)';
-            ctx.fillRect(cx + Math.cos(spin) * spinR - 1, recY + Math.sin(spin) * spinR - 1, 2, 2);
-        }
-
-        // Kaiutinritilä alaosassa
-        for (let gy = baseY - 30; gy < baseY - 8; gy += 5) {
-            ctx.fillStyle = 'rgba(0,0,0,0.45)';
-            ctx.fillRect(x + 16, gy, w - 32, 2);
-        }
-
-        // Kolikkoluukku + hinta (terävä: yksivärinen teksti, ei läpinäkyvyyttä)
-        const slotW = 46, slotH = 14;
-        const sx = x + w - slotW - 12, sy = top + 62;
-        ctx.fillStyle = '#2b2b34';
-        ctx.fillRect(sx, sy, slotW, slotH);
-        ctx.strokeStyle = armed ? '#FFD700' : '#8a7a2a';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(sx + 0.5, sy + 0.5, slotW - 1, slotH - 1);
-        ctx.fillStyle = armed ? '#FFD700' : '#c8a000';
-        ctx.font = '10px "Courier New", monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('1 🪙', sx + slotW / 2, sy + 10);
-        ctx.textAlign = 'start';
-
-        // Jalusta
-        ctx.fillStyle = '#170d08';
-        ctx.fillRect(x + 6, baseY - 8, w - 12, 8);
-    }
-
-    /* ── BAR-huoneen seinätaulu (äitihahmo, kuva) ─────────────
-       Kuva ladataan kerran. Jos se ei ole vielä valmis (tai lataus
-       epäonnistuu), kehyksen sisään piirretään tumma varapinta → asettelu
-       pysyy samana eikä piirto kaadu. `typeof Image` -tarkistus pitää
-       headless-validonnat (Node-stub) toiminnassa. */
-    const BAR_PIC_SRC = 'assets/justiina.png';
-    const barPic = (typeof Image === 'function') ? new Image() : null;
-    let barPicReady = false;
-    if (barPic) {
-        barPic.onload  = () => { barPicReady = true; };
-        barPic.onerror = () => { barPicReady = false; };
-        barPic.src = BAR_PIC_SRC;
-    }
-
-    /* ── BAR-huone (talo 8) ────────────────────── */
-    /* ── Oluttuoppi pöydällä (v11.31, VAIN FULL) ─────────────────
-       Korvaa hampurilaisen BAR-huoneessa FULLissa. Piirretään pöydän
-       pinnan (tableTop) päälle, keskitetty x = cx. Korkeus = BAR_BEER_H. */
-    function drawBarBeer(cx, tableTop) {
-        const w = 44, h = BAR_BEER_H;
-        const x = cx - w / 2, y = tableTop - h;
-        // Tuopin runko (tumma ääriviiva + olut)
-        ctx.fillStyle = '#3a2a12';
-        ctx.fillRect(x, y, w, h);
-        ctx.fillStyle = '#c98a1c';
-        ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
-        ctx.fillStyle = 'rgba(255,255,255,0.12)';   // lasin kiilto
-        ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
-        // Kahva
-        ctx.strokeStyle = '#3a2a12';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.arc(x + w - 1, y + h * 0.45, 12, -Math.PI / 2, Math.PI / 2);
-        ctx.stroke();
-        // Vaahto
-        ctx.fillStyle = '#f7f2e6';
-        ctx.beginPath();
-        ctx.ellipse(cx, y + 3, w / 2 - 1, 7, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#fffdf5';
-        ctx.beginPath();
-        ctx.ellipse(cx - 6, y + 2, 10, 6, 0, 0, Math.PI * 2);
-        ctx.ellipse(cx + 8, y + 3, 8, 5, 0, 0, Math.PI * 2);
-        ctx.fill();
-        // Kuplat
-        ctx.fillStyle = 'rgba(255,255,255,0.5)';
-        const bubbles = [[-10, 20], [6, 14], [-4, 34], [12, 30], [0, 44]];
-        for (let i = 0; i < bubbles.length; i++) {
-            ctx.beginPath();
-            ctx.arc(cx + bubbles[i][0], y + bubbles[i][1], 1.6, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    }
-
-    function drawBarRoom() {
-        // Täysin pimeä tausta
-        ctx.fillStyle = '#100808';
-        ctx.fillRect(0, 0, WORLD_W, WORLD_H);
-
-        // Seinä – lämmin sävy
-        const ga = ctx.createLinearGradient(0, 0, 0, WORLD_H);
-        ga.addColorStop(0, '#1a1210');
-        ga.addColorStop(1, '#252015');
-        ctx.fillStyle = ga;
-        ctx.fillRect(60, 60, WORLD_W - 120, WORLD_H - 120);
-
-        // Pöytä
-        const tw = 200, th = 14;
-        const tx = (WORLD_W - tw) / 2, ty = GROUND_Y - 50;
-        ctx.fillStyle = '#4a3520';
-        ctx.fillRect(tx, ty, tw, th);
-        ctx.fillStyle = '#5a4530';
-        ctx.fillRect(tx + 4, ty - 2, tw - 8, 4);
-        ctx.fillStyle = '#3a2510';
-        ctx.fillRect(tx + 10, ty + th, 10, 50);
-        ctx.fillRect(tx + tw - 20, ty + th, 10, 50);
-
-        /* Iso hampurilainen – pöydän pinnalla, skaalattu 2/3:een (v4.25).
-           Skaalaus tehdään pöydän pinnan keskipisteestä (bx, ty), joten
-           hampurilaisen alaosa pysyy tarkalleen pöydän pinnassa. */
-        const BURGER_SCALE = 2 / 3;
-        const BURGER_H = 68;                 // alkuperäinen korkeus (by−26 … by+42)
-        const bx = tx + tw / 2, by = ty - 42;
-        /* v11.31: FULLissa pöydällä on oluttuoppi (korkeampi kuin hampurilainen)
-           → ostorivi lasketaan todellisen ruuan yläreunasta, ettei se osu. */
-        const burgerTop = ty - (chaosLevel === 'full' ? BAR_BEER_H : BURGER_H * BURGER_SCALE);
-
-        if (chaosLevel === 'full') {
-            drawBarBeer(bx, ty);   // FULL: olut hampurilaisen tilalla
-        } else {
-        ctx.save();
-        ctx.translate(bx, ty);
-        ctx.scale(BURGER_SCALE, BURGER_SCALE);
-        ctx.translate(-bx, -ty);
-
-        // Alapulla
-        ctx.fillStyle = '#8B4513';
-        ctx.beginPath();
-        ctx.ellipse(bx, by + 28, 40, 14, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#A0522D';
-        ctx.beginPath();
-        ctx.ellipse(bx, by + 25, 38, 12, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Pihvi
-        ctx.fillStyle = '#4a2010';
-        ctx.fillRect(bx - 36, by + 13, 72, 18);
-        ctx.fillStyle = '#3a1810';
-        ctx.fillRect(bx - 33, by + 16, 66, 12);
-        ctx.fillStyle = '#5a3020';
-        ctx.beginPath();
-        ctx.ellipse(bx, by + 13, 37, 5, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Juusto
-        ctx.fillStyle = '#FFD700';
-        ctx.beginPath();
-        ctx.moveTo(bx - 34, by + 8);
-        ctx.lineTo(bx - 10, by - 2);
-        ctx.lineTo(bx + 10, by + 8);
-        ctx.lineTo(bx + 34, by + 8);
-        ctx.lineTo(bx + 20, by + 13);
-        ctx.lineTo(bx - 20, by + 13);
-        ctx.closePath();
-        ctx.fill();
-
-        // Salaatti
-        ctx.fillStyle = '#4CAF50';
-        ctx.beginPath();
-        ctx.moveTo(bx - 34, by);
-        for (let i = 0; i < 12; i++) {
-            const sx = bx - 34 + i * 5.8;
-            const sy = by + Math.sin(i * 0.8) * 3;
-            ctx.lineTo(sx, sy);
-        }
-        ctx.lineTo(bx + 34, by + 5);
-        ctx.lineTo(bx - 34, by + 6);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#388E3C';
-        ctx.beginPath();
-        ctx.moveTo(bx - 34, by);
-        for (let i = 0; i < 12; i++) {
-            const sx = bx - 34 + i * 5.8;
-            const sy = by + Math.sin(i * 0.8) * 3;
-            ctx.lineTo(sx, sy + 1);
-        }
-        ctx.lineTo(bx + 34, by + 6);
-        ctx.lineTo(bx - 34, by + 2);
-        ctx.closePath();
-        ctx.fill();
-
-        // Ylapulla
-        ctx.fillStyle = '#A0522D';
-        ctx.beginPath();
-        ctx.ellipse(bx, by - 8, 38, 18, 0, Math.PI, 0);
-        ctx.fill();
-        ctx.fillStyle = '#8B4513';
-        ctx.beginPath();
-        ctx.ellipse(bx, by - 10, 40, 16, 0, Math.PI, 0);
-        ctx.fill();
-
-        // Seesaminsiemenet
-        ctx.fillStyle = '#F5DEB3';
-        var seeds = [[-12, -16], [5, -19], [18, -14], [-20, -10], [25, -8],
-            [-8, -6], [0, -5], [15, -6], [-16, -5], [10, -10]];
-        for (var si = 0; si < seeds.length; si++) {
-            ctx.fillRect(bx + seeds[si][0], by + seeds[si][1], 3, 3);
-        }
-
-        // Hoyry
-        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-        ctx.lineWidth = 1.5;
-        var steamT = Date.now() / 600;
-        for (var si2 = 0; si2 < 3; si2++) {
-            var sx2 = bx - 15 + si2 * 15;
-            var sy2 = by - 30 + Math.sin(steamT + si2 * 2.1) * 8;
-            ctx.beginPath();
-            ctx.moveTo(sx2, sy2);
-            ctx.quadraticCurveTo(sx2 + 4, sy2 - 10, sx2 + 8, sy2 - 3);
-            ctx.stroke();
-        }
-
-        ctx.restore();   // hampurilaisen skaalaus päättyy
-        }   // v11.31: (FULL = olut / muut moodit = hampurilainen)
-
-        /* ── Asettelu: taulu + äidin lappu + ostotilanne ────────────────
-           Kaikki mitoitetaan siitä ikkunasta, joka ruudulla oikeasti näkyy
-           (kuten jukebox-huoneessa v4.22): mobiilissa canvas on vain `viewW`
-           leveä ja kamera keskittää huoneen (camX), joten kiinteä 800 px:n
-           asettelu jäisi kankaan ulkopuolelle. Fonttikoko valitaan näytön
-           skaalan mukaan (`needPx`) → tekstit pysyvät luettavina myös
-           puhelimen vaakanäytössä. Sisältö mahtuu aina seinän yläreunan
-           (y = 60) ja ostorivin väliin eikä mikään osu hampurilaiseen. */
-        const winW = Math.round(Math.min(WORLD_W, Math.max(VIEWW_MIN, viewW)));
-        const vs = (canvas && canvas.height && canvas.clientHeight)
-            ? canvas.clientHeight / canvas.height : 1;
-        const vsafe = (vs > 0.25) ? vs : 1;
-        const needPx = (target, base, max) =>
-            Math.round(Math.max(base, Math.min(max, target / vsafe)));
-
-        /* Suurin fonttikoko, jolla kaikki `rows`-rivit mahtuvat maxW:iin */
-        const fitFs = (rows, weight, baseFs, minFs, family, maxW) => {
-            let w = 0;
-            ctx.font = weight + ' ' + baseFs + 'px ' + family;
-            for (let i = 0; i < rows.length; i++) {
-                w = Math.max(w, ctx.measureText(rows[i]).width);
-            }
-            if (w <= maxW) return baseFs;
-            return Math.max(minFs, Math.floor(baseFs * maxW / w));
-        };
-
-        /* Äidin lappu – 3 riviä (varoitus hampurilaisten kulutuksesta) */
-        const hintLines = (chaosLevel === 'full') ? [
-            'WATCH YOUR DRINKING, DEAR',
-            'BEER GOES TO YOUR HEAD!',
-            'Love, Mum'
-        ] : [
-            'WATCH YOUR BURGER INTAKE',
-            'REMEMBER TO EAT, DUDE!',
-            'Love, Mum'
-        ];
-        const boxPad = 36;                    // laatikon sisämarginaali
-        const hintFs = fitFs(hintLines, 'bold', needPx(12, 10, 12), 8,
-                             '"Courier New", monospace', winW - 28 - boxPad);
-        ctx.font = 'bold ' + hintFs + 'px "Courier New", monospace';
-        let maxHintW = 0;
-        for (let m = 0; m < hintLines.length; m++) {
-            maxHintW = Math.max(maxHintW, ctx.measureText(hintLines[m]).width);
-        }
-        const hintBoxW = Math.ceil(maxHintW + boxPad);
-        const hintLineH = hintFs + 3;
-        const hintBoxH = hintLineH * 3 + 6;
-
-        /* Ostotilanteen rivi – fontti pisimmän vaihtoehdon mukaan */
-        const infoRows = (chaosLevel === 'full') ? [
-            'You drank ' + Math.max(barBuyQty, 1) + 'x🍺 beers!',
-            '🍺 Beer quota full. Go home, drunkard!',
-            '🍺 No coins. Get some cash!'
-        ] : [
-            'You bought ' + Math.max(barBuyQty, 1) + 'x🍔 burgers!',
-            '🍔 Burger quota full. Buy something else!',
-            '🍔 No coins. Get some cash!'
-        ];
-        const infoFs = fitFs(infoRows, 'normal', needPx(15, 13, 15), 8,
-                             '"Courier New", monospace', winW - 24);
-        const infoBaseline = Math.round(burgerTop - 8);
-
-        /* Sijoitus alhaalta ylös: ostorivi (hampurilaisen yläpuolella),
-           sen alla äidin lappu ja ylimpänä pieni seinätaulu ohuissa
-           mustissa kehyksissä. Taulu on kiinteän kokoinen (ei täytä koko
-           seinää) ja keskitetään seinän yläreunan ja lapun väliin. */
-        const infoTop = infoBaseline - infoFs;
-        const noteX = Math.round(400 - hintBoxW / 2);
-        const noteY = Math.round(infoTop - 4 - hintBoxH);
-        const PIC_PAD = 2;                    // mustan kehyksen paksuus
-        const PIC_TOP = 60;                   // seinä alkaa y = 60
-        const PIC_MAX_IMG_H = 48;             // kuvan maksimikorkeus (pieni taulu)
-        const picAspect = (barPicReady && barPic.naturalHeight > 0)
-            ? barPic.naturalWidth / barPic.naturalHeight : 315 / 261;
-        const picBand = noteY - 6 - PIC_TOP;  // vapaa seinätila taululle
-        let picImgH = Math.min(PIC_MAX_IMG_H, picBand - PIC_PAD * 2);
-        let picImgW = picImgH * picAspect;
-        const picMaxW = winW - 24;            // kapea ikkuna: ei reunojen yli
-        if (picImgW + PIC_PAD * 2 > picMaxW) {
-            picImgW = picMaxW - PIC_PAD * 2;
-            picImgH = picImgW / picAspect;
-        }
-        const picFrameW = picImgW + PIC_PAD * 2;
-        const picFrameH = picImgH + PIC_PAD * 2;
-        const picX = Math.round(400 - picFrameW / 2);
-        const picY = Math.round(PIC_TOP + (picBand - picFrameH) / 2);
-
-        /* Taulun varjo seinälle, musta kehys ja kuva
-           (varakuva, jos kuva ei ole vielä latautunut) */
-        ctx.fillStyle = 'rgba(0,0,0,0.45)';
-        ctx.fillRect(picX + 3, picY + 4, picFrameW, picFrameH);
-        ctx.fillStyle = '#0a0a0a';
-        ctx.fillRect(picX, picY, picFrameW, picFrameH);
-        if (barPicReady) {
-            ctx.imageSmoothingEnabled = true; // valokuva → pehmennetty skaalaus
-            ctx.drawImage(barPic, picX + PIC_PAD, picY + PIC_PAD, picImgW, picImgH);
-            ctx.imageSmoothingEnabled = false;
-        } else {
-            const pg = ctx.createLinearGradient(0, picY, 0, picY + picImgH);
-            pg.addColorStop(0, '#242424');
-            pg.addColorStop(1, '#0e0e0e');
-            ctx.fillStyle = pg;
-            ctx.fillRect(picX + PIC_PAD, picY + PIC_PAD, picImgW, picImgH);
-        }
-
-        /* Äidin lappu (keltaiset raamit) – taulun alla */
-        ctx.textAlign = 'center';
-        ctx.fillStyle = 'rgba(15, 8, 4, 0.9)';
-        ctx.strokeStyle = '#ffcc44';
-        ctx.lineWidth = 2;
-        ctx.fillRect(noteX, noteY, hintBoxW, hintBoxH);
-        ctx.strokeRect(noteX, noteY, hintBoxW, hintBoxH);
-        ctx.font = 'bold ' + hintFs + 'px "Courier New", monospace';
-        for (let hi = 0; hi < hintLines.length; hi++) {
-            ctx.fillStyle = (hi === 2) ? '#ff6644' : '#ffdd88';
-            ctx.fillText(hintLines[hi], noteX + hintBoxW / 2,
-                         noteY + hintLineH * (hi + 1) + 1);
-        }
-
-        // Info-tekstit – ostomäärä = tämän vierailun ostot (▼ pienentää sitä)
-        ctx.fillStyle = '#eeddcc';
-        ctx.font = 'normal ' + infoFs + 'px "Courier New", monospace';
-        ctx.textAlign = 'center';
-        if (chaosLevel === 'full') {
-            if (barBuyQty > 0) {
-                ctx.fillText('You drank ' + barBuyQty + 'x🍺 beers!', 400, infoBaseline);
-            } else if (drunkLevel >= DRUNK_MAX) {
-                ctx.fillText('🍺 Beer quota full. Go home, drunkard!', 400, infoBaseline);
-            } else if (coinCount <= 0) {
-                ctx.fillText('🍺 No coins. Get some cash!', 400, infoBaseline);
-            }
-        } else if (barBuyQty > 0) {
-            ctx.fillText('You bought ' + barBuyQty + 'x🍔 burgers!', 400, infoBaseline);
-        } else if (hamburgerCount >= 10) {
-            ctx.fillText('🍔 Burger quota full. Buy something else!', 400, infoBaseline);
-        } else if (coinCount <= 0) {
-            ctx.fillText('🍔 No coins. Get some cash!', 400, infoBaseline);
-        }
-
-        // Ohjevihje: ▲ osta / ▼ peru / (o) poistu
-        var pulse = Math.sin(Date.now() / 800) * 0.3 + 0.7;
-        ctx.fillStyle = 'rgba(255,255,255,' + pulse + ')';
-        var exitRow = (chaosLevel === 'full')
-            ? '▲ = buy 1 🍺   ▼ = undo 1   EXIT: (o) / Space'
-            : '▲ = buy 1 🍔   ▼ = undo 1   EXIT: (o) / Space';
-        ctx.font = Math.max(8, fitFs([exitRow], 'normal', 10, 8, 'Arial, sans-serif',
-                                     winW - 24)) + 'px Arial, sans-serif';
-        ctx.fillText(exitRow, 400, 370);
-        ctx.textAlign = 'start';
-    }
+    /* ── Huoneiden piirto omasta tiedostosta (Vaihe 5 osa 6) ──
+       street/rooms.js piirtää makuuhuoneen, jukeboxin ja BARin. Huoneiden
+       TILA ja syöttölogiikka (update- ja close-funktiot) sekä oven avaus jäävät tänne.
+       Tähän sidotaan ne street.js:n sulkeuman arvot, joita piirto lukee –
+       live-gettereinä, jotta esim. viewW/camX seuraavat resizeä ja
+       coinCount/hamburgerCount ostoksia. Vakiot annetaan arvoina. */
+    StreetRooms.bind({
+        get ctx() { return ctx; },
+        get canvas() { return canvas; },
+        get viewW() { return viewW; },
+        get camX() { return camX; },
+        get isDay() { return isDay; },
+        get coinCount() { return coinCount; },
+        get hamburgerCount() { return hamburgerCount; },
+        get drunkLevel() { return drunkLevel; },
+        get barBuyQty() { return barBuyQty; },
+        get jukeQueue() { return jukeQueue; },
+        get jukePick() { return jukePick; },
+        get jukeSel() { return jukeSel; },
+        get jukeCovers() { return jukeCovers; },
+        get sleepPhase() { return sleepPhase; },
+        get sleepSel() { return sleepSel; },
+        chaosFlags: chaosFlags,
+        WORLD_W: WORLD_W, WORLD_H: WORLD_H, VIEWW_MIN: VIEWW_MIN, GROUND_Y: GROUND_Y,
+        JUKEBOX_TRACKS: JUKEBOX_TRACKS,
+        SLEEP_DARK_FRAMES: SLEEP_DARK_FRAMES, SLEEP_ZZZ_FRAMES: SLEEP_ZZZ_FRAMES,
+        SLEEP_FADE_FRAMES: SLEEP_FADE_FRAMES,
+        DRUNK_MAX: DRUNK_MAX, BAR_BEER_H: BAR_BEER_H
+    });
 
 /* ── Lampputolppa ─────────────────────────────── */
     /* Geometria yhdestä paikasta: tolpan juuri (syvyysviiva LAMP_BASE_Y),
@@ -9157,7 +7127,7 @@ const Street = (() => {
        pylvästä ja pelaajaa → valo ei koskaan peitä pelaajaa, vain pylväs peittää
        (ks. render: pylväs piirretään joko ennen tai jälkeen pelaajan, v4.73). */
     function drawLampGlow(lamp) {
-        if (cardState.lightsOut) return;   // K7-kortti "Valot sammuvat" (v10.05)
+        if (StreetChaosCards.lightsOut) return;   // K7-kortti "Valot sammuvat" (v10.05)
         const geom = lampGeom(lamp);
         const bx = geom.bx, bulbY = geom.bulbY;
         // Päivällä hehku himmenee (LAMP_DAY_DIM) ja moskiitot häipyvät
@@ -9213,6 +7183,10 @@ const Street = (() => {
         const geom = lampGeom(lamp);
         const bx = geom.bx, by = geom.by, poleTop = geom.poleTop, bulbY = geom.bulbY;
         const dayDim = 1 - LAMP_DAY_DIM * dayT;   // hehkulampun piste + moskiitot
+        /* K7 "Valot sammuvat" (v11.39, bugikorjaus): lamppu ei pala – myöskään
+           kupu eikä valopilkku. Vain PIIRTO: `lamp.lit` pysyy ennallaan, koska
+           ovilogiikka (lampFreeOpen, omistajalamppu) lukee sitä. */
+        const litNow = lamp.lit && !StreetChaosCards.lightsOut;
 
         // Tolpan varsi (puinen/rautainen) – keskeltä vaalea, reunoilta tumma = pyöreä sylinteriefekti
         const poleGrad = ctx.createLinearGradient(bx - 3, 0, bx + 3, 0);
@@ -9264,9 +7238,9 @@ const Street = (() => {
         let cupFill;
         if (lamp.overheat) {
             cupFill = 'rgba(255,' + Math.round(60 + (Math.sin(Date.now() * 0.025) * 0.3 + 0.7) * 40) + ',10,0.8)';
-        } else if (lamp.lit && lampRedSnap(lamp)) {
+        } else if (litNow && lampRedSnap(lamp)) {
             cupFill = '#ff5040';   // kaaos v10.18: hetkellinen punainen välähdys
-        } else if (lamp.lit) {
+        } else if (litNow) {
             cupFill = '#ffffaa';
         } else {
             // Staattinen (ei pala): pyöreä dome – keskiö vaalea, laidat tummemmat
@@ -9299,7 +7273,7 @@ const Street = (() => {
         }
 
         // Pieni valopilkku kuvun sisällä (himmenee päivällä)
-        if (lamp.lit && dayDim > 0.01) {
+        if (litNow && dayDim > 0.01) {
             ctx.save();
             ctx.globalAlpha = dayDim;
             ctx.fillStyle = '#fff';
@@ -9320,7 +7294,7 @@ const Street = (() => {
                    per kierros (lamp._mosq; nollataan init()issä) → selkeä
                    vaihtelu, ei per-frame-vilkkumista. NORMAL/MILD/GOOD: ei
                    haaraa → entinen kiinteä koko/väri (bitti-identtinen). */
-                const mosqChaos = (chaosLevel === 'bad' || chaosLevel === 'full');
+                const mosqChaos = chaosFlags.mosquitoes;   // BAD/FULL: isommat ja tummemmat hyttyset (K1/K3)
                 if (mosqChaos && !lamp._mosq) {
                     lamp._mosq = [];
                     for (let k = 0; k < 4; k++) {
@@ -9529,8 +7503,10 @@ const Street = (() => {
 
         // Merkkivalo oven yllä (kaikille yhteinen)
         if (ownerLamp) {
-            ctx.fillStyle = ownerLamp.lit ? '#ffd700' : '#222';
-            if (ownerLamp.lit) { ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 6; }
+            // v11.39: K7 "Valot sammuvat" pimentää myös ovivalon (vain piirto)
+            const doorLit = ownerLamp.lit && !StreetChaosCards.lightsOut;
+            ctx.fillStyle = doorLit ? '#ffd700' : '#222';
+            if (doorLit) { ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 6; }
             ctx.fillRect(dx + DOOR_W/2 - 5, dy - 7, 10, 3);
             ctx.shadowBlur = 0;
         }
@@ -9770,254 +7746,6 @@ const Street = (() => {
         ctx.restore();
     }
 
-    /* ── Ajoneuvo ──────────────────────────────────── */
-    function drawVehicle(v) {
-        if (!v) return;
-        const vx = Math.round(v.x), vy = Math.round(v.y), dir = v.direction;
-        // Ajovalot himmenevät päivällä (v4.35) – sama liuku kuin katuvaloissa.
-        // Takavalot ja ambulanssin kattovilkku eivät muutu (eivät ole ajovaloja).
-        const headlightDim = 1 - VEHICLE_HEADLIGHT_DIM * dayT;
-        const headlightOn  = v.hasHeadlight !== false && headlightDim > 0.01;
-        ctx.save();
-        if (dir === -1) { ctx.translate(vx + v.w / 2, 0); ctx.scale(-1, 1); ctx.translate(-(vx + v.w / 2), 0); }
-
-        if (v.type === 'car') {
-            const cx = vx, cy = vy;
-            ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(cx + 3, cy + v.h - 4, v.w - 6, 6);
-            ctx.fillStyle = '#9a9a9a'; ctx.fillRect(cx + 2, cy + 2, v.w - 4, v.h - 10);
-            ctx.fillStyle = '#7a7a7a'; ctx.fillRect(cx + 10, cy, v.w - 20, v.h - 14);
-            ctx.fillStyle = '#6ab8c8'; ctx.fillRect(cx + v.w - 20, cy + 3, 8, v.h - 18);
-            ctx.fillStyle = '#558899'; ctx.fillRect(cx + 8, cy + 3, 7, v.h - 18);
-            ctx.fillStyle = '#558899'; ctx.fillRect(cx + 26, cy + 3, 12, v.h - 18);
-            ctx.fillStyle = '#cccccc'; ctx.fillRect(cx + v.w - 6, cy + v.h - 18, 6, 8);
-            ctx.fillStyle = '#aaaaaa'; ctx.fillRect(cx, cy + v.h - 18, 5, 8);
-            if (headlightDim > 0.01) {               // ajovalo + hehku (pois päivällä, v4.35)
-                ctx.globalAlpha = headlightDim;
-                ctx.fillStyle = '#ffee88'; ctx.fillRect(cx + v.w - 4, cy + 6, 5, 4);
-                ctx.fillStyle = 'rgba(255,240,150,0.4)'; ctx.fillRect(cx + v.w + 1, cy + 5, 3, 6);
-                ctx.globalAlpha = 1;
-            }
-            ctx.fillStyle = '#cc3333'; ctx.fillRect(cx - 1, cy + 6, 4, 3);
-            const wr = 5;
-            ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(cx + 14, cy + v.h - 4, wr, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(cx + v.w - 14, cy + v.h - 4, wr, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#555'; ctx.beginPath(); ctx.arc(cx + 14, cy + v.h - 4, 2.5, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(cx + v.w - 14, cy + v.h - 4, 2.5, 0, Math.PI * 2); ctx.fill();
-        } else if (v.type === 'ambulance') {
-            const cx = vx, cy = vy;
-            // Varjo
-            ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(cx + 3, cy + v.h - 4, v.w - 6, 6);
-            // Valkoinen kori
-            ctx.fillStyle = '#e8e8e8'; ctx.fillRect(cx + 2, cy + 4, v.w - 4, v.h - 14);
-            // Katto
-            ctx.fillStyle = '#f4f4f4'; ctx.fillRect(cx + 6, cy + 1, v.w - 12, v.h - 15);
-            // Tumma alareuna
-            ctx.fillStyle = '#555'; ctx.fillRect(cx + 4, cy + v.h - 12, v.w - 8, 2);
-            // Punainen risti kyljessä
-            const rcx = cx + v.w / 2, rcy = cy + 14;
-            ctx.fillStyle = '#cc0000';
-            ctx.fillRect(rcx - 12, rcy - 2, 24, 4);
-            ctx.fillRect(rcx - 2, rcy - 12, 4, 24);
-            // Etuikkuna
-            ctx.fillStyle = '#6ab8c8'; ctx.fillRect(cx + v.w - 18, cy + 5, 10, v.h - 21);
-            // Takaikkuna
-            ctx.fillStyle = '#558899'; ctx.fillRect(cx + 4, cy + 5, 6, v.h - 21);
-            // Keltainen vilkkuvalo katolla + hehku (vilkkuva)
-            const flashOn = Math.sin(Date.now() * 0.012) > -0.3;
-            if (flashOn) {
-                ctx.fillStyle = '#ffcc00'; ctx.fillRect(cx + v.w/2 - 4, cy - 3, 8, 4);
-                ctx.fillStyle = 'rgba(255,240,100,0.45)'; ctx.fillRect(cx + v.w/2 - 2, cy - 5, 4, 3);
-                ctx.fillRect(cx + v.w/2 - 6, cy - 2, 12, 2);
-            }
-            // Renkaat
-            const wr = 5;
-            ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(cx + 14, cy + v.h - 4, wr, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(cx + v.w - 14, cy + v.h - 4, wr, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#555'; ctx.beginPath(); ctx.arc(cx + 14, cy + v.h - 4, 2.5, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(cx + v.w - 14, cy + v.h - 4, 2.5, 0, Math.PI * 2); ctx.fill();
-            // Takavalo
-            ctx.fillStyle = '#cc3333'; ctx.fillRect(cx - 1, cy + v.h - 16, 4, 3);
-        } else if (v.type === 'motorcycle') {
-            // ── Mopo + kuski (kerrokset: runko → kuski → etukate/tanko) ──
-            const cx = vx, cy = vy;
-
-            // 1. Maavarjo
-            ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(cx + 2, cy + v.h - 2, v.w - 4, 4);
-
-            // 2. Renkaat (takana + edessä)
-            const wr = 5;
-            ctx.fillStyle = '#111';
-            ctx.beginPath(); ctx.arc(cx + 7, cy + v.h - 5, wr, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(cx + v.w - 7, cy + v.h - 5, wr, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#555';
-            ctx.beginPath(); ctx.arc(cx + 7, cy + v.h - 5, 2, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(cx + v.w - 7, cy + v.h - 5, 2, 0, Math.PI * 2); ctx.fill();
-
-            // 3. Runko + penkki (taainnaisena)
-            ctx.fillStyle = '#B71C1C';                       // astinlauta
-            ctx.fillRect(cx + 15, cy + 15, 14, 3);
-            ctx.fillStyle = '#D32F2F';                       // moottorin kate (punainen runko)
-            ctx.fillRect(cx + 3, cy + 8, 15, 9);
-            ctx.fillStyle = '#222222';                       // penkki
-            ctx.fillRect(cx + 3, cy + 4, 12, 4);
-
-            // 4. Kuski (istuu penkillä, pelaajan värit)
-            ctx.fillStyle = '#3366cc';                       // vartalo (sininen paita)
-            ctx.fillRect(cx + 4, cy - 8, 9, 12);
-            ctx.fillStyle = '#16265c';                       // jalat (housut)
-            ctx.fillRect(cx + 8, cy + 4, 7, 4);              //   reisi eteen
-            ctx.fillRect(cx + 13, cy + 8, 3, 8);             //   sääri astinlaudalle
-            ctx.fillStyle = '#ffcc99';                       // pää (iho)
-            ctx.fillRect(cx + 4, cy - 16, 8, 9);
-            ctx.fillStyle = '#553300';                       // hiukset (otsatukka)
-            ctx.fillRect(cx + 10, cy - 15, 2, 2);
-            ctx.fillStyle = '#2b2118';                       // silmä (katse eteen)
-            ctx.fillRect(cx + 10, cy - 12, 2, 2);
-            ctx.fillStyle = '#3366cc';                       // lippis (kupu)
-            ctx.fillRect(cx + 3, cy - 19, 11, 4);
-            ctx.fillStyle = '#224488';                       // lippis (lippa eteen)
-            ctx.fillRect(cx + 11, cy - 17, 6, 3);
-            ctx.fillStyle = '#3366cc';                       // käsi ojennettuna tankoon
-            ctx.beginPath();
-            ctx.moveTo(cx + 10, cy - 5);                     //   olkapää
-            ctx.lineTo(cx + 21, cy - 2);                     //   ranne
-            ctx.lineTo(cx + 20, cy + 1);                     //   ranteen alaosa
-            ctx.lineTo(cx + 9, cy - 1);                      //   kainalo
-            ctx.fill();
-            ctx.fillStyle = '#ffcc99';                       // sormet tangolla
-            ctx.fillRect(cx + 20, cy - 3, 3, 4);
-
-            // 5. Etukate + ohjaustanko (kuskin päälle → syvyys)
-            ctx.fillStyle = '#D32F2F';
-            ctx.beginPath();
-            ctx.moveTo(cx + 29, cy + 17);
-            ctx.lineTo(cx + 25, cy + 3);
-            ctx.lineTo(cx + 33, cy + 3);
-            ctx.lineTo(cx + 37, cy + 17);
-            ctx.fill();
-            ctx.fillStyle = '#555555';                       // tanko + mittaristo
-            ctx.fillRect(cx + 20, cy, 12, 3);
-
-            // 6. Valot
-            ctx.fillStyle = '#cc3333';                       // takavalo (jää palamaan)
-            ctx.fillRect(cx + 1, cy + 8, 2, 4);
-            if (headlightDim > 0.01) {                       // etuvalo pois päivällä (v4.35)
-                ctx.globalAlpha = headlightDim;
-                ctx.fillStyle = '#ffee88';                   // etuvalo
-                ctx.fillRect(cx + 34, cy + 3, 3, 4);
-                ctx.fillStyle = 'rgba(255,240,150,0.4)';     // etuvalon hehku
-                ctx.fillRect(cx + 37, cy + 3, 2, 4);
-                ctx.globalAlpha = 1;
-            }
-        } else if (v.type === 'tank') {
-            const cx = vx, cy = vy;
-            
-            // 1. Varjo (pidetään vähän leveämpänä)
-            ctx.fillStyle = 'rgba(0,0,0,0.3)'; 
-            ctx.fillRect(cx - 2, cy + v.h - 4, v.w + 4, 8);
-
-            // 2. Tykkiputki – osoittaa AINA kulkusuuntaan (eteenpäin +x; dir = -1
-            //    peilataan drawVehiclesin alussa, joten sama piirto kääntyy itse).
-            //    3× pidempi kuin ennen (25 → 75 px). Gradientti kuten lampputolvessa
-            //    (tumma–vaalea–tumma) mutta mustana.
-            const barrelLen = 75;                 // 3 × vanha 25 px
-            const barrelH   = 5;                  // putken paksuus
-            const barrelY   = cy + 8;             // putken yläreuna
-            const barrelX   = cx + v.w - 20;      // takaosa jää tornin sisään piiloon
-            const muzzleW   = 9, muzzleH = 9;     // suujarru (paksumpi pää)
-            const muzzleY   = barrelY - (muzzleH - barrelH) / 2;
-            const barrelGrad = ctx.createLinearGradient(0, muzzleY, 0, muzzleY + muzzleH);
-            barrelGrad.addColorStop(0,   '#0e0e0e');  // yläreuna (tumma)
-            barrelGrad.addColorStop(0.5, '#555555');  // keskusta (vaalea)
-            barrelGrad.addColorStop(1,   '#0a0a0a');  // alareuna (tummin)
-            ctx.fillStyle = barrelGrad;
-            ctx.fillRect(barrelX, barrelY, barrelLen, barrelH);                     // putki
-            ctx.fillRect(barrelX + barrelLen - muzzleW, muzzleY, muzzleW, muzzleH); // suujarru
-
-            // 3. Maastovärinen panssarirunko
-            ctx.fillStyle = '#5a6b3c'; 
-            ctx.fillRect(cx, cy + 8, v.w, v.h - 18);
-            // Rungon viisteet/yksityiskohdat
-            ctx.fillStyle = '#4a5730';
-            ctx.fillRect(cx, cy + 8, v.w, 3); // Tummempi yläreuna rungossa
-
-            // 4. Torni (Keskitetympi, vähän korkeampi)
-            ctx.fillStyle = '#4d5c32'; 
-            ctx.fillRect(cx + 10, cy + 2, v.w - 20, v.h - 22);
-            ctx.fillStyle = '#3f4d28'; 
-            ctx.fillRect(cx + 14, cy + 2, v.w - 28, v.h - 22);
-            
-            // 5. Tornin luukku (Se mitä piirsit punaisella ylös)
-            ctx.fillStyle = '#2a2a2a';
-            ctx.fillRect(cx + v.w / 2 - 8, cy, 16, 3); // Luukun pohja
-            ctx.fillStyle = '#111';
-            ctx.fillRect(cx + v.w / 2 - 4, cy - 1, 8, 2); // Luukun kansi
-
-            // 6. Telaketjujen tausta (Koko alaosan peittävä muoto)
-            ctx.fillStyle = '#1a1a1a';
-            ctx.beginPath();
-            ctx.moveTo(cx + 2, cy + v.h - 10);      // Ylä-vasen
-            ctx.lineTo(cx + v.w - 2, cy + v.h - 10);// Ylä-oikea
-            ctx.lineTo(cx + v.w, cy + v.h - 2);     // Ala-oikea (viistottu)
-            ctx.lineTo(cx, cy + v.h - 2);           // Ala-vasen (viistottu)
-            ctx.fill();
-
-            // Telaketjun ylänauhan korostus
-            ctx.fillStyle = '#333';
-            ctx.fillRect(cx + 2, cy + v.h - 10, v.w - 4, 2);
-
-            // 7. Telapyörät (Renkaat telaketjun sisällä)
-            const numWheels = 5;
-            const wheelSpacing = (v.w - 10) / (numWheels - 1); 
-            
-            for (let i = 0; i < numWheels; i++) {
-                const wx = cx + 5 + (i * wheelSpacing);
-                const wy = cy + v.h - 5; // Renkaiden Y-korkeus
-                
-                // Ulkorengas (harmaa)
-                ctx.fillStyle = '#555555';
-                ctx.beginPath(); 
-                ctx.arc(wx, wy, 3.5, 0, Math.PI * 2); 
-                ctx.fill();
-                
-                // Renkaan napa/keskiö (tumma)
-                ctx.fillStyle = '#111111';
-                ctx.beginPath(); 
-                ctx.arc(wx, wy, 1.5, 0, Math.PI * 2); 
-                ctx.fill();
-            }
-
-            // 8. Tummia yksityiskohtia (pieniä pakoputkia/tuuletusaukkoja takaosaan, vasemmalle)
-            ctx.fillStyle = '#222';
-            ctx.fillRect(cx + 4, cy + 10, 6, 2);
-            ctx.fillRect(cx + 4, cy + 14, 6, 2);
-        }
-
-        // ── Ajovalot eteenpäin (kaikille ajoneuvotyypeille) ──
-        //    Himmenevät päivällä (v4.35); kun kartio on kokonaan himmennyt,
-        //    sitä ei piirretä lainkaan.
-        if (headlightOn) {
-            ctx.globalAlpha = headlightDim;
-            const beamY = v.type === 'motorcycle' ? vy + v.h * 0.3 : vy + v.h - 12;
-            const beamLen = v.type === 'ambulance' ? 140 : v.type === 'car' ? 105 : 70;
-            const beamSpread = 10;
-            const beamGrad = ctx.createLinearGradient(vx + v.w, beamY, vx + v.w + beamLen, beamY);
-            beamGrad.addColorStop(0, 'rgba(255,250,220,0.32)');
-            beamGrad.addColorStop(0.4, 'rgba(255,250,220,0.12)');
-            beamGrad.addColorStop(1, 'rgba(255,250,220,0)');
-            ctx.fillStyle = beamGrad;
-            ctx.beginPath();
-            ctx.moveTo(vx + v.w, beamY - 3);
-            ctx.lineTo(vx + v.w + beamLen, beamY - beamSpread);
-            ctx.lineTo(vx + v.w + beamLen, beamY + beamSpread);
-            ctx.lineTo(vx + v.w, beamY + 3);
-            ctx.closePath();
-            ctx.fill();
-            ctx.globalAlpha = 1;
-        }
-
-        ctx.restore();
-    }
 
     /* ── Oviukko (Avenger) – pelaajan kaksonen, astuu ovesta ──
        Sama blokkityyli kuin drawPlayer, mutta tunnisteväri (tummanpunainen paita)
@@ -10183,7 +7911,7 @@ const Street = (() => {
        Ylöskiipeäminen: nousee hitaasti (~3,5 s) reiän keskeltä, askel reunan
        yli viimeistelee – pieni sivuttaisheilunta tekee köpimisen tunnun. */
     function drawPlayerManhole() {
-        const a = mhAction;
+        const a = manhole.action;
         if (a.phase === 'fall' && a.t <= 0) return;   // pohjalla → ei piirretä
         const feetX = Math.round(player.x) + player.w / 2;
         const feetY = Math.round(player.y) + player.h - 1;
@@ -10331,8 +8059,10 @@ const Street = (() => {
         // Dynaaminen valo: lähin palava lamppu antaa ohuen lämpimän reunavalon
         // (lasketaan lokaalikoordinaateissa → kääntyy peilauksen mukana)
         let rimA = 0, rimSide = 0;
+        // v11.39: blackoutissa yksikään lamppu ei valaise (K7 "Valot sammuvat")
+        const rimLightsOut = StreetChaosCards.lightsOut;
         for (const lamp of lamps) {
-            if (!lamp.lit) continue;
+            if (!lamp.lit || rimLightsOut) continue;
             const d = Math.abs(lamp.x - (px + pw / 2));
             if (d < 70) {
                 const a = (1 - d / 70) * 0.35;
