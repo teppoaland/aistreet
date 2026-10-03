@@ -2,8 +2,10 @@
 
 > **Kevyt:** Vain tämä tiedosto luetaan session alussa.
 > **🚧 KESKEN: refaktorointi v11.38–v11.43 + 4 bugikorjausta (Vaiheet 0–5 osat 1–7 tehty) → ks. "JATKOPISTE" alempana.**
-> Sääntö 03: **versio `v11.43`** (`index.html`). **Työ on COMMITTOITU PAIKALLISESTI** (4 committia,
-> `main` = `origin/main` + 4; **pushia EI ole tehty** → julkinen tuotanto on edelleen **v11.37**).
+> Sääntö 03: **versio `v11.43`** (`index.html`). **Työ on COMMITTOITU PAIKALLISESTI** (5 committia,
+> `main` = `origin/main` + 5; **pushia EI ole tehty** → julkinen tuotanto on edelleen **v11.37**).
+> **🔴 UUSI SESSIO – KYSY ENSIN:** *"Testasitko v11.43:n (`docs/testilista.md`)? Löytyikö ongelmia?"*
+> Ongelmat → **toista vika mekaanisesti (A/B + penkki) ennen korjausta**; ei ongelmia → jatka alla olevasta osa 8:sta.
 > **Kompaktoitu 28.9.2026 (v11.00):** tiivistettiin vain v10.x/uusi aines (kaaos K0–K7 → `docs/chaos.md`) ja
 > korjattiin rakenteelliset viat. **Esiforkin v4.x-historia säilyy alla sellaisenaan.**
 > **Rajat (päivitetty 3.10.2026 – `progress.md` 45 → 65 kt ja pankki 135 → 155 kt, pysyvä):** tämä tiedosto **≤ 65 kt** · `progress.md` ≤ 65 kt ·
@@ -277,6 +279,10 @@ odotuksia, eivät regressioita** (autohover 31 · avenger 1 · bad-warning 1 · 
 jukebox 27 · manhole-bonus 3). Epävakaa (A/B-todistettu penkkiviaksi): `street-meteor-coin` (0–4)
 → ajoraportti on siksi joskus **18/7**. Uudet penkit (kortit, ikkunavalot, canvas-invariantit) ovat puhtaita.
 
+**0) ENSIN – kysy käyttäjältä v11.43-testin tulos** (`docs/testilista.md` § UUSI SESSIO).
+Ongelma → **toista havainto + A/B (`git show HEAD`) + kirjoita penkki, joka kaatuu ennen korjausta**,
+vasta sitten korjaus + versionosto + paikallinen commit. Ei ongelmia → jatka A:sta.
+
 **Miten jatketaan – valitse suunta:**
 - **A) Vaihe 5 osa 8 (SEURAAVA): huoneiden LOGIIKKA** – **mitattu 317 rv / 9 funktiota:**
   `updateSleepRoom` (76) · `updateBarRoom` (77) · `updateJukeboxRoom` (49) · `jukeboxExitAndPlay` (73) ·
@@ -313,6 +319,9 @@ jukebox 27 · manhole-bonus 3). Epävakaa (A/B-todistettu penkkiviaksi): `street
   käytössä eikä sitä tarvita**, ellei ole pakko (iframe-pelit ovat vakaimpia palvelimen kautta).
 - **Testikytkin `?card=<id>`** (Vaihe 5 osa 5): pitää yhden K7-kortin päällä loputtomiin →
   testilista ja mitä kustakin pitää näkyä: `docs/chaos.md` § 6.7.
+- **Testilista (3.10.2026):** manuaalitestit ovat **`docs/testilista.md`** (kytkimet, riskialueet,
+  ei-bugit, penkkikomennot, raportointipohja § 6 ja **koodikartta § 7**). **Kysy käyttäjältä tulos heti
+  session alussa** – älä oleta että v11.43 on testattu.
 - **Git (käyttäjän linjaus 3.10.2026):** **commit = paikallinen tallennus, AINA sallittu** – committaa
   jokaisen validoidun vaiheen jälkeen (`git add -A && git commit -m "vNN.NN: …"`) → jokaisesta versiosta
   jää **revert-piste**, eikä committaus julkaise mitään. **Push = julkaisu** (GitHub **+ GitHub Pages**):
