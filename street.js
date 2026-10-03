@@ -918,6 +918,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     function resetMoon() {
         applyMoonClock(0);
         dayNight.moonSaveTimer = 0;
+        rollMoonShadowMults();   // uusi yö → varjot arvotaan uudelleen (BAD/FULL)
         saveMoonClock();
     }
 
@@ -1524,6 +1525,24 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         mosquitoes: false,    // BAD/FULL: lamppujen hyttyset isompia ja tummempia (K1/K3)
         anyChaos: false       // ei-NORMAL: kaaosakselit ja K7-kortit aktiivisia
     };
+    /* ── Kuunvarjojen kaaoskerroin (BAD/FULL) ──
+       Jokainen talo saa oman kertoimensa 1,00…chaosCfg.moonShadowMax, joka
+       arvotaan KERRAN PER YÖ (uusi peli / Nuku / päivä→yö) ja pysyy yön ajan
+       vakiona → varjot eivät väpätä framesta toiseen. Kerroin skaalaa sekä
+       pituuden että kallistuksen. Oma RNG-instanssi: arvonta ei siirrä
+       FULLin/luottien arvontajonoa eikä riko ?seed=-toistuvuutta.
+       NORMAL/MILD/GOOD: max = 1 → kaikki kertoimet 1 → piirto bitti-identtinen. */
+    let moonShadowMult = [];
+    let moonShadowNight = 0;
+    let moonShadowRng = (CHAOS_SEED !== null) ? makeRng((CHAOS_SEED ^ 0x5f3a1b) >>> 0) : Math.random;
+    function rollMoonShadowMults() {
+        moonShadowNight++;
+        if (CHAOS_SEED !== null) {
+            moonShadowRng = makeRng(((CHAOS_SEED ^ 0x5f3a1b) + moonShadowNight * 2654435761) >>> 0);
+        }
+        const max = Number(chaosCfg && chaosCfg.moonShadowMax) > 1 ? Number(chaosCfg.moonShadowMax) : 1;
+        moonShadowMult = buildings.map(() => (max > 1 ? 1 + moonShadowRng() * (max - 1) : 1));
+    }
     let windSpeedMult = 1, windDirFlip = false;
     let trafficSpeedMult = 1, trafficSpawnMult = 1;
     let skyDir = 1;
@@ -2571,6 +2590,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         initBackdrop();
         initForeground();
         rollManholeState();   // avoin kaivo: 1/6 (tai ?hole=0/1/2)
+        rollMoonShadowMults();   // kuunvarjot: per talo ×1…max (BAD/FULL 3)
         setupInput();
         resize();
         lastTime = performance.now();
@@ -6420,11 +6440,15 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     function drawMoonBuildingShadows() {
         if (dayNight.t >= 1 || MOON_BLD_SHADOW_ALPHA <= 0) return;
         const fade = 1 - dayNight.t;                            // kuun näkyvyys
-        for (const b of buildings) {
+        for (let idx = 0; idx < buildings.length; idx++) {
+            const b = buildings[idx];
             if (buildingGone(buildings.indexOf(b))) continue;   // tuhoutunut talo ei heitä varjoa
             const x0 = b.x, x1 = b.x + b.w;
-            const L = b.h * MOON_BLD_SHADOW_LEN;          // varjon pituus
-            const k = MOON_BLD_SHADOW_SKEW * (b.h / 100);
+            /* Kaaoskerroin (BAD/FULL): talon oma arpa 1,00…moonShadowMax, arvottu
+               kerran per yö → skaalaa sekä pituuden että kallistuksen. */
+            const ms = moonShadowMult[idx] || 1;
+            const L = b.h * MOON_BLD_SHADOW_LEN * ms;     // varjon pituus
+            const k = MOON_BLD_SHADOW_SKEW * (b.h / 100) * ms;
             const s0 = (x0 - dayNight.moonX) * k;                  // kauemman reunan siirto
             const s1 = (x1 - dayNight.moonX) * k;
             const grad = ctx.createLinearGradient(0, GROUND_Y, 0, GROUND_Y + L);

@@ -45,6 +45,7 @@ const CHAOS_DEFAULTS2 = Object.assign({}, CHAOS_DEFAULTS, {
     daySkyTop: '#3f7fc0', daySkyMid: '#78b4e0', daySkyHorizon: '#ffd9a0',
     silhouetteChance: 0.5, winDayFill: '#151716',
     lampRadius: 30, batCountMax: 5, buildingPalette: null,
+    moonShadowMax: 1,                       // kuunvarjojen kaaoskerroin: per talo ×1…max (BAD/FULL = 3)
     // K2 (kellon rytmit) + K6 (SFX)
     dayFadeFrames: 1200, nightFadeFrames: 1200, cycleChangeDelayFrames: 900,
     nightLampFirst: 30, nightLampInterval: 18, spawnLampDelay: 240,
@@ -204,7 +205,9 @@ function generateFullChaosSeed() {
         lampRedFlicker: rnd(0, 0.03),
         barBurntLetter: rndInt(-1, 2),
         cabFlicker: rnd(0, 1),
-        sunSizeMult: rnd(0.6, 2.0)
+        sunSizeMult: rnd(0.6, 2.0),
+        // Kuunvarjot: BAD/FULL → jokainen talo ×1…3 (arpa per talo, kerran per yö)
+        moonShadowMax: 3
     };
 }
 
@@ -334,7 +337,8 @@ function chaosProfile(level) {
                 lampRedFlicker: rnd(0.006, 0.02),
                 barBurntLetter: rndInt(0, 2),
                 cabFlicker: rnd(0.5, 0.8),
-                sunSizeMult: rnd(1.6, 2.0)
+                sunSizeMult: rnd(1.6, 2.0),
+                moonShadowMax: 3
             };
         case 'full':
             return generateFullChaosSeed();
@@ -414,6 +418,7 @@ function clampChaosCfg(cfg) {
     c.barBurntLetter   = clamp(Math.round(c.barBurntLetter), -1, 2);
     c.cabFlicker       = clamp(c.cabFlicker, 0, 1);
     c.sunSizeMult      = clamp(c.sunSizeMult, 0.6, 2.0);
+    c.moonShadowMax    = clamp(c.moonShadowMax, 1, 3);
     return c;
 }
 

@@ -3,10 +3,12 @@
 > **Kevyt:** Vain tämä tiedosto luetaan session alussa.
 > **✅ REFAKTOROINTI VALMIS (Vaiheet 0–6, v11.38–v11.45) JA JULKAISTU 3.10.2026.**
 > Tuotanto = `origin/main` = **v11.48** → `https://teppoaland.github.io/aistreet/` (Pages tarjoilee
-> v11.48:n; käyttäjä testasi sen ja totesi toimivaksi). Portti **26 penkkiä / 26 puhdasta / 0 löydöstä**.
+> v11.48:n; käyttäjä testasi sen ja totesi toimivaksi). Portti **27 penkkiä / 27 puhdasta / 0 löydöstä**.
 > **v11.46–v11.48 (3.10.2026):** makuuhuoneen sininen **HOSTEL-neonkyltti** (`drawHostelSign`) +
 > huoneen otsikko **HOSTEL - BEDROOM** + **rauta-aita pois BAD/FULLista** (`chaosFlags.ruin`) –
 > ks. `progress.md`. NORMAL/MILD/GOOD bitti-identtiset.
+> **v11.49 (3.10.2026, työpuussa – ei vielä julkaistu):** BAD/FULLin **kuunvarjot** saavat
+> per-talo-kertoimen **×1,00–3,00** (uusi K1-akseli `moonShadowMax`, arpa kerran per yö) – ks. `progress.md`.
 > Sääntö 03: Vaihe 6 (kommenttisiivous) **ei nostanut versiota** – `verify-comments-only.cjs` todisti,
 > että koodi on kommentit poistettuna identtinen (kommentit eivät ole ajettavaa koodia).
 > **🔴 UUSI SESSIO – KYSY ENSIN:** *"Mitä tehdään seuraavaksi?"* – refaktorointi on valmis ja julkaistu,
@@ -34,7 +36,7 @@
 
 ## 📍 Nyt (AI CHAOS STREET – fork 27.9.2026)
 
-- **Projekti:** **AI CHAOS STREET** – itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages `teppoaland.github.io/aistreet/` ONLINE 27.9.2026), forkattu Pimeä Katu v5.02:sta; alkuperäinen `D:\AI\Main` jäädytetty. **Versio `v11.48`** – `index.html` `#version-tag`: **v11.48 = makuuhuoneen sininen HOSTEL-neonkyltti (`drawHostelSign`, kapea laatta) + huoneen otsikko HOSTEL - BEDROOM + rauta-aita pois BAD/FULLista** (`chaosFlags.ruin`; ks. `progress.md`) · **v11.45 = Vaihe 4 loppuun (päivä/yö → `dayNight`-olio) + Vaihe 6 (kommenttien versiosiivous, 565 riviä – ei ajettavaa koodimuutosta, siksi sama versionumero)** · **v11.44 = Vaihe 5 osa 8: huoneiden LOGIIKKA `street/rooms.js`:ään** (345 rv, get+set-host; uusi penkki `street-rooms-logic-test` 41/0) · **v11.43 = kaksi FULLin canvas-bugia:** `#NaNNaN`-väri (hsl-paletti + hex-apuri) ja `translate(NaN)` (puuttuva `WORLD_W`-sidonta) · **v11.42 = Vaihe 5 osa 7: liikennologiikka `street/traffic.js`:ään** · **v11.41 = BAD/FULL: ikkunavalot syttyvät taas**
+- **Projekti:** **AI CHAOS STREET** – itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages `teppoaland.github.io/aistreet/` ONLINE 27.9.2026), forkattu Pimeä Katu v5.02:sta; alkuperäinen `D:\AI\Main` jäädytetty. **Versio `v11.49`** – `index.html` `#version-tag`: **v11.49 = kuunvarjojen kaaoskerroin (BAD/FULL: per talo ×1,00–3,00, kerran per yö; K1-akseli `moonShadowMax`)** · **v11.48 = makuuhuoneen sininen HOSTEL-neonkyltti (`drawHostelSign`, kapea laatta) + huoneen otsikko HOSTEL - BEDROOM + rauta-aita pois BAD/FULLista** (`chaosFlags.ruin`; ks. `progress.md`) · **v11.45 = Vaihe 4 loppuun (päivä/yö → `dayNight`-olio) + Vaihe 6 (kommenttien versiosiivous, 565 riviä – ei ajettavaa koodimuutosta, siksi sama versionumero)** · **v11.44 = Vaihe 5 osa 8: huoneiden LOGIIKKA `street/rooms.js`:ään** (345 rv, get+set-host; uusi penkki `street-rooms-logic-test` 41/0) · **v11.43 = kaksi FULLin canvas-bugia:** `#NaNNaN`-väri (hsl-paletti + hex-apuri) ja `translate(NaN)` (puuttuva `WORLD_W`-sidonta) · **v11.42 = Vaihe 5 osa 7: liikennologiikka `street/traffic.js`:ään** · **v11.41 = BAD/FULL: ikkunavalot syttyvät taas**
 (`seedLitWindows()`; ennen koko runi ilman ikkunavaloja) · **v11.40 = Vaihe 5 osa 6: huoneiden piirto `street/rooms.js`:ään** · **v11.39 = K7 "Valot sammuvat" -kortin bugikorjaus** (lamppujen kuvut, kuvun valopilkku, ovivalo ja pelaajan reunavalo sammuvat nyt myös, ks. `progress.md`; `?v=`-leimat samassa numerossa – pelkkä arvon/parametrin säätö ei nosta versionumeroa, sääntö 03; **Versiohistoria v11.06–v11.37: ks. `progress.md`** (mm. jukebox-intro, liikenne huoneissa, kolarin putoamistaso, sädease, tablet-ohjaimet, hover-kierto, meteoriitti + eskalaatio + BAD-avaus, rauniot, savukorjaus).
 - 🔓 **Sääntö 04 (talousbalanssi-lukko) EI PÄDE enää forkissa** (27.9.2026): se kirjoitettiin **alkuperäistä Pimeä Katu -peliä** varten → talousarvot (aloituskolikot/🍔, 🍔-tahti, RTP, hinnat, syntymäpaketti) ovat **vapaita myös NORMALissa**. `.clinerules/04` + `docs/economy-balance-memo.md` = historiallisia viitteitä, **eivät sitovia**.
 - 🧱 **Koodirakenne (Vaihe 1 VALMIS, v11.38 – ei toimintamuutoksia):** `street.js` pilkottiin
@@ -443,6 +445,11 @@ osoittimiksi `progress.md`:hen, ja kun tiedosto ylittää 55 kt, siirrä vanhin 
   `KERB_GAP_EXTRA`, laatan korko (`slab.h`).
 - **Pelaajan syvyys:** `PLAYER_DEPTH_AMOUNT 0.10` · `PLAYER_DEPTH_MID 315` ·
   `PLAYER_DEPTH_MAX_Y = WORLD_H − 50` (350).
+- **Kuunvarjot (v11.49):** `moonShadowMax` (NORMAL/MILD/GOOD 1 · BAD/FULL 3) · per talo `moonShadowMult`
+  ×1,00–3,00 — arpa **kerran per yö** (uusi peli / Nuku / päivä→yö; oma RNG `moonShadowRng`, `?seed=` toistuu)
+  · skaalaa `MOON_BLD_SHADOW_LEN 0.36` ja `MOON_BLD_SHADOW_SKEW 0.055`; `MOON_BLD_SHADOW_ALPHA 0.50` ennallaan
+  · penkki `street-moon-shadow-test` (33/0). *Huom: ×3-varjo ylittää 90 px:n maakaistan → katu tummenee
+  tasaisemmin; alpha on tarvittaessa säädettävä nuppi.*
 - **Päivä/yö:** `DAY_FADE_FRAMES 1200` / `NIGHT_FADE_FRAMES 1200` · `DAY_SKY_TOP/MID/HORIZON` ·
   `SUN_X 140 / SUN_Y 62 / SUN_R 26` (päivä, vasen) · `MOON_X 680 / MOON_Y 60 / MOON_R 28` (peruspaikka;
   v4.65 liuku `MOON_X_MIN = SUN_X` → `MOON_SET_X ≈ 884`, `MOON_NIGHT_FRAMES 57600`, `MOON_SET_START 0.60`,

@@ -1,6 +1,6 @@
 # 📊 Projektin edistyminen
 
-> **v11.48 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026.
+> **v11.49 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026.
 > **Kompaktoitu 28.9.2026 (v11.00, 29,5 → 20,7 kt):** tiivistettiin vain v10.x/uusi aines (v10.01–v11.00 -taulukko) + rakenteelliset viat (orvot taulukkorivit, tyhjät rivit, pitkät rivit).
 > **Esiforkin v3.8x–v5.02 -historia säilyy alla sellaisenaan** (koko historia: `D:\AI\Main`, 196 committia; ffb1dd9 · cc7046b · 44db9e7) – tämän repon historia alkaa `b854771`.
 > **3.10.2026: pankkia kevennettiin** – esiforkin taulukkorivit (v3.8x–v5.02) sekä vanhat
@@ -17,7 +17,8 @@
 > **Bugikorjaukset v11.39** (K7 "Valot sammuvat" -kortti), **v11.41** (BAD/FULLin ikkunavalot),
 > **v11.43** (FULLin canvas-arvot), **v11.44** (huoneiden logiikka + penkki 41/0), **v11.45**
 > (päivä/yö-ryhmittely + kommenttisiivous) sekä **v11.46–v11.48** (HOSTEL-neonkyltti + huoneen
-> otsikko + rauta-aita pois BAD/FULLista). Jatko-ohjeet:
+> otsikko + rauta-aita pois BAD/FULLista). **v11.49** = kuunvarjojen kaaoskerroin BAD/FULLissa
+> (per talo ×1…3, kerran per yö) – **työpuussa, ei vielä julkaistu**. Jatko-ohjeet:
 > **`activeContext.md` § "🚧 JATKOPISTE"**.
 
 ## 🏮 Pääportaali – AI CHAOS STREET
@@ -463,4 +464,34 @@ sisään pääsemistä) sekä *"rauta-aitaa ei piirretä BAD ja FULL CHAOS -mode
   8/8 siemenellä BADissa ja `drawIronFence`-kutsut renderoinnissa olivat NORMAL/MILD/GOOD = 1,
   BAD/FULL = 0 (6/6 OK).
 - **Julkaistu 3.10.2026** (push = tuotanto, v11.48).
+
+**v11.49 – kuunvarjojen kaaoskerroin BAD/FULLissa (3.10.2026, uusi ominaisuus – sääntö 03):**
+Käyttäjän pyyntö: *"Pelissä kuu luo yöllä varjoja. BAD ja FULL chaos modessa nämä varjot voisivat
+olla randomina min mitä nyt tai x3. Siis nykytilanteeseen vrt 100-300%."* Valinta: **per talo, kerran
+per yö**.
+
+- **Uusi K1-visuaaliakseli `moonShadowMax`** (`street/chaos-config.js`): `CHAOS_DEFAULTS2` 1 ·
+  `clampChaosCfg` klampaa **1–3** · BAD-profiili 3 · `generateFullChaosSeed` 3 · MILD/GOOD jäävät
+  oletukseen 1. NORMAL/MILD/GOOD → kaikki kertoimet 1 → **piirto bitti-identtinen**
+  (`chaos-normal-check`: 79 avainta / 0 eroa).
+- **`street.js`:** `moonShadowMult` (9 alkiota) + **oma RNG** `moonShadowRng` (`makeRng` siemenestä
+  `CHAOS_SEED ^ 0x5f3a1b`; ilman `?seed=` → `Math.random`) → arvonta **ei siirrä** FULLin/luottien
+  arvontajonoa eikä riko `?seed=`-toistuvuutta. `rollMoonShadowMults()` arpoo jokaiselle talolle
+  `1 + rnd·(max−1)` ja sitä kutsutaan **`init()`istä (uusi peli / hard reset)** ja **`resetMoon()`ista**
+  (uusi peli + Nuku + päivä→yö = uusi yö) → kerroin on **vakio koko yön** (ei väpätä frameittain).
+- **`drawMoonBuildingShadows()`:** talon oma kerroin skaalaa **sekä pituuden että kallistuksen**
+  (`L = b.h · MOON_BLD_SHADOW_LEN · ms`, `k = MOON_BLD_SHADOW_SKEW · (b.h/100) · ms`); alpha
+  (`MOON_BLD_SHADOW_ALPHA 0.50`) ennallaan, tuhoutuneen talon ehto ennallaan, ei uusia dialogeja
+  (sääntö 06), ei talous-/mekaniikkamuutoksia.
+- **Huomio näkyvyydestä:** ×3-varjo (151–227 px) ylittää 90 px:n maakaistan → katu tummenee
+  tasaisemmin kuin ennen (gradientti katkeaa kesken). Pelaaja piirretään varjon päälle, joten
+  pelattavuus ei muutu; alpha on tarvittaessa säädettävä nuppi.
+- **Uusi penkki `tools/tests/street-moon-shadow-test.cjs` (33 OK / 0):** ajaa oikean `init()`in ja
+  `drawMoonBuildingShadows()`in muistiinpanevalla ctx-stubilla → todistaa geometrian kaavasta
+  (NORMAL = baseline, ×2 = pituus ja kallistus kaksinkertaistuvat, BAD/FULL = kunkin talon oma kerroin),
+  kertoimen pysyvyyden yön sisällä, uuden yön uudelleenarvonnan (`resetMoon`) sekä portin klampit.
+- **Dokumentit:** `docs/chaos.md` §6.1 (uusi K1-rivi), `CHANGELOG.md`, `tools/tests/BASELINE.md`,
+  `memory-bank/activeContext.md`. **`#version-tag` + 10 `?v=`-leimaa + `.clinerules/03` → v11.49.**
+- **Tulos:** `chaos-normal-check` 79/0 · `street-render-smoke` 30/30 · `street-canvas-invariants` 0
+  löydöstä · **`run-all` 27 penkkiä / 27 puhdasta / 0 löydöstä**.
 

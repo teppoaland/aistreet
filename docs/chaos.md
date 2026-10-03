@@ -226,6 +226,7 @@ nopean liikenteen ja tiheän rosvon keskelle.
 | V | kuun koko/korkeus | `MOON_Y 60` · `MOON_R 30` | 452 | ×1 | ×1.1 | ×0.9 | 0.6–1.8× |
 | V | kuun pimeneminen | `MOON_SET_START 0.60` · `MOON_SET_DARK_ALPHA 0.15` | 457–458 | 0.15 | 0.08 | 0.3 | 0–0.4 |
 | V | kuun hehku/kraatterit | `MOON_GLOW_A` ym. | 475–509 | – | runsas | himmeä | arvottu |
+| K | **kuunvarjojen koko** (talot) | per talo `moonShadowMult` ×1,00 · `MOON_BLD_SHADOW_LEN 0.36` / `SKEW 0.055` | 6443 | ×1 | ×1 | **×1…3** (arpa/talo) | **×1…3** (arpa/talo) |
 | V | **tähtien määrä** | **80** | 1627 | 60–100 | **120–140** | 15–30 | 0–140 |
 | V | tähtien koko/kirkkaus | `r = rnd*1.5 + 0.5` · blink-faasi | 1631–1632 | ×1 | ×1.2 | ×0.8 | ×0.5–2 |
 | V | tähdenlento/satelliitti tahti | tauot 600–2700 / 400–1300 | 2632–2676 | ×0.8 | ×1.5 | ×0.3 | ×0.1–5 |

@@ -1,4 +1,4 @@
-# 📊 BASELINE – pöytäpenkkien tila 2.10.2026 (v11.37 → v11.45 · **kaikki 26 puhdasta 3.10.2026**)
+# 📊 BASELINE – pöytäpenkkien tila 2.10.2026 (v11.37 → v11.49 · **kaikki 27 puhdasta 3.10.2026**)
 
 > Tämä tiedosto on **vertailukohta refaktoroinnille**. Penkit siirrettiin `%TEMP%`:ista
 > repoon 2.10.2026 (Vaihe 0). Aja aina: `node tools/tests/run-all.cjs`.
@@ -55,6 +55,7 @@
 | street-chaos-cards-test.cjs | ✅ OK | 0 | **uusi Vaihe 5 osa 5**: kaikkien 10 K7-kortin `save → apply → restore` palauttaa tilan täsmälleen + lippukortit ja `consumeAnimalParade()` |
 | street-window-lights-test.cjs | ✅ OK | 0 | **uusi v11.41:** BAD/FULLin `shuffleBuildingOrder()` kylvää ikkunavalot heti (`Math.random` kiinnitetty → deterministinen) |
 | street-canvas-invariants-test.cjs | ✅ OK | 0 | **uusi v11.43:** ajaa FULL/NORMALia 420 frameä ja tarkistaa, ettei canvas-kutsuihin mene NaN/undefined/virheellisiä värejä (nappasi kaksi oikeaa bugia, joita stubi ei kaatanut) |
+| street-moon-shadow-test.cjs | ✅ OK | 0 | **uusi v11.49:** kuunvarjojen kaaoskerroin (BAD/FULL ×1–3 per talo, kerran per yö) – ajaa oikean `init()`in ja `drawMoonBuildingShadows()`in, todistaa geometrian kaavasta; NORMAL bitti-identtinen |
 
 ## Vaiheessa 0 tehdyt korjaukset (mekaaniset, lähdetekstistä todennetut)
 

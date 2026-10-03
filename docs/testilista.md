@@ -1,4 +1,4 @@
-# 🧪 Testilista v11.45 – manuaalitestit (AI CHAOS STREET)
+# 🧪 Testilista v11.49 – manuaalitestit (AI CHAOS STREET)
 
 > ## ⚠️ UUSI SESSIO (Cline): LUE TÄMÄ ENSIN
 >
@@ -122,6 +122,9 @@ file:///D:/AI/AI_street/index.html?chaos=full&day=1  ← pakota päivä (aamuong
 
 - **v11.41 – BAD/FULL ikkunavalot:** `?chaos=bad` / `?chaos=full` yöllä → ikkunoita syttyy
   **BAD 0–2 · FULL 0–12**. **0 on laillinen arpa** (kaaosakseli `windowTargetMax`) – varmin vertailu on NORMAL (5).
+- **v11.49 – BAD/FULLin kuunvarjot:** yöllä (`?day=0`) jokaisen talon varjo on **oma mittansa
+  (×1,00–3,00)** → talot varjostavat eri pituisesti. Vertaa `?chaos=normal` (kaikki ×1,00).
+  **Kerroin vaihtuu vain uudessa yössä** (Nuku / uusi peli) – ei väpätä kesken yön.
 - **v11.39 – blackout:** vertaa `?card=blackout` ↔ ilman parametria (lamppujen **kuput**, ei vain hehku).
 
 ---
@@ -137,6 +140,8 @@ file:///D:/AI/AI_street/index.html?chaos=full&day=1  ← pakota päivä (aamuong
 | Jukebox/hedelmäpeli kiinni päivällä | auki vain klo 20–06 (popup `Open`) |
 | `street-meteor-coin`-penkki heilui (0–4) | **korjattu 3.10.2026:** penkki arpoi talojärjestyksen → kiinteä siemen; ei ollut peliongelma |
 | BAD/FULLissa kadun värit ovat synkät | `randomHuePalette`/`NEAR_BLACK_PALETTE` = tarkoituksellinen akseli |
+| BAD/FULLissa talojen varjot ovat eri mittaisia | kaaosakseli `moonShadowMax` – arpa per talo, **kerran per yö** (v11.49) |
+| BAD/FULLissa katu on yöllä tavallista tummempi | ×3-varjo ylittää 90 px:n maakaistan → gradientti katkeaa (v11.49) |
 
 ---
 

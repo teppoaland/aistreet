@@ -65,6 +65,7 @@ const expected = {
   windowTargetMax: 5, windowDurMin: 10000, windowDurMax: 30000,
   lampHueShift: 0, threatWarnMult: 1,
   silhouetteChance: 0.5, winDayFill: '#151716', lampRadius: 30, batCountMax: 5, buildingPalette: null,
+  moonShadowMax: 1,
   robberChasesY: false, cabinetOnChance: 0.5,
   dayFadeFrames: 1200, nightFadeFrames: 1200, cycleChangeDelayFrames: 900,
   nightLampFirst: 30, nightLampInterval: 18, spawnLampDelay: 240,
