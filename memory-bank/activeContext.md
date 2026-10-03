@@ -263,7 +263,8 @@ mopo, puut, kolikko, mobiilikamera, potkukolikko).
 > `4827f34` penkit+työkalut · `064f2d8` koodi (7 moduulia + bugikorjaukset) · `6d1c240` docs+säännöt ·
 > `14767f3`+`a10f373` pankin kevennys · `5c34519`+`d2a8fb7` testilista · `c0a54cf` julkaisukielto ·
 > `6474beb` penkkivelka 0 · **`4b886f0` = v11.45 (Vaihe 4 loppuun)**.
-> **Tila:** `git status` puhdas · `origin/main` = `720a649` = **v11.45** (= HEAD) → tuotanto julkaistu.
+> **Tila:** `git status` puhdas · **`origin/main` = HEAD = v11.45** (julkaistu 3.10.2026; tarkista
+> tarvittaessa `git rev-parse --short HEAD`) → tuotanto julkaistu.
 > Versio `v11.44` on `index.html`:ssä (#version-tag + 10 `?v=`-leimaa). Seuraava istunto jatkaa tästä.
 
 **Mitä on tehty (kaikki ilman toimintamuutoksia):**

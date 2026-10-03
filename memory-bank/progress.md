@@ -431,7 +431,7 @@ render-smoke 30/30 · **26 penkkiä 26 puhdasta / 0 löydöstä**.
 > Vaiheet 1–3 (pilkonta + `chaosFlags` + `rooms[]`) · 4 (kaivo, kolikko, `dayNight`) ·
 > 5 osat 1–8 (`chaos-config`, `sfx`, `news`, `traffic`, `chaos-cards`, `rooms`) · 6 (kommentit).
 > `street.js` 11 169 → **8 357 rv**. Portti: **26 penkkiä / 26 puhdasta / 0 löydöstä**.
-> **Tuotanto:** `origin/main` = `720a649` = **v11.45**; GitHub Pages tarjoilee v11.45:n ja käyttäjä
-> testasi sen ennen julkaisua. Edellinen julkaisu oli v11.37.
+> **Tuotanto:** `origin/main` = HEAD = **v11.45** (julkaistu 3.10.2026); GitHub Pages tarjoilee
+> v11.45:n ja käyttäjä testasi sen ennen julkaisua. Edellinen julkaisu oli v11.37.
 
 Vanhat penkkimuistiinpanot (v11.24–v11.27) ja vanhentunut penkkilista: `docs/pimea-katu-historia.md`.
