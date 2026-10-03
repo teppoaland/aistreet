@@ -1,0 +1,121 @@
+{
+  "_kommentti": "update():n KATUOSUUS (Vaihe 1e) → 23 sisäiseksi funktioksi. Pelkkä siirto. `return;`-portit (kuolema 4073, nälkä 4113, kaivoon astuminen 4339) saavat bool-muunnoksen; kutsuja on `if (fn(dt)) return;`. Rivinumerot = tiedoston nykytila (v11.38, huoneiden siirron jälkeen).",
+  "file": "d:/AI/AI_street/street.js",
+  "anchor": "    function update(dt) {",
+  "entries": [
+    { "start": 3856, "end": 3897, "name": "updateBuildingSmoke", "params": "dt",
+      "expectFirst": "// ── Savukiekurat tuhoutuneista taloista",
+      "call": "updateBuildingSmoke(dt);",
+      "comment": "Savukiekurat tuhoutuneista taloista (v11.33/v11.36): nousevat ja hiipuvat, vain BAD/FULL." },
+
+    { "start": 3908, "end": 3984, "name": "updateDayNight", "params": "dt",
+      "expectFirst": "// ── Päivä/yö: liuku kohti tallennettua tavoitetta",
+      "call": "updateDayNight(dt);",
+      "comment": "Päivä/yö: ensiauringonnousu (3 avainta), liuku kohti tavoitetta (pysähtyy huoneissa/iframessa), yön lamppushown viritys ja päivän lamppusammutus (v4.38/v4.42)." },
+
+    { "start": 3986, "end": 3993, "name": "updateSpawnLampShow", "params": "dt",
+      "expectFirst": "// ── Spawn-lamppushow (v4.90)",
+      "call": "updateSpawnLampShow(dt);",
+      "comment": "Spawn-lamppushow (v4.90): pelin alussa/kuoleman jälkeen 4 s → lamput syttyvät yksi kerrallaan." },
+
+    { "start": 3995, "end": 4010, "name": "updateJukeboxPersistence", "params": "dt",
+      "expectFirst": "// ── Jukebox-soiton tallennus (v4.92)",
+      "call": "updateJukeboxPersistence(dt);",
+      "comment": "Jukebox-soiton tallennus (v4.92): seuraa positiota ja päivittää tilan F5:n yli." },
+
+    { "start": 4012, "end": 4062, "name": "updateDayCycle", "params": "dt",
+      "expectFirst": "// ── Yö/päivä -kierto (v4.89)",
+      "call": "updateDayCycle(dt);",
+      "comment": "Yö/päivä-kierto (v4.89): kuu/aurinko liikkuu, CYCLE_CHANGE_DELAY_FRAMES odotus ja automaattinen vaihto; kellot tallennetaan ~2 s välein." },
+
+    { "start": 4064, "end": 4074, "name": "updateDeathSequence", "params": "dt", "bool": true,
+      "expectFirst": "// ── Kuolemasekvenssi",
+      "call": "if (updateDeathSequence(dt)) return;",
+      "comment": "Kuolemasekvenssi: pimennys etenee, sitten GameState.reset() + reload. true = kuolema vei vuoron." },
+
+    { "start": 4076, "end": 4116, "name": "updateHunger", "params": "dt", "bool": true,
+      "expectFirst": "// ── Nälkä (hampurilaisajastin, 1/60s)",
+      "call": "if (updateHunger(dt)) return;",
+      "comment": "Nälkä (1/60 s): kulutus jatkuu kaikkialla paitsi nukkuessa (v4.49); 0 🍔 → killPlayer + ulos piilosta (v4.50). true = nälkäkuolema vei vuoron." },
+
+    { "start": 4118, "end": 4130, "name": "updateHiddenTracking", "params": "dt",
+      "expectFirst": "// ── Paluu kadulle -vahti (v4.51)",
+      "call": "updateHiddenTracking(dt);",
+      "comment": "Paluu kadulle -vahti (v4.51): viemärinkannen tila voi muuttua huoneesta palatessa; rosvon ttl kuluu myös piilossa (v10.12)." },
+
+    { "start": 4132, "end": 4139, "name": "updateManholeSequence", "params": "dt", "bool": true,
+      "expectFirst": "// ── Avoin kaivo: pudotus / ylöskiipeäminen käynnissä (v4.51)",
+      "call": "if (updateManholeSequence(dt)) return;",
+      "comment": "Kaivosarja käynnissä: katu on jäissä, liikenne jatkaa taustalla (v11.09), pelaaja ei ota osumia. true = sekvenssi vei vuoron." },
+
+    { "start": 4154, "end": 4265, "name": "updateMovement", "params": "dt",
+      "expectFirst": "// ── Liike",
+      "call": "updateMovement(dt);",
+      "comment": "Liike: 🍔/kaaos-vauhti, vaaka- ja pystyliike, humalan horjunta ja hallitsemattomat askeleet, lampputolppien estoblokki, kamera ja kävely-/potkuanimaatio." },
+
+    { "start": 4267, "end": 4283, "name": "updateCoinPickup", "params": "dt",
+      "expectFirst": "// ── Kolikon keräys",
+      "call": "updateCoinPickup(dt);",
+      "comment": "Kadun kolikon keräys: osuessa saldo +1, tallennus ja pling." },
+
+    { "start": 4285, "end": 4299, "name": "updateBeamPickup", "params": "dt",
+      "expectFirst": "// ── Sädeaseen poiminta (v10.20)",
+      "call": "updateBeamPickup(dt);",
+      "comment": "Sädeaseen poiminta (v10.20): FULL-aseen nosto kadulta, kun jalkapiste osuu esineeseen." },
+
+    { "start": 4301, "end": 4329, "name": "updateCoinTimers", "params": "dt",
+      "expectFirst": "// ── Kolikon respawn (120s välein)",
+      "call": "updateCoinTimers(dt);",
+      "comment": "Kolikon ajastimet: respawn 120 s, katoaminen 10 s ja cooldown (kaaos K5 voi muuttaa tahtia)." },
+
+    { "start": 4331, "end": 4342, "name": "updateManholeStep", "params": "dt", "bool": true,
+      "expectFirst": "// ── Avoin kaivo: astuminen reiän päälle (v4.51)",
+      "call": "if (updateManholeStep(dt)) return;",
+      "comment": "Avoin kaivo: astuminen reiän päälle laukaisee putoamisen (reunaehtoinen). true = putoaminen alkoi." },
+
+    { "start": 4344, "end": 4379, "name": "updateElectricCabinets", "params": "dt",
+      "expectFirst": "// ── Sähkökaapit: tilakello (v4.85)",
+      "call": "updateElectricCabinets(dt);",
+      "comment": "Sähkökaapit (v4.85): tilakello arpoo päälle/pois omalla tahdilla (?cabs jäädyttää) ja päällä oleva kaappi antaa sähköiskun (tainnutus + −1 🍔 / FULL −1 🪙)." },
+
+    { "start": 4388, "end": 4395, "name": "updateParticles", "params": "dt",
+      "expectFirst": "// ── Partikkelit",
+      "call": "updateParticles(dt);",
+      "comment": "Partikkelit: liike ja elinikä." },
+
+    { "start": 4397, "end": 4427, "name": "updateStreetTimers", "params": "dt",
+      "expectFirst": "// ── Lamppujen ylikuumenemisajastin",
+      "call": "updateStreetTimers(dt);",
+      "comment": "Kadun ajastimet: lamppujen ylikuumeneminen, kolikon kimaltelu, talon 0 ikkuna-ajastin ja pienten talojen valoajastin." },
+
+    { "start": 4429, "end": 4443, "name": "updatePot", "params": "dt",
+      "expectFirst": "// ── Kukkaruukun fysiikka",
+      "call": "updatePot(dt);",
+      "comment": "Kukkaruukun fysiikka: putoaa ja osuu pelaajaan → tainnutus + −1 🍔." },
+
+    { "start": 4445, "end": 4477, "name": "updateKickCoin", "params": "dt",
+      "expectFirst": "// ── Potkusta pudonneen kolikon fysiikka",
+      "call": "updateKickCoin(dt);",
+      "comment": "Potkusta pudonnut kolikko: fysiikka, poiminta ja salaisen kolikkopalkkion (cheat) putken vanheneminen." },
+
+    { "start": 4479, "end": 4488, "name": "updateEnemies", "params": "dt",
+      "expectFirst": "// ── Oviukko (Avenger)",
+      "call": "updateEnemies(dt);",
+      "comment": "Vastustajat: oviukon cooldown + liike, rosvon cooldown + jahtaus (v4.66) ja K7-korttipakan kesto." },
+
+    { "start": 4490, "end": 4520, "name": "updateAnimal", "params": "dt",
+      "expectFirst": "// ── Katueläin",
+      "call": "updateAnimal(dt);",
+      "comment": "Katueläin: spawnaus, liike ja poistuminen (vain NORMAL/ei-kaaos-raunioissa)." },
+
+    { "start": 4527, "end": 4620, "name": "updateSky", "params": "dt",
+      "expectFirst": "// ── Tähdenlento + satelliitti (vain yöllä)",
+      "call": "updateSky(dt);",
+      "comment": "Taivas: tähdenlento, meteoriitit (spawnit, tähdätty meteoriitti, osuma) ja satelliitti – vain yöllä; nollaa kesken lennon olleet päivän alkaessa." },
+
+    { "start": 4622, "end": 4710, "name": "updateBirds", "params": "dt",
+      "expectFirst": "// ── Päivälinnut (v5.00)",
+      "call": "updateBirds(dt);",
+      "comment": "Päivälinnut (v5.00): istuskelevat puissa, siirtyvät ajoittain uuteen paikkaan; yöllä poistetaan." }
+  ]
+}

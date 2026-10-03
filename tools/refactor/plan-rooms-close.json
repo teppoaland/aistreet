@@ -1,0 +1,23 @@
+{
+  "_kommentti": "Vaihe 3: closeRoom():n neljä haaraa omiksi funktioikseen, jotta huonerekisteri voi kutsua niitä. Blokit palauttavat jo `return true;`, joten bool vain lisää loppuun `return false;`.",
+  "file": "d:/AI/AI_street/street.js",
+  "anchor": "    function closeRoom() {",
+  "entries": [
+    { "start": 5299, "end": 5302, "name": "closeNewsRoom", "bool": true,
+      "expectFirst": "if (newsRoom) {",
+      "call": "closeNewsRoom();",
+      "comment": "Sulkee sanomalehden (✕ / poistuminen). true = oli auki." },
+    { "start": 5303, "end": 5309, "name": "closeBarRoom", "bool": true,
+      "expectFirst": "if (barRoom) {",
+      "call": "closeBarRoom();",
+      "comment": "Sulkee BARin; peruu tämän vierailun ostot (barBuyQty = 0). true = oli auki." },
+    { "start": 5310, "end": 5317, "name": "closeSleepRoom", "bool": true,
+      "expectFirst": "if (sleepRoom) {",
+      "call": "closeSleepRoom();",
+      "comment": "Sulkee makuuhuoneen; kesken nukkumisen pimennys katkeaa (sleepPhase = 0). true = oli auki." },
+    { "start": 5318, "end": 5322, "name": "closeJukeboxRoom", "bool": true,
+      "expectFirst": "if (jukeboxRoom) {",
+      "call": "closeJukeboxRoom();",
+      "comment": "Sulkee jukebox-huoneen: valinnat pois ILMAN veloitusta (v4.46). true = oli auki." }
+  ]
+}

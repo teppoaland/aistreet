@@ -1,0 +1,37 @@
+{
+  "_kommentti": "handleAction() 226 rv → 5 sisäiseksi funktioksi. Pelkkä siirto; kaikki `return;` tarkoittaa 'käsitelty, lopeta' → bool-muunnos. Rivinumerot ovat ALKUPERÄISEN street.js:n mukaisia (v11.37); render()-jako ei siirtänyt näitä rivejä.",
+  "file": "d:/AI/AI_street/street.js",
+  "anchor": "    function handleAction() {",
+  "entries": [
+    {
+      "start": 4688, "end": 4693, "name": "tryNewspaper", "bool": true,
+      "expectFirst": "// 0. SANOMALEHTI (v4.53)",
+      "call": "if (tryNewspaper()) return;",
+      "comment": "Sanomalehden poiminta (v4.53/v4.54): tainnutettuna ei voi poimia."
+    },
+    {
+      "start": 4695, "end": 4705, "name": "tryFruitDoor", "params": "px, py", "bool": true,
+      "expectFirst": "// 0. HEDELMÄPELI (talo 7",
+      "call": "if (tryFruitDoor(px, py)) return;",
+      "comment": "Hedelmäpeli (talo 7): auki vain öisin, ei lamppua eikä avainta (v4.34)."
+    },
+    {
+      "start": 4707, "end": 4729, "name": "tryJukeboxDoor", "params": "px, py", "bool": true,
+      "expectFirst": "// 0.5 JUKEBOX (talo 5",
+      "call": "if (tryJukeboxDoor(px, py)) return;",
+      "comment": "Jukebox (talo 5): 1. painallus sytyttää ikkunat, 2. painallus avaa huoneen; auki vain öisin."
+    },
+    {
+      "start": 4731, "end": 4742, "name": "trySinkshipDoor", "params": "px, py", "bool": true,
+      "expectFirst": "// 0.6 LAIVANUPOTUS (talo 2",
+      "call": "if (trySinkshipDoor(px, py)) return;",
+      "comment": "Laivanupotus (talo 2): aina auki; 1. painallus sytyttää valot, 2. avaa pelin."
+    },
+    {
+      "start": 4744, "end": 4909, "name": "tryDoorsAndKicks", "params": "px, py",
+      "expectFirst": "// 1. OVET ENSIN",
+      "call": "tryDoorsAndKicks(px, py);",
+      "comment": "Ovet ja potkut: ovista kävellään sisään (BAR, makuuhuone, pelitalot), talon 0 ovi potkii ikkunat valaistuiksi, muut talot syttyvät potkusta ja lamppu toggleaa/ylikuumenee (sis. salaiset cheatit)."
+    }
+  ]
+}

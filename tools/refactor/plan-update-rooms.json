@@ -1,0 +1,37 @@
+{
+  "_kommentti": "update():n HUONEOSUUS (vaihe 1b) → 5 sisäiseksi funktioksi. Kaikki `return;` = 'käsitelty, lopeta koko update' → bool-muunnos; kutsuja on `if (fn(dt)) return;`. Pelkkä siirto, ei muotoilumuutoksia. Rivinumerot = ALKUPERÄISEN street.js:n mukaisia; huoneet ovat ennen render()-jakoa, joten ne eivät ole siirtyneet.",
+  "file": "d:/AI/AI_street/street.js",
+  "anchor": "    function update(dt) {",
+  "entries": [
+    {
+      "start": 3853, "end": 3925, "name": "updateSleepRoom", "params": "dt", "bool": true,
+      "expectFirst": "// ── Makuuhuone (ex-palkintohuone, talo 7) ──",
+      "call": "if (updateSleepRoom(dt)) return;",
+      "comment": "Makuuhuone (talo 7): liikenne jatkaa taustalla (v11.09), nukkumisen pimennys vaihtaa päivä/yö-tilan ja antaa +1 🍔 (katto 10), Poistu ei muuta mitään."
+    },
+    {
+      "start": 3927, "end": 4000, "name": "updateBarRoom", "params": "dt", "bool": true,
+      "expectFirst": "// BAR room – ostomäärää säädetään nuolilla",
+      "call": "if (updateBarRoom(dt)) return;",
+      "comment": "BAR (talo 8): FULL myy olutta 🍺 (drunkLevel), muut tasot hampurilaisia; ▼ peruu vierailun ostot, (o)/Space poistuu."
+    },
+    {
+      "start": 4002, "end": 4047, "name": "updateJukeboxRoom", "params": "dt", "bool": true,
+      "expectFirst": "// JUKEBOX-huone (talo 5) – monivalinta (v4.46)",
+      "call": "if (updateJukeboxRoom(dt)) return;",
+      "comment": "Jukebox-huone (talo 5): monivalinta (v4.46), kursori vapaa myös soiton aikana (v4.99), poistuminen soittaa valitut (jukeboxExitAndPlay)."
+    },
+    {
+      "start": 4049, "end": 4087, "name": "updateNewsRoom", "params": "dt", "bool": true,
+      "expectFirst": "// SANOMALEHTI (v4.53/v4.54)",
+      "call": "if (updateNewsRoom(dt)) return;",
+      "comment": "Sanomalehti (v4.53/v4.54): sivujen selaus; liikenne EI pysähdy → auto voi ajaa yli (lehti putoaa, tainnutus)."
+    },
+    {
+      "start": 4092, "end": 4122, "name": "updateKnockedDown", "params": "dt", "bool": true,
+      "expectFirst": "// Tainnutus - kukkaruukku osui",
+      "call": "if (updateKnockedDown(dt)) return;",
+      "comment": "Tainnutus: liikenne pysähtyy vain auton kolarista (v11.10/v11.12), pudotus knockFallY-tasolle, maailma jäätyy mutta ajastimet/partikkelit/oviukko/meteoriitti pyörivät."
+    }
+  ]
+}

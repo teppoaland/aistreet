@@ -26,6 +26,9 @@ build/
 # Väliaikaiset tiedostot
 tmp/
 temp/
+
+# Testipenkkien ajoraportti (generoituu joka ajolla)
+tools/tests/last-run.txt
 *.tmp
 
 # Ympäristömuuttujat

@@ -1,0 +1,67 @@
+{
+  "_kommentti": "render() 428 rv → pilkotaan 10 sisäiseksi piirtofunktioksi. Pelkkä siirto: koodirivejä ei muuteta. Rivinumerot ovat ALKUPERÄISEN street.js:n mukaisia (v11.37).",
+  "file": "d:/AI/AI_street/street.js",
+  "anchor": "    function render() {",
+  "entries": [
+    {
+      "start": 5792, "end": 5799, "name": "drawRoomView", "bool": true,
+      "expectFirst": "if (sleepRoom) {",
+      "call": "if (drawRoomView()) return;",
+      "comment": "Huoneet ovat modaalisia: koko näkymä on huone ja kamera keskittää (jukebox v4.22, BAR v4.25, lehti v4.53). true = huone piirrettiin."
+    },
+    {
+      "start": 5801, "end": 5825, "name": "pushWorldTransform",
+      "expectFirst": "ctx.save();",
+      "call": "pushWorldTransform();",
+      "comment": "Maailman muunnos: kamera + tärinät (oviukon isku, ajoneuvon törmäys, meteoriitti, kaaoksen jatkuva huojunta). HUOM: ctx.restore() on render():n lopussa."
+    },
+    {
+      "start": 5827, "end": 5846, "name": "drawSkyGradient",
+      "expectFirst": "// Taivas",
+      "call": "drawSkyGradient();",
+      "comment": "Yötaivas + päivätaivaan liuku (dayT)."
+    },
+    {
+      "start": 5848, "end": 5882, "name": "drawSun",
+      "expectFirst": "// Aurinko (päivä)",
+      "call": "drawSun();",
+      "comment": "Aurinko: hehku, hitaasti pyörivä sädekehä ja kiekko (kaaos voi vaihtaa värin ja koon)."
+    },
+    {
+      "start": 5884, "end": 5899, "name": "drawStars",
+      "expectFirst": "// Tähdet",
+      "call": "drawStars();",
+      "comment": "Tähdet: jokaisella oma twinkle; himmenevät päivän tullessa."
+    },
+    {
+      "start": 5901, "end": 5987, "name": "drawMoon",
+      "expectFirst": "/* ── Sirppikuu",
+      "call": "drawMoon();",
+      "comment": "Sirppikuu: hehku, kuva tai proseduraalinen fallback, kraatterit, maavalo + terminaattori, limb darkening."
+    },
+    {
+      "start": 5991, "end": 6014, "name": "drawShootingStars",
+      "expectFirst": "// Tähdenlento / meteoriitti (vain yöllä)",
+      "call": "drawShootingStars();",
+      "comment": "Tähdenlento ja meteoriitti (v11.24: kaikki meteoriitit tässä kerroksessa → talot peittävät ne)."
+    },
+    {
+      "start": 6016, "end": 6022, "name": "drawSatellite",
+      "expectFirst": "// Satelliitti (pieni vilkkuva piste)",
+      "call": "drawSatellite();",
+      "comment": "Satelliitti: pieni vilkkuva piste, vain yöllä."
+    },
+    {
+      "start": 6024, "end": 6029, "name": "drawMeteorFlash",
+      "expectFirst": "// Meteoriitin törmäysvälähdys (v10.16)",
+      "call": "drawMeteorFlash();",
+      "comment": "Meteoriitin törmäysvälähdys: koko taivas välähtää (piirretään talojen taakse)."
+    },
+    {
+      "start": 6146, "end": 6213, "name": "drawScreenEffects",
+      "expectFirst": "// ── Päivänvalo (lopputila: kaikki 3 avainta) ──",
+      "call": "drawScreenEffects();",
+      "comment": "Ruudun päälliskerrokset järjestyksessä: päivänvalo (additive), kuun laskun pimennys, sumuverho, oviukon iskun vinjetti + tähdet, kuoleman pimennys."
+    }
+  ]
+}

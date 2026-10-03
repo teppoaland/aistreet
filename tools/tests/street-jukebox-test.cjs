@@ -1,0 +1,437 @@
+/* ═══════════════════════════════════════════════════════════════
+   street-jukebox-test.cjs – Jukebox-huoneen (talo 5) validointi v4.21
+     PORTTI : 1. painallus ovella = potku (ikkunat syttyvät 20 s)
+              2. painallus valaistulla ovella = huone auki
+     VALINTA: ▲ / W = +1   ▼ / S = −1   (0..3)
+              0 = ei valintaa → poistuminen ei maksa eikä soita
+     OSTO   : valinta 1–3 + poistuminen = 1 kolikko + koko kappale
+     Ajo: node street-jukebox-test.cjs  (ei repossa, %TEMP%)
+   ═══════════════════════════════════════════════════════════════ */
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+
+const ROOT = 'd:/AI/Main';
+const streetSrc = require('./street-src.cjs');
+const audioSrc  = fs.readFileSync(path.join(ROOT, 'audio.js'), 'utf8');
+const stateSrc  = fs.readFileSync(path.join(ROOT, 'gameState.js'), 'utf8');
+
+const problems = [], oks = [];
+const fail = (m) => problems.push(m);
+const ok = (m) => oks.push(m);
+
+const ROOM_MARK = '♪ JUKEBOX';   // vain drawJukeboxRoom piirtää tämän
+let texts = [];
+let shapes = [];                 // piirtojen rajat (J10: ei kankaan ulkopuolelle)
+function noteShape(x, y, rx, ry) { shapes.push([x - (rx || 0), y - (ry || 0), x + (rx || 0), y + (ry || 0)]); }
+
+function makeCtx() {
+    return {
+        fillStyle: '#000', strokeStyle: '#000', lineWidth: 1, globalAlpha: 1,
+        font: '', textAlign: '', textBaseline: '', shadowColor: '', shadowBlur: 0,
+        imageSmoothingEnabled: true,
+        save() {}, restore() {}, translate() {}, scale() {}, rotate() {}, setTransform() {}, resetTransform() {},
+        beginPath() {}, closePath() {}, moveTo() {}, lineTo() {},
+        arc(x, y, r) { noteShape(x, y, r, r); },
+        ellipse(x, y, rx, ry) { noteShape(x, y, rx, ry); },
+        rect() {},
+        quadraticCurveTo() {}, bezierCurveTo() {}, arcTo() {}, fill() {}, stroke() {}, clip() {},
+        fillRect(x, y, w, h) { noteShape(x + w / 2, y + h / 2, w / 2, h / 2); },
+        strokeRect(x, y, w, h) { noteShape(x + w / 2, y + h / 2, w / 2 + 1, h / 2 + 1); },
+        clearRect() {},
+        createRadialGradient() { return { addColorStop() {} }; },
+        createLinearGradient() { return { addColorStop() {} }; },
+        measureText(t) { return { width: String(t).length * 6 }; },
+        fillText(t) { texts.push(String(t)); }, strokeText() {},
+        drawImage() {}, setLineDash() {}, getLineDash() { return []; }
+    };
+}
+
+function boot(seed, startCoins, opts) {
+    opts = opts || {};
+    let clock = 0, pending = null;
+    let s = (seed >>> 0) || 1;
+    const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+
+    const winL = {}, store = {}, listeners = {}, cached = {};
+    let jukePlaying = false, jukeCalls = [], jukeStopped = 0;
+
+    const ctx = makeCtx();
+    const canvasEl = {
+        id: 'game-canvas', style: {}, width: 800, height: 400, tabIndex: 0,
+        addEventListener() {}, removeEventListener() {}, focus() {}, blur() {},
+        getContext() { return ctx; },
+        getBoundingClientRect() { return { left: 0, top: 0, width: 800, height: 400, right: 800, bottom: 400 }; }
+    };
+
+    const iframe = {
+        src: '', onload: null, style: {},
+        addEventListener() {}, removeEventListener() {}, blur() {}, focus() {},
+        contentWindow: { focus() {}, blur() {}, postMessage() {} }
+    };
+
+    function makeEl(id) {
+        const classes = new Set();
+        return {
+            id, style: {}, offsetHeight: 0, clientWidth: 1024, clientHeight: 700,
+            textContent: '', innerHTML: '', value: '',
+            classList: {
+                add(c) { classes.add(c); }, remove(c) { classes.delete(c); },
+                toggle(c, on) { if (on === undefined) { classes.has(c) ? classes.delete(c) : classes.add(c); } else if (on) classes.add(c); else classes.delete(c); },
+                contains(c) { return classes.has(c); }
+            },
+            __classes: classes,
+            addEventListener(t, f) { (listeners[id] = listeners[id] || {}); (listeners[id][t] = listeners[id][t] || []).push(f); },
+            removeEventListener() {}, focus() {}, blur() {},
+            appendChild() {}, setAttribute() {},
+            getBoundingClientRect() { return { left: 0, top: 0, width: 100, height: 100 }; },
+            querySelector(sel) { return sel === 'iframe' ? iframe : null; },
+            querySelectorAll() { return []; }
+        };
+    }
+
+    const sandbox = {
+        console, setTimeout, clearTimeout, Date, JSON,
+        performance: { now: () => clock },
+        requestAnimationFrame(cb) { pending = cb; return 1; },
+        cancelAnimationFrame() {},
+        localStorage: {
+            getItem: (k) => (k in store ? store[k] : null),
+            setItem: (k, v) => { store[k] = String(v); },
+            removeItem: (k) => { delete store[k]; }
+        },
+        navigator: { maxTouchPoints: 0 },
+        StreetAudio: {
+            init() {}, start() {}, stop() { jukePlaying = false; jukeStopped++; },
+            getCtx() { return null; }, playDeathGong() {},
+            isJukeboxPlaying() { return jukePlaying; },
+            playJukebox(url) {
+                jukeCalls.push(url);
+                if (opts.failAudio) return false;
+                jukePlaying = true; return true;
+            },
+            /* v4.46/v11.x: audio.js:n koko julkinen jukebox-api (stubit riittävät) */
+            playJukeboxQueue() { return false; },
+            appendJukeboxQueue() {},
+            stopJukebox() { jukePlaying = false; },
+            getJukeboxQueuePos() { return 0; },
+            setHungerTempo() {}, setMenuActive() {}, fadeOutMenuMusic() {},
+            playChaosIntro() {}, playPanelOn() {}, playPanelOff() {}, playTypeClick() {}
+        },
+        window: {
+            addEventListener(t, f) { (winL[t] = winL[t] || []).push(f); },
+            removeEventListener() {},
+            focus() {}, blur() {}, postMessage() {}, innerWidth: 1024, innerHeight: 700, devicePixelRatio: 1
+        },
+        document: {
+            getElementById() { return null; },
+            querySelector() { return null; }, querySelectorAll() { return []; },
+            createElement() { return makeEl('tmp'); },
+            addEventListener() {}, removeEventListener() {},
+            body: makeEl('body'), documentElement: makeEl('html'), head: makeEl('head')
+        }
+    };
+    sandbox.document.getElementById = (id) => {
+        if (id === 'game-canvas') return canvasEl;
+        return cached[id] || (cached[id] = makeEl(id));
+    };
+    sandbox.Math = new Proxy(Math, { get(t, p) { return p === 'random' ? rnd : t[p]; } });
+    sandbox.globalThis = sandbox;
+    vm.createContext(sandbox);
+    vm.runInContext(stateSrc, sandbox, { filename: 'gameState.js' });
+    vm.runInContext('var __st = GameState.load(); __st.inventory.coinCount = ' + startCoins + '; GameState.save(__st);', sandbox);
+    vm.runInContext(streetSrc, sandbox, { filename: 'street.js' });
+    const Street = vm.runInContext('Street', sandbox);
+    Street.init(canvasEl);
+
+    return {
+        frame(n) {
+            for (let i = 0; i < (n || 1); i++) {
+                const cb = pending; pending = null;
+                if (!cb) throw new Error('rAF-ketju katkesi');
+                clock += 16.7;
+                texts = [];
+                shapes = [];
+                cb(clock);
+            }
+        },
+        key(type, k) { for (const f of (winL[type] || []).slice()) f({ key: k, preventDefault() {} }); },
+        hold(k) { this.key('keydown', k); },
+        release(k) { this.key('keyup', k); },
+        tapAction() { this.key('keyup', ' '); this.key('keydown', ' '); },
+        press(id) { for (const f of ((listeners[id] || {})['touchstart'] || []).slice()) f({ preventDefault() {} }); },
+        pressMouse(id) { for (const f of ((listeners[id] || {})['mousedown'] || []).slice()) f({ preventDefault() {} }); },
+        releaseBtn(id) { for (const f of ((listeners[id] || {})['touchend'] || []).slice()) f({ preventDefault() {} }); },
+        listenerCount(id, type) { return ((listeners[id] || {})[type] || []).length; },
+        room() { return texts.some((t) => t.indexOf(ROOM_MARK) >= 0); },
+        sawText(needle) { return texts.some((t) => t.indexOf(needle) >= 0); },
+        notif() { return (cached['notification'] || {}).textContent || ''; },
+        hud() { return (cached['hud-bar'] || {}).innerHTML || ''; },
+        savedCoins() { return JSON.parse(store['pimeakatu_gamestate']).inventory.coinCount; },
+        jukeCalls() { return jukeCalls.slice(); },
+        jukeStopped() { return jukeStopped; },
+        setJukeboxPlaying(v) { jukePlaying = !!v; },
+        shapes() { return shapes.slice(); },
+        iframe, store
+    };
+}
+
+/* ── Kävely talo 5:n ovelle (ovi x=410, y=294) ───────────────
+   Alarataa (y=350) lamppujen ohi, sitten ylös (y=280) oven eteen:
+   etäisyys oveen ≈ 3 px (< DOOR_RADIUS 19).                    */
+function walkToDoor(e) {
+    e.hold('ArrowDown'); e.frame(60); e.release('ArrowDown');       // y 290 → 350
+    e.hold('ArrowRight'); e.frame(296); e.release('ArrowRight');    // x 40 → ~402
+    e.hold('ArrowUp'); e.frame(60); e.release('ArrowUp');           // y 350 → 280
+    e.frame(1);
+}
+
+/* Yksi painallus ovella (potku TAI sisäänkäynti).
+   4 frameä: potku asettaa hit-pausen (2 f) → toinen painallus ehtii perille. */
+function tapDoor(e) { e.tapAction(); e.frame(4); }
+
+/* ═══ STAATTISET TARKISTUKSET ═══ */
+const TRACKS = ['Knived_Our_song.mp3', 'Knived_Unafraid.mp3', 'Knived_Unafraid_instrumental.mp3'];
+for (const t of TRACKS) {
+    const p = path.join(ROOT, 'jukebox', t);
+    if (!fs.existsSync(p)) { fail('T1: jukebox/' + t + ' puuttuu'); continue; }
+    const size = fs.statSync(p).size;
+    if (size > 1000000) ok('T1: jukebox/' + t + ' olemassa (' + (size / 1048576).toFixed(1) + ' MB, 128 kbps)');
+    else fail('T1: jukebox/' + t + ' liian pieni (' + size + ' B)');
+    if (streetSrc.indexOf('jukebox/' + t) >= 0) ok('T2: street.js viittaa tiedostoon jukebox/' + t);
+    else fail('T2: street.js ei viittaa tiedostoon jukebox/' + t);
+}
+if (/function playJukebox\(url\)/.test(audioSrc) && /function stopJukebox\(\)/.test(audioSrc) && /function isJukeboxPlaying\(\)/.test(audioSrc))
+    ok('T3: audio.js: playJukebox / stopJukebox / isJukeboxPlaying');
+else fail('T3: audio.js:n jukebox-api puuttuu');
+if (/const JUKEBOX_VOLUME = MUSIC_VOLUME;/.test(audioSrc) && /const JUKEBOX_GAP = 2500;/.test(audioSrc))
+    ok('T4: audio.js: JUKEBOX_VOLUME + JUKEBOX_GAP (2,5 s)');
+else fail('T4: audio.js:n jukebox-vakiot puuttuvat');
+const guards = (audioSrc.match(/if \(jukePlaying \|\| phase === 'jukebox'\) return;/g) || []).length;
+if (guards === 2) ok('T5: audio.js: start() ja onGesture() eivät käynnistä taustamusiikkia jukeboxin aikana');
+else fail('T5: jukebox-suojia ' + guards + ' (odotettu 2)');
+if (/playJukebox, playJukeboxQueue, appendJukeboxQueue, stopJukebox,/.test(audioSrc) &&
+    /isJukeboxPlaying, getJukeboxQueuePos, setHungerTempo/.test(audioSrc)) ok('T6: audio.js: jukebox-api viety julki (return)');
+else fail('T6: jukebox-api puuttuu returnista');
+if (/drawJukeboxRoom/.test(streetSrc) && /function drawJukeboxCabinet/.test(streetSrc))
+    ok('T7: street.js: drawJukeboxRoom + drawJukeboxCabinet (proseduraalinen kaappi)');
+else fail('T7: jukebox-huoneen piirto puuttuu');
+if (/smallHouseLights\[JUKEBOX_BLDG_IDX\]/.test(streetSrc)) ok('T8: portti käyttää talo 5:n ikkunavaloja (smallHouseLights[4])');
+else fail('T8: porttilogiikka puuttuu');
+
+/* ═══ J1: PORTTI – potku ensin, sitten sisään ═══ */
+try {
+    const e = boot(3, 5);
+    walkToDoor(e);
+    const c0 = e.savedCoins();
+    tapDoor(e);                                   // 1. painallus = potku
+    if (e.room()) fail('J1: huone aukesi ilman valoja (portti vuotaa)');
+    else if (e.savedCoins() !== c0) fail('J1: potku muutti kolikoita');
+    else ok('J1: 1. painallus ovella = potku, huone ei aukea (portti pitää)');
+    tapDoor(e);                                   // 2. painallus valaistulla ovella
+    if (!e.room()) fail('J1: huone ei auennut valaistulla ovella');
+    else if (e.savedCoins() !== c0) fail('J1: sisäänkäynti veloitti kolikon');
+    else ok('J1: 2. painallus valaistulla ovella avaa huoneen (ei veloitusta)');
+    if (e.sawText('ei valintaa')) ok('J1: huone alkaa valinnasta 0 (ei valintaa)');
+    else fail('J1: valintarivi 0 puuttuu');
+
+    /* ═══ J2: VALINTA ▲/▼ (ei veloitusta) ═══
+       ▲ = valitse ylös (−1), ▼ = alas (+1); rivi 0 ("ei valintaa") on listan ylimpänä. */
+    e.hold('ArrowDown'); e.frame(1); e.release('ArrowDown'); e.frame(1);
+    if (e.sawText('Valinta: 1 – Knived - Our Song')) ok('J2: ▼ valitsi kappaleen 1 (Our Song)');
+    else fail('J2: ▼ ei valinnut kappaletta 1');
+    if (e.savedCoins() !== c0) fail('J2: valinta veloitti kolikon'); else ok('J2: valinta ei veloita mitään');
+    e.hold('ArrowDown'); e.frame(90); e.release('ArrowDown'); e.frame(1);
+    if (e.sawText('Valinta: 2 – Knived - Unafraid')) ok('J2: ▼ pohjassa (90 f) = vain +1 (reunanilmaisu)');
+    else fail('J2: ▼ pohjassa toisti valinnan');
+    e.hold('ArrowDown'); e.frame(1); e.release('ArrowDown'); e.frame(1);
+    if (e.sawText('Valinta: 3 – Knived - Unafraid (inst.)')) ok('J2: ▼ vei valinnan viimeiselle riville (3)');
+    else fail('J2: ▼ ei valinnut kappaletta 3');
+    e.hold('ArrowDown'); e.frame(1); e.release('ArrowDown'); e.frame(1);
+    if (e.sawText('Valinta: 3')) ok('J2: ylimääräinen ▼ ei ylitä kattoa 3');
+    else fail('J2: valinta ylitti katon');
+    e.hold('ArrowUp'); e.frame(1); e.release('ArrowUp'); e.frame(1);
+    if (e.sawText('Valinta: 2 – Knived - Unafraid')) ok('J2: ▲ siirsi valintaa ylös (3 → 2)');
+    else fail('J2: ▲ ei siirtänyt valintaa ylös');
+    e.hold('ArrowUp'); e.frame(1); e.release('ArrowUp'); e.frame(1);
+    e.hold('ArrowUp'); e.frame(1); e.release('ArrowUp'); e.frame(1);
+    if (e.sawText('Ei valintaa – poistuminen ei maksa mitään')) ok('J2: ▲▲ palautti valinnan 0:aan');
+    else fail('J2: ▲ ei palauttanut valintaa 0:aan');
+    e.hold('ArrowUp'); e.frame(1); e.release('ArrowUp'); e.frame(1);
+    if (e.sawText('Ei valintaa')) ok('J2: ylimääräinen ▲ ei mene alle 0:n');
+    else fail('J2: valinta meni negatiiviseksi');
+
+    /* ═══ J3: POISTUMINEN valinnalla 0 ═══ */
+    tapDoor(e);
+    if (e.room()) fail('J3: poistuminen ei onnistunut');
+    else if (e.savedCoins() !== c0 || e.jukeCalls().length !== 0) fail('J3: valinta 0 veloitti/soitti');
+    else ok('J3: valinta 0 → poistuminen ei veloita eikä soita mitään');
+    if (e.notif() === '') ok('J3: ei turhia ilmoituksia valinnalla 0');
+    else fail('J3: ilmoitus tuli valinnalla 0: ' + e.notif());
+
+/* ═══ J4–J6: OSTO, SOI NYT -lukko, KAPPALEEN PÄÄTTYMINEN ═══ */
+try {
+    const e = boot(3, 5);
+    walkToDoor(e);
+    const c0 = e.savedCoins();
+    tapDoor(e); tapDoor(e);                        // potku + sisään
+    if (!e.room()) { fail('J4: huone ei auennut (portti)'); throw new Error('portti'); }
+
+    /* J4: valinta 2 + poistuminen = −1 kolikko + kappale */
+    if (e.sawText('ei valintaa')) ok('J4: vierailu alkaa valinnasta 0');
+    else fail('J4: vierailu ei alkanut nollasta');
+    e.hold('ArrowDown'); e.frame(1); e.release('ArrowDown'); e.frame(1);
+    e.hold('ArrowDown'); e.frame(1); e.release('ArrowDown'); e.frame(1);
+    if (!e.sawText('Valinta: 2 – Knived - Unafraid')) fail('J4: valinta 2 ei asettunut');
+    tapDoor(e);
+    let calls = e.jukeCalls();
+    if (e.room()) fail('J4: huone jäi auki oston jälkeen');
+    else if (e.savedCoins() !== c0 - 1) fail('J4: kolikkoveloitus väärin (' + c0 + '→' + e.savedCoins() + ')');
+    else if (calls.length !== 1 || calls[0] !== 'jukebox/Knived_Unafraid.mp3') fail('J4: soitettiin väärä tiedosto: ' + JSON.stringify(calls));
+    else ok('J4: valinta 2 → tasan −1 kolikko + jukebox/Knived_Unafraid.mp3 soi kerran');
+    if (e.hud().indexOf('Kolikoita: ' + e.savedCoins()) >= 0) ok('J4: HUD näyttää uuden kolikkosaldon');
+    else fail('J4: HUD ei päivittynyt: ' + e.hud());
+
+    /* J5: kappale soi → valinta lukossa, ei tuplaveloitusta */
+    tapDoor(e);
+    if (!e.room()) fail('J5: huone ei auennut kappaleen soidessa');
+    else {
+        if (e.sawText('🔊 SOI NYT: Knived - Unafraid')) ok('J5: huone näyttää tilan "SOI NYT: Knived - Unafraid"');
+        else fail('J5: SOI NYT -teksti puuttuu');
+        e.hold('ArrowDown'); e.frame(30); e.release('ArrowDown'); e.frame(1);
+        if (e.sawText('Valinta:')) fail('J5: valinta muuttui kappaleen soidessa (lukko vuotaa)');
+        else ok('J5: valinta lukossa kappaleen soidessa (soi aina loppuun)');
+        const cc = e.savedCoins();
+        tapDoor(e);
+        if (e.savedCoins() !== cc || e.jukeCalls().length !== 1) fail('J5: soidessa poistuminen veloitti tai soitti uutta');
+        else ok('J5: soidessa ei voi ostaa uutta (ei tuplaveloitusta)');
+    }
+
+    /* J6: kappale päättyy → uusi osto toimii, valinta ei ylitä 3:a */
+    e.setJukeboxPlaying(false);
+    tapDoor(e);
+    if (!e.room()) fail('J6: huone ei auennut kappaleen päätyttyä');
+    else {
+        for (let i = 0; i < 3; i++) { e.hold('ArrowDown'); e.frame(1); e.release('ArrowDown'); e.frame(1); }
+        if (!e.sawText('Valinta: 3 – Knived - Unafraid (inst.)')) fail('J6: valinta 3 ei asettunut');
+        e.hold('ArrowDown'); e.frame(90); e.release('ArrowDown'); e.frame(1);
+        if (e.sawText('Valinta: 3')) ok('J6: valinta ei ylitä kappalemäärää (katto 3)');
+        else fail('J6: valinta ylitti katon');
+        const cc = e.savedCoins();
+        tapDoor(e);
+        calls = e.jukeCalls();
+        if (e.savedCoins() !== cc - 1 || calls.length !== 2 || calls[1] !== 'jukebox/Knived_Unafraid_instrumental.mp3')
+            fail('J6: kolmannen kappaleen osto väärin: ' + JSON.stringify(calls) + ' (' + cc + '→' + e.savedCoins() + ')');
+        else ok('J6: kappaleen päätyttyä uusi osto toimii (jukebox/Knived_Unafraid_instrumental.mp3)');
+    }
+} catch (err) { fail('J4–J6: poikkeus – ' + err.message); }
+
+} catch (err) { fail('J1–J3: poikkeus – ' + err.message); }
+
+
+
+/* ═══ J7: EI KOLIKOITA – ei veloitusta, ilmoitus, ulos pääsee ═══ */
+try {
+    const e = boot(5, 0);
+    walkToDoor(e);
+    tapDoor(e); tapDoor(e);
+    if (!e.room()) fail('J7: huone ei auennut 0 kolikolla');
+    else {
+        e.hold('ArrowDown'); e.frame(1); e.release('ArrowDown'); e.frame(1);
+        if (!e.sawText('Valinta: 1 – Knived - Our Song')) fail('J7: valinta ei asettunut');
+        if (e.sawText('💰 Ei kolikoita!')) ok('J7: huone varoittaa "💰 Ei kolikoita!" jo valitessa');
+        else fail('J7: varoitusteksti puuttuu');
+        tapDoor(e);
+        if (e.room()) fail('J7: huoneeseen jäi jumiin ilman kolikoita');
+        else if (e.savedCoins() !== 0 || e.jukeCalls().length !== 0) fail('J7: 0 kolikolla tuli veloitus/soitto');
+        else if (e.notif().indexOf('Ei kolikoita') < 0) fail('J7: ilmoitus puuttui (' + e.notif() + ')');
+        else ok('J7: 0 kolikkoa → ei veloitusta, ei soittoa, ilmoitus + poistuminen ok');
+    }
+} catch (err) { fail('J7: poikkeus – ' + err.message); }
+
+/* ═══ J8: ÄÄNTÄ EI SAADA – kolikko palautetaan ═══ */
+try {
+    const e = boot(7, 3, { failAudio: true });
+    walkToDoor(e);
+    tapDoor(e); tapDoor(e);
+    const c0 = e.savedCoins();                     // kadun kolikko voi olla poimittu matkalla
+    e.hold('ArrowDown'); e.frame(1); e.release('ArrowDown'); e.frame(1);
+    tapDoor(e);
+    if (e.savedCoins() !== c0) fail('J8: kolikkoa ei palautettu (' + c0 + ' → ' + e.savedCoins() + ')');
+    else if (e.jukeCalls().length !== 1) fail('J8: playJukebox-kutsuja ' + e.jukeCalls().length);
+    else if (e.notif().indexOf('kolikko palautettiin') < 0) fail('J8: palautusilmoitus puuttui (' + e.notif() + ')');
+    else ok('J8: äänen puuttuessa kolikko palautetaan + ilmoitus');
+} catch (err) { fail('J8: poikkeus – ' + err.message); }
+
+/* ═══ J9: MOBIILIPOLKU – D-pad + ⚡-nappi ═══ */
+try {
+    const e = boot(9, 4);
+    for (const id of ['btn-up', 'btn-down', 'btn-right', 'action-btn']) {
+        if (e.listenerCount(id, 'touchstart') === 0) fail('J9: ' + id + '/touchstart-kuuntelija puuttuu');
+    }
+    e.press('btn-down'); e.frame(60); e.releaseBtn('btn-down'); e.frame(1);
+    e.press('btn-right'); e.frame(296); e.releaseBtn('btn-right'); e.frame(1);
+    e.press('btn-up'); e.frame(60); e.releaseBtn('btn-up'); e.frame(1);
+    const tapBtn = (id) => { e.press(id); e.frame(2); e.releaseBtn(id); e.frame(1); };
+    tapBtn('action-btn');                          // potku
+    tapBtn('action-btn');                          // sisään
+    if (!e.room()) fail('J9: huone ei auennut kosketusnapein');
+    else {
+        ok('J9: D-pad + ⚡-nappi avasivat jukebox-huoneen (touch-polku toimii)');
+        tapBtn('btn-down');
+        if (!e.sawText('Valinta: 1 – Knived - Our Song')) fail('J9: btn-down ei valinnut kappaletta 1');
+        else ok('J9: D-pad ▼ valitsi kappaleen (touch)');
+        tapBtn('btn-up');
+        if (!e.sawText('Ei valintaa')) fail('J9: btn-up ei palauttanut valintaa 0:aan');
+        else ok('J9: D-pad ▲ palautti valinnan 0:aan (touch)');
+        const c0 = e.savedCoins();
+        tapBtn('btn-down');                        // valinta 1
+        tapBtn('action-btn');                      // osta + poistu
+        const calls = e.jukeCalls();
+        if (e.room()) fail('J9: ⚡-nappi ei poistunut huoneesta');
+        else if (e.savedCoins() !== c0 - 1 || calls.length !== 1 || calls[0] !== 'jukebox/Knived_Our_song.mp3')
+            fail('J9: mobiiliosto väärin (' + JSON.stringify(calls) + ', ' + c0 + '→' + e.savedCoins() + ')');
+        else ok('J9: ⚡-nappi osti kappaleen 1 (jukebox/Knived_Our_song.mp3) ja poistui huoneesta');
+        tapBtn('action-btn');
+        if (e.sawText('🔊 SOI NYT: Knived - Our Song')) ok('J9: mobiilissa SOI NYT -tila näkyy');
+        else fail('J9: SOI NYT -tila puuttui mobiilissa');
+        const c1 = e.savedCoins();
+        tapBtn('btn-down'); tapBtn('action-btn');
+        if (e.savedCoins() !== c1 || e.jukeCalls().length !== 1) fail('J9: soidessa mobiilinappi veloitti uudelleen');
+        else ok('J9: soidessa mobiilinapit eivät veloita uudelleen');
+    }
+} catch (err) { fail('J9: poikkeus – ' + err.message); }
+
+/* ═══ J10: HUONE PIIRTYY KANKAAN SISÄÄN (0 piirtoa ulkopuolelle) ═══ */
+try {
+    const e = boot(11, 3);
+    walkToDoor(e);
+    tapDoor(e); tapDoor(e);
+    if (!e.room()) fail('J10: huone ei auennut piirtotestiin');
+    else {
+        const all = [];
+        const grab = () => { for (const s of e.shapes()) all.push(s); };
+        grab();
+        e.hold('ArrowDown'); e.frame(2); grab(); e.release('ArrowDown'); e.frame(2); grab();
+        e.setJukeboxPlaying(true); e.frame(2); grab();      // SOI NYT -tila + pyörivä levy
+        let out = 0, worst = '';
+        for (const s of all) {
+            if (s[0] < -1 || s[1] < -1 || s[2] > 801 || s[3] > 401) {
+                out++;
+                if (!worst) worst = JSON.stringify(s.map((v) => Math.round(v)));
+            }
+        }
+        if (out === 0) ok('J10: huone piirtyi kokonaan kankaan sisään (' + all.length + ' muotoa, 0 ulkopuolelle)');
+        else fail('J10: ' + out + ' piirtoa kankaan ulkopuolelle, esim. ' + worst);
+    }
+} catch (err) { fail('J10: poikkeus – ' + err.message); }
+
+/* ── RAPORTTI ──────────────────────────────────────────────── */
+console.log('=========================================================');
+console.log(' JUKEBOX (talo 5, ovi x410) v4.21 – portti / valinta (▲ ylös, ▼ alas) / osto');
+console.log('=========================================================');
+for (const o of oks) console.log('  ' + o);
+console.log('  == LÖYDÖKSET (' + problems.length + ') ==');
+if (!problems.length) console.log('  OK: ei virheita.');
+for (const p of [...new Set(problems)]) console.log('  X ' + p);
+process.exitCode = problems.length ? 1 : 0;
