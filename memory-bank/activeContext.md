@@ -2,13 +2,13 @@
 
 > **Kevyt:** Vain tämä tiedosto luetaan session alussa.
 > **✅ REFAKTOROINTI VALMIS (Vaiheet 0–6, v11.38–v11.45) JA JULKAISTU 3.10.2026.**
-> Tuotanto = `origin/main` = **v11.48** → `https://teppoaland.github.io/aistreet/` (Pages tarjoilee
-> v11.48:n; käyttäjä testasi sen ja totesi toimivaksi). Portti **27 penkkiä / 27 puhdasta / 0 löydöstä**.
+> Tuotanto = `origin/main` = **v11.49** → `https://teppoaland.github.io/aistreet/` (Pages tarjoilee
+> v11.49:n; käyttäjä testasi sen ja totesi toimivaksi). Portti **27 penkkiä / 27 puhdasta / 0 löydöstä**.
 > **v11.46–v11.48 (3.10.2026):** makuuhuoneen sininen **HOSTEL-neonkyltti** (`drawHostelSign`) +
 > huoneen otsikko **HOSTEL - BEDROOM** + **rauta-aita pois BAD/FULLista** (`chaosFlags.ruin`) –
 > ks. `progress.md`. NORMAL/MILD/GOOD bitti-identtiset.
-> **v11.49 (3.10.2026, työpuussa – ei vielä julkaistu):** BAD/FULLin **kuunvarjot** saavat
-> per-talo-kertoimen **×1,00–3,00** (uusi K1-akseli `moonShadowMax`, arpa kerran per yö) – ks. `progress.md`.
+> **v11.49 (3.10.2026, JULKAISTU):** BAD/FULLin **kuunvarjot** saavat per-talo-kertoimen
+> **×1,00–3,00** (uusi K1-akseli `moonShadowMax`, arpa kerran per yö) – ks. `progress.md`.
 > Sääntö 03: Vaihe 6 (kommenttisiivous) **ei nostanut versiota** – `verify-comments-only.cjs` todisti,
 > että koodi on kommentit poistettuna identtinen (kommentit eivät ole ajettavaa koodia).
 > **🔴 UUSI SESSIO – KYSY ENSIN:** *"Mitä tehdään seuraavaksi?"* – refaktorointi on valmis ja julkaistu,

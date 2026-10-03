@@ -12,13 +12,13 @@
 > (penkit repoon, `update()` 85 rv, `render()` 143 rv, `handleAction()` 14 rv, `chaosFlags`,
 > `rooms[]`, `dayNight`-olio, `street/chaos-config.js` + `street/sfx.js` + `street/news.js` +
 > `street/traffic.js` + `street/chaos-cards.js` + `street/rooms.js`, kommenttien versiosiivous).
-> **Tuotanto = `origin/main` = v11.48** (pushattu 3.10.2026); jäljellä vain ei-refaktorointityöt
+> **Tuotanto = `origin/main` = v11.49** (pushattu 3.10.2026); jäljellä vain ei-refaktorointityöt
 > (Blue Mäx -testimode, pääsiäismunat Dig Däshiin, hedelmäpelin RTP-presetit, jukebox-testien siivous).
 > **Bugikorjaukset v11.39** (K7 "Valot sammuvat" -kortti), **v11.41** (BAD/FULLin ikkunavalot),
 > **v11.43** (FULLin canvas-arvot), **v11.44** (huoneiden logiikka + penkki 41/0), **v11.45**
 > (päivä/yö-ryhmittely + kommenttisiivous) sekä **v11.46–v11.48** (HOSTEL-neonkyltti + huoneen
 > otsikko + rauta-aita pois BAD/FULLista). **v11.49** = kuunvarjojen kaaoskerroin BAD/FULLissa
-> (per talo ×1…3, kerran per yö) – **työpuussa, ei vielä julkaistu**. Jatko-ohjeet:
+> (per talo ×1…3, kerran per yö) – **julkaistu 3.10.2026 (`242ded0`)**. Jatko-ohjeet:
 > **`activeContext.md` § "🚧 JATKOPISTE"**.
 
 ## 🏮 Pääportaali – AI CHAOS STREET
@@ -494,4 +494,5 @@ per yö**.
   `memory-bank/activeContext.md`. **`#version-tag` + 10 `?v=`-leimaa + `.clinerules/03` → v11.49.**
 - **Tulos:** `chaos-normal-check` 79/0 · `street-render-smoke` 30/30 · `street-canvas-invariants` 0
   löydöstä · **`run-all` 27 penkkiä / 27 puhdasta / 0 löydöstä**.
+- **Julkaistu 3.10.2026** (push = tuotanto; commit `242ded0`).
 
