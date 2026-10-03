@@ -3,13 +3,19 @@
 > ## ⚠️ UUSI SESSIO (Cline): LUE TÄMÄ ENSIN
 >
 > Käyttäjä testaa tämän listan **itse** ja raportoi vain **ongelmat**.
+>
+> **Roolit:** **käyttäjä = testaaja** – peli testataan *pelaamalla*, ja silmä + maku ovat **lopullinen
+> tuomari** (`.clinerules/05-kevyt-polku.md`) · **Cline = koodari**, jonka oma mekaaninen validointi
+> (penkit / fuzz / A-B) on **turvaverkko**: se ei korvaa käyttäjän testiä eikä yksin todista
+> pelituntumaa, ulkoasua eikä ääntä.
+>
 > **Kysy heti session alussa:**
 >
 > > *"Testasitko v11.43:n (`docs/testilista.md`)? Löytyikö ongelmia?"*
 >
 > - **Ei ongelmia** → jatka `memory-bank/activeContext.md` § JATKOPISTE → **osa 8 (v11.44)**:
 >   huoneiden logiikka → `street/rooms.js`.
-> - **Ongelmia** → pyydä alla oleva **raportointipohja (§ 6)** ja toimi **testaajan kurilla:**
+> - **Ongelmia** → pyydä alla oleva **raportointipohja (§ 6)** ja toimi **kurinalaisesti (koodari):**
 >   1. **Toista havainto itse** mekaanisesti (vm-harness / fuzz) – älä arvaa.
 >   2. **A/B-todista** onko vika uusi vai ennestään ollut: `git show HEAD:street.js`,
 >      `git show 064f2d8^:street.js` tai aja sama skenaario vanhalla koodilla.
@@ -149,7 +155,7 @@ sen rakenne (3 FULL-arpaa × 420 frameä riittää yleensä).
 5. Toistuuko samalla URL:lla (F5) vai oliko kertaluonteinen
 6. Mode: NORMAL / MILD / GOOD / BAD / FULL
 ```
-**Testaajan muistilista ennen korjausta:**
+**Clinen muistilista ennen korjausta** (käyttäjä testaa silmällä – tämä on koodarin turvaverkko):
 - [ ] Toistin havainnon itse (vm-harness / fuzz / sama URL)
 - [ ] A/B: oliko vika uusi vai `git show HEAD` -versiossa jo?
 - [ ] Paikansin tiedoston + funktion (ks. § 7)
