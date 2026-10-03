@@ -42,6 +42,9 @@ Versionumeroa **ei** nosteta kun **koodi ei muutu**:
 - **Vain dokumentit tai muistipankki päivitetään** ilman koodimuutosta – ne menevät seuraavan
   koodimuutoksen kyydissä. Muuten versionumero lakkaa kertomasta, mitä pitää testata.
 - Vain `README.md`, `PROJECT.md`, `CHANGELOG.md`, `start_server.bat` muuttuu
+- **Koodikommenttien siivous** (esim. Vaihe 6: `vNN.NN`-merkinnät pois kommenteista) – kommentti ei
+  ole ajettavaa koodia. Todistus: `node tools/refactor/verify-comments-only.cjs` vertaa koodia ilman
+  kommentteja HEAD-versioon → jos identtinen, versionumeroa **ei** nosteta.
 - Buildattuja tiedostoja (`dig_game.html`) regeneroidaan
 
 **Nyrkkisääntö:** Muuttuiko **ajettava koodi** (myös rakenne, vaikka toiminta pysyisi samana)?
