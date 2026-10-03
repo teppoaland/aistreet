@@ -1,4 +1,4 @@
-# 🧪 Testilista v11.44 – manuaalitestit (AI CHAOS STREET)
+# 🧪 Testilista v11.45 – manuaalitestit (AI CHAOS STREET)
 
 > ## ⚠️ UUSI SESSIO (Cline): LUE TÄMÄ ENSIN
 >
@@ -11,12 +11,12 @@
 >
 > **Kysy heti session alussa:**
 >
-> > *"Testasitko v11.44:n (`docs/testilista.md`)? Löytyikö ongelmia?"*
+> > *"Testasitko v11.45:n (`docs/testilista.md`)? Löytyikö ongelmia?"*
 >
-> - **Ei ongelmia** → Vaihe 5 osat 1–8 on tehty: jatka `memory-bank/activeContext.md` § JATKOPISTE
->   → **B) Vaihe 4 loppuun** (päivä/yö-domain) tai **C) Vaihe 6** (kommenttisiivous).
->   **Erityisen tärkeä testi tässä versiossa: § 1a:n huoneet** (Nuku / BAR / jukebox) – niiden
->   *logiikka* siirtyi `street/rooms.js`:ään (osa 8).
+> - **Ei ongelmia** → Vaihe 5 osat 1–8 **ja** Vaihe 4 (päivä/yö-ryhmittely) on tehty: jatka
+>   `memory-bank/activeContext.md` § JATKOPISTE → **C) Vaihe 6** (kommenttisiivous).
+>   **Erityisen tärkeä testi tässä versiossa: § 1a′** – huoneiden logiikka (osa 8) **ja päivä/yö**
+>   (Nuku + auringonlasku/lamppushow, osa Vaihe 4).
 > - **Ongelmia** → pyydä alla oleva **raportointipohja (§ 6)** ja toimi **kurinalaisesti (koodari):**
 >   1. **Toista havainto itse** mekaanisesti (vm-harness / fuzz) – älä arvaa.
 >   2. **A/B-todista** onko vika uusi vai ennestään ollut: `git show HEAD:street.js`,
@@ -33,7 +33,7 @@
 ## 0) Miten testataan
 
 - **Polku:** `file:///D:/AI/AI_street/index.html` + parametrit. `start_server.bat` **ei** ole käytössä.
-- **Välimuisti:** `?v=11.44` vaihtui → selain hakee tuoreet tiedostot automaattisesti.
+- **Välimuisti:** `?v=11.45` vaihtui → selain hakee tuoreet tiedostot automaattisesti.
 - **Konsoli (F12)** kannattaa pitää auki: siellä näkyvät JS-virheet ja `?debug`-taulukko.
 
 | Kytkin | Mihin |
@@ -62,7 +62,11 @@ Suurin osa koodista on siirretty tiedostosta toiseen → **toiminnan pitää oll
 - **jukebox** (yöllä): valitse 2–3 kappaletta → soi peräkkäin; ääni + kansikuvat
 - **hedelmäpeli**-talo (iframe), avaimet, oviukko, rosvo, kukkaruukku
 
-**1a′. Huonelogiikka (osa 8, v11.44 – siirretty `street/rooms.js`:ään, tarkista erikseen)**
+**1a′. Huonelogiikka (osa 8, v11.44) + päivä/yö (Vaihe 4, v11.45) – tarkista erikseen**
+- **päivä/yö (v11.45):** Nuku vaihtaa suunnan (yö⇄päivä), **auringonlasku + yön lamppushow** ajetaan
+  (lamput syttyvät yksi kerrallaan), **päivä sammuttaa katuvalot kerran**, kuu nousee/laskee ja
+  kuunvarjot liikkuvat; `?day=1` / `?day=0` toimivat. HUOM: tila koottiin `dayNight`-olioksi –
+  **toiminnan pitää olla täsmälleen entinen**.
 - **Nuku**: 🍔 +1 (ei yli 10), päivä⇄yö vaihtuu **joka kerta**, Zzz-pimennys näkyy, ✕ kesken pimennyksen palauttaa kadulle
 - **BAR**: ▲ = 1 🪙 → 1 🍔, ▼ peruu **vain tämän vierailun** ostot, katto 10, 0 kolikolla ei tapahdu mitään, poistuminen (o)/Space/✕
 - **jukebox**: valinta 1 🪙/kappale, **vajaat kolikot** → soi niin monta kuin riittää, vahinko ✕ = **ei veloitusta**, äänen puuttuessa kolikot palautuvat
@@ -159,7 +163,7 @@ sen rakenne (3 FULL-arpaa × 420 frameä riittää yleensä).
 ## 6) 📝 Raportointipohja (mitä kysy käyttäjältä, jos ongelma löytyi)
 
 ```
-1. Versio: v11.44
+1. Versio: v11.45
 2. Tarkka URL + parametrit (esim. ?chaos=full&card=windows)
 3. seed (?debug → konsolin taulukko) tai "en tiedä"
 4. Mitä odotin vs. mitä näin (screenshot auttaa valtavasti)
@@ -187,6 +191,7 @@ sen rakenne (3 FULL-arpaa × 420 frameä riittää yleensä).
 | K7-kortit + `?card=` | `street/chaos-cards.js` | osa 5 |
 | huoneiden piirto (uni/jukebox/BAR) | `street/rooms.js` | osa 6 |
 | **huoneiden logiikka** (Nuku/BAR-ostot/jukebox-veloitus, `closeXxxRoom`) | **`street/rooms.js`** | **osa 8 · v11.44** |
+| **päivä/yö-tila** (auringonnousu/-lasku, kuu, yön lamppushow, `?day=`) | **`street.js`: `dayNight`-olio** | **Vaihe 4 · v11.45** |
 | huonerekisteri `rooms[]` + `closeRoom()` + oven avaus | `street.js` | osa 8 (jäi tänne) |
 | blackout (lamppujen kuput, ovivalot, reunavalo) | `street.js`: `drawLampPost`/`drawDoor`/`drawPlayer` | v11.39 |
 | BAD/FULL ikkunavalot | `street.js`: `seedLitWindows` | v11.41 |

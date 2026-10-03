@@ -92,7 +92,7 @@ const hooks = 'return { init, resize, closeGame, closeRoom, setChaos, saveChaosS
     '            get shootingStar() { return shootingStar; }, set shootingStar(v) { shootingStar = v; },\n' +
     '            set beamCooldownTimer(v) { beamCooldownTimer = v; },\n' +
     '            get beamWeaponCollected() { return beamWeaponCollected; }, set beamWeaponCollected(v) { beamWeaponCollected = v; },\n' +
-    '            get dayT() { return dayT; }, set dayT(v) { dayT = v; },\n' +
+    '            get dayT() { return dayNight.t; }, set dayT(v) { dayNight.t = v; },\n' +
     '        } };';
 src = src.replace(markerRe, hooks);
 ok('street.js: return-lause löytyi (koukut vain muistiin)', true);

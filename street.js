@@ -309,7 +309,32 @@ const Street = (() => {
        ensin (leaveHiddenStateForDeath), jotta kuolinsekvenssi näkyy kadulla.
        Myös sanomalehden lukutila (v4.53) peittää kadun. */
     function insideHiddenState() { return iframeOpen || barRoom || jukeboxRoom || newsRoom; }
-    let isDay = false;             // tallennettu päivä/yö-tila (state.isDay)
+/* ── Päivä/yö-tila (Vaihe 4 loppuun, v11.45): yksi olio ────────────
+       Aiemmin 15 irtamuuttujaa (~178 viittausta): isDay, dayT, moonX,
+       moonNightClock, moonDark, moonSaveTimer, sunX, sunDayClock,
+       sunSaveTimer, cycleChangeTimer, dayLampsOff, nightShowArmed,
+       nightShowQueue, nightShowTimer, spawnLampTimer. Ryhmittely kokoaa
+       tilan yhteen paikkaan (nollaus/reset myöhemmin yhdestä paikasta) –
+       EI toiminnallisia muutoksia.
+       HUOM: `state.isDay` (tallennettu pelitila) on ERI asia kuin
+       `dayNight.isDay` (tämän istunnon liukuva tila). */
+    const dayNight = {
+        isDay: false,            // istunnon päivä/yö-tila (tallennetaan `state.isDay`:hin)
+        t: 0,                    // 0 = yö … 1 = päivä (liukuva; entinen `dayT`)
+        cycleChangeTimer: 0,     // kaaos K2: asetetaan alla (CYCLE_CHANGE_DELAY_FRAMES + 1)
+        moonX: 0,                // kuun nykyinen x   (asetetaan alla: MOON_X_MIN)
+        moonNightClock: 0,       // yön kulku (framet) kuun rataa varten
+        moonDark: 0,             // kuun laskusta johtuva pimeneminen
+        moonSaveTimer: 0,        // tallennusvälin laskuri (v4.74)
+        sunX: 0,                 // auringon x       (asetetaan alla: SUN_X)
+        sunDayClock: 0,          // päivän kulku (framet) auringon rataa varten
+        sunSaveTimer: 0,         // tallennusvälin laskuri (v4.89)
+        dayLampsOff: false,      // päivä sammutti katuvalot kerran (v4.38)
+        nightShowArmed: false,   // yön lamppushow saa laueta (asetetaan alla: DAY_FORCE)
+        nightShowQueue: [],      // syttymättömien lamppujen indeksit
+        nightShowTimer: 0,       // frameä seuraavaan lamppuun
+        spawnLampTimer: 0        // laskuri spawn-lamppushow'lle
+    };
     let barRoom = false;
     let barBuyQty = 0;             // BAR: tämän vierailun ostetut (▼ peruu vain nämä)
     let barBuyHeldUp = false;      // ▲ reunanilmaisu – ei toistoa pohjassa
@@ -637,12 +662,11 @@ const Street = (() => {
        Kun pelaaja on läpäissyt kaikki kolme peliä, kadulle nousee päivä kerran
        (kuu vaihtuu auringoksi, valoisuus päivätasolle). Sen jälkeen tilan voi
        vaihtaa talon 7 makuuhuoneessa (Nuku: päivä ⇄ yö) ja valinta tallennetaan
-       (state.isDay). Yksi liukuva arvo dayT (0 = yö … 1 = päivä) ohjaa kaikki
+       (state.isDay). Yksi liukuva arvo dayNight.t (0 = yö … 1 = päivä) ohjaa kaikki
        muutokset, joten yö-tila piirtyy täsmälleen kuten ennen (kaikki lisäykset
-       ovat ehtoja dayT > 0). VISUAALINEN VAIN: hitboxit, törmäykset, kamera,
+       ovat ehtoja dayNight.t > 0). VISUAALINEN VAIN: hitboxit, törmäykset, kamera,
        avaimet ja talous eivät muutu mihinkään. Poikkeus: Jukebox ja
        Hedelmäpeli ovat auki vain öisin (v4.34, ks. CLOSED_SIGN). */
-    let dayT = 0;                          // 0 = yö … 1 = päivä (liukuva)
     let   DAY_FADE_FRAMES   = 1200;        // ~20 s auringonnousu (yö → päivä; kaaos K2, v10.05)
     let   NIGHT_FADE_FRAMES = 1200;        // ~20 s auringonlasku (päivä → yö; kaaos K2)
     let DAY_SKY_TOP     = '#3f7fc0';     // päivätaivaan yläosa (kaaos K1, v10.03)
@@ -714,20 +738,19 @@ const Street = (() => {
     ];
 /* ── Talojen kuusta tulevat varjot (v4.80) ──
        Kuu on talojen TAKANA → talot varjostavat koko kadun. Varjon kauempi
-       reuna siirtyy kuusta poispäin (moonX), joten suunta kääntyy kuun
+       reuna siirtyy kuusta poispäin (dayNight.moonX), joten suunta kääntyy kuun
        liikkuessa. Puhtaasti visuaalista – ei koske taloutta, hitboxeja eikä
        mekaniikkoja (sääntö 04). */
     const MOON_BLD_SHADOW_LEN   = 0.36;   // varjon pituus (× talon korkeus)
     const MOON_BLD_SHADOW_SKEW  = 0.055;  // vaakasiirtymä (× (talonX − moonX) × korkeus/100)
     const MOON_BLD_SHADOW_ALPHA = 0.50;   // tummuus talon juuressa (0 = pois)
-    let moonX = MOON_X_MIN;                       // kuun nykyinen x (ks. update)
-    let moonNightClock = 0;                       // yön kulku (framet) kuun rataa varten
-    let moonDark = 0;                             // kuun laskusta johtuva pimeneminen
-    let moonSaveTimer = 0;                        // tallennusvälin laskuri (v4.74)
-    let sunX = SUN_X;                             // auringon nykyinen x (päivällä liukuu, v4.89)
-    let sunDayClock = 0;                          // päivän kulku (framet) auringon rataa varten
-    let sunSaveTimer = 0;                         // tallennusvälin laskuri (v4.89)
-    let cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES + 1;  // > DELAY = "ei käynnissä" (v4.89)
+dayNight.moonX = MOON_X_MIN;                 // kuun nykyinen x (ks. update)
+dayNight.moonNightClock = 0;                 // yön kulku (framet) kuun rataa varten
+dayNight.moonSaveTimer = 0;                  // tallennusvälin laskuri (v4.74)
+dayNight.sunX = SUN_X;                       // auringon x (päivällä liukuu, v4.89)
+dayNight.sunDayClock = 0;                    // päivän kulku (framet) auringon rataa varten
+dayNight.sunSaveTimer = 0;                   // tallennusvälin laskuri (v4.89)
+dayNight.cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES + 1;  // > DELAY = "ei käynnissä" (v4.89)
 /* Kuun kuva (v4.79): assets/moon.png (alpha-PNG) – korvaa proseduraalisen
        sirpin kun kuva on ladattu. Jos kuva ei lataudu (tai headless-testi),
        piirretään entinen proseduraalinen kuu (fallback). Käännös on tehty jo
@@ -747,7 +770,7 @@ const Street = (() => {
     /* ── Pilvien päivätummuus (v4.40) ──
        Muoto ja määrä ovat yön ennallaan (initClouds) – vain väri tummenee ja
        peittävyys kasvaa dayT:n mukana, jotta pilvet erottuvat päivätaivaalta.
-       dayT = 0 → väri ja alpha ovat täsmälleen yön ennallaan. */
+       dayNight.t = 0 → väri ja alpha ovat täsmälleen yön ennallaan. */
     const CLOUD_NIGHT_CIRRUS = [190, 200, 225];  // yön ohuet juovat
     const CLOUD_NIGHT_HAZY   = [180, 195, 215];  // yön hunnut
     const CLOUD_DAY_CIRRUS   = [96, 104, 124];   // päivä: tummanharmaa juova
@@ -786,13 +809,12 @@ const Street = (() => {
     const BIRD_COLORS     = ['#000000', '#080808'];
 
     /* Päivä sammuttaa katuvalot kerran (v4.38): kun aurinko on noussut
-       täyteen (dayT === 1), kaikki lamput sammutetaan kertaalleen. Ne voi
+       täyteen (dayNight.t === 1), kaikki lamput sammutetaan kertaalleen. Ne voi
        silti potkaista uudelleen päälle myös päivällä. Lippu nollautuu vasta
        kun yö on palannut → seuraava auringonnousu sammuttaa taas kerran. */
-    let dayLampsOff = false;
 
     /* ── Yö sytyttää katuvalot yksi kerrallaan (v4.42) ──
-       Päivän peilikuva: kun aurinko on laskenut täyteen (dayT === 0) ja
+       Päivän peilikuva: kun aurinko on laskenut täyteen (dayNight.t === 0) ja
        pelaaja on jo edennyt (päivä/yö ratkaistu = state.isDay === false,
        ts. 3 avainta + makuuhuoneen Nuku yöhön), katuvalot syttyvät itsestään
        yksi kerrallaan vasemmalta oikealle – pieni "wow" auringonlaskun päälle.
@@ -803,11 +825,8 @@ const Street = (() => {
     let   NIGHT_LAMP_FIRST    = 30;      // ~0,5 s ennen ensimmäistä lamppua (kaaos K2, v10.05)
     let   NIGHT_LAMP_INTERVAL = 18;      // ~0,3 s lamppujen välissä (5 lamppua ≈ 1,7 s; kaaos K2)
     const NIGHT_LAMP_ORDER    = 'wave';  // 'wave' = x-järjestys · 'near' = lähin ensin
-    let nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päivä→yö-siirtymästä
-    let nightShowQueue = [];             // syttymättömien lamppujen indeksit
-    let nightShowTimer = 0;              // frameä seuraavaan lamppuun
+dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päivä→yö-siirtymästä
     let   SPAWN_LAMP_DELAY = 240;        // 4 s viive ennen lamppushowta spawnissa (kaaos K2, v10.05)
-    let spawnLampTimer = 0;              // laskuri spawn-lamppushow'lle
 
     /* Saako yön lamppushow laueta? Vain kun päivä/yö on jo ratkaistu
        (pelaaja on edennyt). Testityökalu ?day=0 ohittaa portin. */
@@ -826,49 +845,49 @@ const Street = (() => {
             const px = player.x + player.w / 2;
             idx.sort((a, b) => Math.abs(lamps[a].x - px) - Math.abs(lamps[b].x - px));
         }
-        nightShowQueue = idx;
-        nightShowTimer = NIGHT_LAMP_FIRST;
+        dayNight.nightShowQueue = idx;
+        dayNight.nightShowTimer = NIGHT_LAMP_FIRST;
     }
 
     /* ── Aukiolo (v4.34): Jukebox ja Hedelmäpeli auki vain öisin ──
        Päivällä ovesta tulee sama teksti-popup kuin lukitusta ovesta.
        Talousarvot eivät muutu – vain aukioloaika. Nuppi: CLOSED_AT_DAYT
-       (sama raja kuin makuuhuoneen tilanvaihdossa: dayT >= 0.5 = päivä). */
+       (sama raja kuin makuuhuoneen tilanvaihdossa: dayNight.t >= 0.5 = päivä). */
     const CLOSED_SIGN    = 'Open\n8pm-6am';
     const CLOSED_AT_DAYT = 0.5;   // tämän yli = päivä = ovet kiinni
-    function nightOnlyClosed() { return dayT >= CLOSED_AT_DAYT; }
+    function nightOnlyClosed() { return dayNight.t >= CLOSED_AT_DAYT; }
 
     /* ── Ovet auki ilman lampun potkaisua päivällä (v4.38) ──
-       Päivällä (dayT >= CLOSED_AT_DAYT) ovi aukeaa ilman että katuvalo
+       Päivällä (dayNight.t >= CLOSED_AT_DAYT) ovi aukeaa ilman että katuvalo
        pitää potkaista päälle – valoisalla kadulla lamppu ei ole portti.
        Avainportit (Dig Däsh vaatii digKey, Blue Mäx vaatii boulderKey)
        pysyvät ennallaan, samoin koko yökäytös. Makuuhuone (talo 7) on
        aina auki eikä tarvitse lamppua (v4.43).
        Nuppi DOOR_NO_LAMP_AT_DAY: false = vanha käytös (lamppu ensin aina). */
     const DOOR_NO_LAMP_AT_DAY = true;
-    function lampFreeOpen() { return DOOR_NO_LAMP_AT_DAY && dayT >= CLOSED_AT_DAYT; }
+    function lampFreeOpen() { return DOOR_NO_LAMP_AT_DAY && dayNight.t >= CLOSED_AT_DAYT; }
 
     /* Päivän tavoite liu'ulle: 1 = päivä, 0 = yö. Tallennettu tila
-       (isDay) ratkaisee, paitsi pakotettuna ?day=0/1. */
+       (dayNight.isDay) ratkaisee, paitsi pakotettuna ?day=0/1. */
     function dayTarget() {
         if (DAY_FORCE === 'day') return 1;
         if (DAY_FORCE === 'night') return 0;
-        return isDay ? 1 : 0;
+        return dayNight.isDay ? 1 : 0;
     }
 
     /* ── Kuun kello (v4.74) ──
        Yksi lähde kuun paikalle: kellosta (framet) lasketaan x ja pimeneminen.
        Samaa funktiota käyttävät init (tallennettu kello), resetMoon (0) ja
        update (kello + dt), joten kaava ei voi livahtaa eri versioiksi.
-       moonX säilyy murto-osaisena (EI Math.round) → kuu liukuu pehmeästi
+       dayNight.moonX säilyy murto-osaisena (EI Math.round) → kuu liukuu pehmeästi
        kuten pilvet, eikä hyppää pikselistä toiseen, vaikka vauhti on hidas. */
     function applyMoonClock(clock) {
-        moonNightClock = clock;
-        const p = Math.min(1, moonNightClock / MOON_NIGHT_FRAMES);
-        moonX = (skyDir >= 0)
+        dayNight.moonNightClock = clock;
+        const p = Math.min(1, dayNight.moonNightClock / MOON_NIGHT_FRAMES);
+        dayNight.moonX = (skyDir >= 0)
             ? MOON_X_MIN + p * (MOON_SET_X - MOON_X_MIN)
             : MOON_SET_X - p * (MOON_SET_X - MOON_X_MIN);   // float → nykimätön liuku (kaaos: suunta)
-        moonDark = Math.min(1, Math.max(0, (p - MOON_SET_START) / (1 - MOON_SET_START)))
+        dayNight.moonDark = Math.min(1, Math.max(0, (p - MOON_SET_START) / (1 - MOON_SET_START)))
                    * MOON_SET_DARK_ALPHA;
     }
 
@@ -881,7 +900,7 @@ const Street = (() => {
        2 s väli riittää – pahin F5-virhe on ~1,5 px kuun radalla. */
     function saveMoonClock() {
         if (DAY_FORCE) return;
-        state.moonClock = Math.round(moonNightClock);
+        state.moonClock = Math.round(dayNight.moonNightClock);
         GameState.save(state);
     }
 
@@ -891,31 +910,31 @@ const Street = (() => {
        tallennetaan heti, ettei reload palauta edellisen yön paikkaa. */
     function resetMoon() {
         applyMoonClock(0);
-        moonSaveTimer = 0;
+        dayNight.moonSaveTimer = 0;
         saveMoonClock();
     }
 
     /* ── Auringon kello (v4.89) ──
        Sama lähdeperiaate kuin kuulla: kellosta (framet) lasketaan x.
        Samaa funktiota käyttävät init (tallennettu kello), resetSun (0) ja
-       update (kello + dt). sunX säilyy murto-osaisena (EI Math.round). */
+       update (kello + dt). dayNight.sunX säilyy murto-osaisena (EI Math.round). */
     function applySunClock(clock) {
-        sunDayClock = clock;
-        const p = Math.min(1, sunDayClock / SUN_DAY_FRAMES);
-        sunX = (skyDir >= 0)
+        dayNight.sunDayClock = clock;
+        const p = Math.min(1, dayNight.sunDayClock / SUN_DAY_FRAMES);
+        dayNight.sunX = (skyDir >= 0)
             ? SUN_X + p * (SUN_SET_X - SUN_X)
             : SUN_SET_X - p * (SUN_SET_X - SUN_X);       // float → nykimätön liuku (kaaos: suunta)
     }
 
     function saveSunClock() {
         if (DAY_FORCE) return;
-        state.sunClock = Math.round(sunDayClock);
+        state.sunClock = Math.round(dayNight.sunDayClock);
         GameState.save(state);
     }
 
     function resetSun() {
         applySunClock(0);
-        sunSaveTimer = 0;
+        dayNight.sunSaveTimer = 0;
         saveSunClock();
     }
 
@@ -1425,10 +1444,10 @@ const Street = (() => {
     /* ── Ajoneuvojen piirto omasta tiedostosta (Vaihe 5 osa 4) ──
        street/traffic.js sisältää drawVehicle(v):n. Liikennologiikka
        (spawn, liike, törmäys) jää tänne. Live-getterit: ctx asettuu
-       initissä ja dayT liukuu päivä/yö-syklin mukana. */
+       initissä ja dayNight.t liukuu päivä/yö-syklin mukana. */
     StreetTraffic.bind({
         get ctx() { return ctx; },
-        get dayT() { return dayT; },
+        get dayT() { return dayNight.t; },
         VEHICLE_HEADLIGHT_DIM: VEHICLE_HEADLIGHT_DIM,
         /* Vaihe 5 osa 7 – liikennologiikka lukee/mutatoi näitä. */
         WORLD_W: WORLD_W,   // ← v11.43: PUUTTUI (spawn x = WORLD_W + w → undefined+w = NaN!)
@@ -1916,7 +1935,7 @@ const Street = (() => {
         if (!beamWeaponCollected) return false;
         if (beamCooldownTimer > 0) return false;   // v11.14: laukaisuväli (piilottaa myös ristikon)
         if (!shootingStar || !shootingStar.active || shootingStar.kind !== 'meteorite') return false;
-        if (dayT > 0) return false;
+        if (dayNight.t > 0) return false;
         // v10.22: pelaajan on oltava kääntyneenä meteoriitin tulosuuntaan (ei ammuntaa selästä)
         if (player.facing * shootingStar.vx >= 0) return false;
         // v10.22: ampuu vain lamppurivistön alapuolella (kadun puolella, ei talojen takaa)
@@ -2511,15 +2530,15 @@ const Street = (() => {
             state.isDay = true;
             GameState.save(state);
         }
-        isDay = (state.isDay === true);
-        dayT = dayTarget();
+        dayNight.isDay = (state.isDay === true);
+        dayNight.t = dayTarget();
         /* Kuun paikka palautetaan tallennuksesta (v4.74): F5/reload ei palauta
            kuuta lähtöasemaan. Nollatila syntyy vain kun tallennus on tyhjä
            (kuolema / ✕ "aloita alusta") tai kun uusi yö alkaa Nukusta.
            Testityökalut ?day=0/1 näyttävät kuun lähtöasemasta kuten ennen. */
         applyMoonClock(DAY_FORCE ? 0 : (Number(state.moonClock) || 0));
         applySunClock(DAY_FORCE ? 0 : (Number(state.sunClock) || 0));
-        spawnLampTimer = freshGame ? SPAWN_LAMP_DELAY : 0;  // 4 s → lamppushow vain uudessa pelissa (v4.90)
+        dayNight.spawnLampTimer = freshGame ? SPAWN_LAMP_DELAY : 0;  // 4 s → lamppushow vain uudessa pelissa (v4.90)
         /* Jukebox-soitto palautetaan tallennuksesta (v4.92): F5 ei katkaise soittoa. */
         if (state.jukeQueue && state.jukeQueue.length > 0 && state.jukePos !== undefined) {
             const urls = [];
@@ -2841,39 +2860,39 @@ const Street = (() => {
         // vaihtaa sitä vapaasti (päivä ⇄ yö).
         if (state.isDay == null && !DAY_FORCE && allKeysCollected()) {
             state.isDay = true;
-            isDay = true;
+            dayNight.isDay = true;
             GameState.save(state);
         }
         // Liuku pysäytetään, kunnes pelaaja on taas kadulla: avain saadaan
         // alapelistä (iframe) ja huoneista → muutos näkyy kadulle palatessa
         // eikä jää taustalla näkymättömiin (myös lehteä lukiessa, v4.53).
         const dayWanted = dayTarget();
-        if (dayT !== dayWanted && !iframeOpen && !sleepRoom && !barRoom &&
+        if (dayNight.t !== dayWanted && !iframeOpen && !sleepRoom && !barRoom &&
             !jukeboxRoom && !newsRoom) {
-            const fadeFrames = (dayWanted > dayT) ? DAY_FADE_FRAMES : NIGHT_FADE_FRAMES;
+            const fadeFrames = (dayWanted > dayNight.t) ? DAY_FADE_FRAMES : NIGHT_FADE_FRAMES;
             const step = DAY_DEBUG ? 1 : dt / fadeFrames;
-            if (dayWanted > dayT) {
-                const wasNight = dayT === 0;
-                dayT = Math.min(1, dayT + step);
+            if (dayWanted > dayNight.t) {
+                const wasNight = dayNight.t === 0;
+                dayNight.t = Math.min(1, dayNight.t + step);
                 if (wasNight) { shootingStar = null; satellite = null; }
             } else {
-                dayT = Math.max(0, dayT - step);
+                dayNight.t = Math.max(0, dayNight.t - step);
             }
-            if (Math.abs(dayWanted - dayT) < step) dayT = dayWanted;  // ei jää värähtelyä
+            if (Math.abs(dayWanted - dayNight.t) < step) dayNight.t = dayWanted;  // ei jää värähtelyä
         }
 
         // Päivänvalo on näkynyt tässä istunnossa → yön lamppushow saa laueta
         // (v4.42). Näin efekti ei laukea pelkästä sivunlatauksesta yöllä.
-        if (dayT > 0) nightShowArmed = true;
+        if (dayNight.t > 0) dayNight.nightShowArmed = true;
 
         // ── Päivä sammuttaa katuvalot kerran (v4.38) ──
-        // Kynnys on täysi päivä (dayT === 1): hehku on siihen mennessä jo
+        // Kynnys on täysi päivä (dayNight.t === 1): hehku on siihen mennessä jo
         // hiipunut LAMP_DAY_DIM:iin, joten sammutus ei poksahda silmään.
         // Lippu nollautuu vasta kun yö on palannut → kerran per auringonnousu.
         // Lampun voi silti potkaista päälle myös päivällä (lit = true).
-        if (dayT === 1) {
-            if (!dayLampsOff) {
-                dayLampsOff = true;
+        if (dayNight.t === 1) {
+            if (!dayNight.dayLampsOff) {
+                dayNight.dayLampsOff = true;
                 let anyLit = false;
                 for (let i = 0; i < lamps.length; i++) {
                     if (lamps[i].lit) {
@@ -2884,30 +2903,30 @@ const Street = (() => {
                 }
                 if (anyLit) GameState.save(state);
             }
-        } else if (dayT === 0) {
-            dayLampsOff = false;
+        } else if (dayNight.t === 0) {
+            dayNight.dayLampsOff = false;
             // Yö laskeutui täyteen → katuvalot syttyvät itsestään yksi
             // kerrallaan (v4.42), mutta vain kun pelaaja on jo edennyt
             // (päivä/yö ratkaistu). Uudessa pelissä valot potkitaan yhä itse.
-            if (nightShowArmed && nightLampsAllowed()) {
-                nightShowArmed = false;
+            if (dayNight.nightShowArmed && nightLampsAllowed()) {
+                dayNight.nightShowArmed = false;
                 startNightLampShow();
             }
             // Näytös etenee vain kadulla: huoneet ja iframet pysäyttävät
             // ajastimen (kuten päivän liukukin), ja tila tallennetaan per
             // lamppu, jotta reload kesken shown ei hukkaa jo syttyneitä.
             // HUOM: kickCount ei kasva → cheatit ja ylikuumeneminen ennallaan.
-            if (nightShowQueue.length && !iframeOpen && !sleepRoom && !barRoom &&
+            if (dayNight.nightShowQueue.length && !iframeOpen && !sleepRoom && !barRoom &&
                 !jukeboxRoom && !playerDead) {
-                nightShowTimer -= dt;
-                if (nightShowTimer <= 0) {
-                    const i = nightShowQueue.shift();
+                dayNight.nightShowTimer -= dt;
+                if (dayNight.nightShowTimer <= 0) {
+                    const i = dayNight.nightShowQueue.shift();
                     lamps[i].lit = true;
                     state.litLamps[i] = true;
                     GameState.save(state);
                     spawnParticles(lamps[i].x, GROUND_Y + 19 - LAMP_POST_H, '#ffff88', 8);
                     playLampOn();
-                    nightShowTimer = NIGHT_LAMP_INTERVAL;
+                    dayNight.nightShowTimer = NIGHT_LAMP_INTERVAL;
                 }
             }
         }
@@ -2917,9 +2936,9 @@ const Street = (() => {
     function updateSpawnLampShow(dt) {
         // ── Spawn-lamppushow (v4.90): pelin alussa/kuoleman jälkeen 4 s → lamput syttyvät ──
         // Käyttää samaa startNightLampShow()-mekaniikkaa kuin yön tullessa.
-        if (spawnLampTimer > 0 && !isDay && !playerDead && !iframeOpen && !sleepRoom && !barRoom && !jukeboxRoom) {
-            spawnLampTimer -= dt;
-            if (spawnLampTimer <= 0) {
+        if (dayNight.spawnLampTimer > 0 && !dayNight.isDay && !playerDead && !iframeOpen && !sleepRoom && !barRoom && !jukeboxRoom) {
+            dayNight.spawnLampTimer -= dt;
+            if (dayNight.spawnLampTimer <= 0) {
                 startNightLampShow();                    // sytytä lamput yksi kerrallaan
             }
         }
@@ -2951,50 +2970,50 @@ const Street = (() => {
         // Kun kuu/aurinko on kadonnut, odotetaan CYCLE_CHANGE_DELAY_FRAMES
         // (15 s) ja vaihdetaan automaattisesti seuraavaan vuorokaudenaikaan.
         // Kellot tallennetaan ~2 s välein, jotta F5 jatkaa samasta kohdasta.
-        if (!isDay) {
-            if (moonNightClock < MOON_NIGHT_FRAMES) {
-                applyMoonClock(moonNightClock + dt);
-                if (moonNightClock >= MOON_NIGHT_FRAMES) {
-                    cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES;  // aloita 15 s viive
+        if (!dayNight.isDay) {
+            if (dayNight.moonNightClock < MOON_NIGHT_FRAMES) {
+                applyMoonClock(dayNight.moonNightClock + dt);
+                if (dayNight.moonNightClock >= MOON_NIGHT_FRAMES) {
+                    dayNight.cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES;  // aloita 15 s viive
                 }
             } else {
                 applyMoonClock(MOON_NIGHT_FRAMES);      // pysyy päätepisteessä
-                cycleChangeTimer = Math.max(0, cycleChangeTimer - dt);
-                if (cycleChangeTimer <= 0) {
-                    isDay = true;
+                dayNight.cycleChangeTimer = Math.max(0, dayNight.cycleChangeTimer - dt);
+                if (dayNight.cycleChangeTimer <= 0) {
+                    dayNight.isDay = true;
                     state.isDay = true;
                     GameState.save(state);
                     resetSun();
-                    cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES + 1;  // nollaa tila
+                    dayNight.cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES + 1;  // nollaa tila
                 }
             }
-            moonSaveTimer += dt;
-            if (moonSaveTimer >= MOON_SAVE_FRAMES) {
-                moonSaveTimer = 0;
+            dayNight.moonSaveTimer += dt;
+            if (dayNight.moonSaveTimer >= MOON_SAVE_FRAMES) {
+                dayNight.moonSaveTimer = 0;
                 saveMoonClock();
             }
         } else {
-            moonDark = 0;
-            if (sunDayClock < SUN_DAY_FRAMES) {
-                applySunClock(sunDayClock + dt);
-                if (sunDayClock >= SUN_DAY_FRAMES) {
-                    cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES;  // aloita 15 s viive
+            dayNight.moonDark = 0;
+            if (dayNight.sunDayClock < SUN_DAY_FRAMES) {
+                applySunClock(dayNight.sunDayClock + dt);
+                if (dayNight.sunDayClock >= SUN_DAY_FRAMES) {
+                    dayNight.cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES;  // aloita 15 s viive
                 }
             } else {
                 applySunClock(SUN_DAY_FRAMES);          // pysyy päätepisteessä
-                cycleChangeTimer = Math.max(0, cycleChangeTimer - dt);
-                if (cycleChangeTimer <= 0) {
-                    isDay = false;
+                dayNight.cycleChangeTimer = Math.max(0, dayNight.cycleChangeTimer - dt);
+                if (dayNight.cycleChangeTimer <= 0) {
+                    dayNight.isDay = false;
                     state.isDay = false;
                     GameState.save(state);
                     resetMoon();
                     resetSun();
-                    cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES + 1;  // nollaa tila
+                    dayNight.cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES + 1;  // nollaa tila
                 }
             }
-            sunSaveTimer += dt;
-            if (sunSaveTimer >= SUN_SAVE_FRAMES) {
-                sunSaveTimer = 0;
+            dayNight.sunSaveTimer += dt;
+            if (dayNight.sunSaveTimer >= SUN_SAVE_FRAMES) {
+                dayNight.sunSaveTimer = 0;
                 saveSunClock();
             }
         }
@@ -3493,9 +3512,9 @@ const Street = (() => {
     /* Taivas: tähdenlento, meteoriitit (spawnit, tähdätty meteoriitti, osuma) ja satelliitti – vain yöllä; nollaa kesken lennon olleet päivän alkaessa. */
     function updateSky(dt) {
         // ── Tähdenlento + satelliitti (vain yöllä) ────
-        // Päivällä (dayT > 0) niitä ei enää spawnata; update() nollaa
+        // Päivällä (dayNight.t > 0) niitä ei enää spawnata; update() nollaa
         // kesken lennon olleet oliot päivän alkaessa.
-        if (dayT <= 0) {
+        if (dayNight.t <= 0) {
             updateBadDemo(dt);       // v11.24: BAD-avaus laukeaa vain kadulla ja yöllä
             updateShootingStar(dt);
             updateSatellite(dt);
@@ -3591,7 +3610,7 @@ const Street = (() => {
     /* Päivälinnut (v5.00): istuskelevat puissa, siirtyvät ajoittain uuteen paikkaan; yöllä poistetaan. */
     function updateBirds(dt) {
         // ── Päivälinnut (v5.00) ────────────
-        if (isDay) {
+        if (dayNight.isDay) {
             // Alusta tavoitemäärä jos ei ole asetettu tai kaikki linnut ovat kuolleet
             if (birdTargetCount === undefined || (birds.length === 0 && birdTargetCount > 0 && birdSpawnTimer === undefined)) {
                 birdTargetCount = BIRD_COUNT_MIN + Math.floor(Math.random() * (BIRD_COUNT_MAX - BIRD_COUNT_MIN + 1));
@@ -4230,7 +4249,7 @@ const Street = (() => {
         sleepHeldUp = false;
         sleepHeldDown = false;
         sleepPhase = 0;
-        isDay = (state.isDay === true);   // tallennettu päivä/yö pysyy
+        dayNight.isDay = (state.isDay === true);   // tallennettu päivä/yö pysyy
         barRoom = false;
         resetJukeboxRoom();   // jono (jukeQueue) saa jatkua alapelin aikana
         player.x = savedPlayerX; player.y = savedPlayerY;
@@ -4363,8 +4382,8 @@ const Street = (() => {
 
     function drawClouds() {
         /* Pilvien väri ja peittävyys liukuvat yön vaaleasta päivän tummaan
-           (v4.40). dayT = 0 → arvot ovat täsmälleen yön ennallaan. */
-        const dayMix = dayT;
+           (v4.40). dayNight.t = 0 → arvot ovat täsmälleen yön ennallaan. */
+        const dayMix = dayNight.t;
         const mix = (n, d) => Math.round(n + (d - n) * dayMix);
         const cirrusRGB = mix(CLOUD_NIGHT_CIRRUS[0], CLOUD_DAY_CIRRUS[0]) + ',' +
                           mix(CLOUD_NIGHT_CIRRUS[1], CLOUD_DAY_CIRRUS[1]) + ',' +
@@ -4828,7 +4847,7 @@ const Street = (() => {
         }
     }
 
-    /* Yötaivas + päivätaivaan liuku (dayT). */
+    /* Yötaivas + päivätaivaan liuku (dayNight.t). */
     function drawSkyGradient() {
         // Taivas
         const skyGrad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
@@ -4839,13 +4858,13 @@ const Street = (() => {
         ctx.fillRect(0, 0, WORLD_W, GROUND_Y);
 
         // Päivätaivas (lopputila) – liukuu yötaivaan päälle dayT:n mukaan
-        if (dayT > 0) {
+        if (dayNight.t > 0) {
             const dayGrad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
             dayGrad.addColorStop(0, DAY_SKY_TOP);
             dayGrad.addColorStop(0.55, DAY_SKY_MID);
             dayGrad.addColorStop(1, DAY_SKY_HORIZON);
             ctx.save();
-            ctx.globalAlpha = dayT;
+            ctx.globalAlpha = dayNight.t;
             ctx.fillStyle = dayGrad;
             ctx.fillRect(0, 0, WORLD_W, GROUND_Y);
             ctx.restore();
@@ -4855,9 +4874,9 @@ const Street = (() => {
     /* Aurinko: hehku, hitaasti pyörivä sädekehä ja kiekko (kaaos voi vaihtaa värin ja koon). */
     function drawSun() {
         // Aurinko (päivä) – liukuu vasemmalta oikealle päivän aikana (v4.89)
-        if (dayT > 0) {
+        if (dayNight.t > 0) {
             ctx.save();
-            ctx.globalAlpha = dayT;
+            ctx.globalAlpha = dayNight.t;
             // Hehku – sunGlow (kaaos) tai nykyinen lämmin (NORMAL bitti-identtinen)
             const glowStops = sunGlow || SUN_GLOW_DEFAULT;
             const discColor = sunColor || '#ffe066';
@@ -4865,12 +4884,12 @@ const Street = (() => {
                 ? sunColor.slice(1).match(/../g).map(h => parseInt(h, 16)).join(',')
                 : '255,238,160';
             const SR = SUN_R * sunSizeMult;   // kaaos v10.18: auringon koko (NORMAL = 1)
-            const sunGlowGrad = ctx.createRadialGradient(sunX, SUN_Y, SR * 0.4, sunX, SUN_Y, SR * 3.4);
+            const sunGlowGrad = ctx.createRadialGradient(dayNight.sunX, SUN_Y, SR * 0.4, dayNight.sunX, SUN_Y, SR * 3.4);
             sunGlowGrad.addColorStop(0, glowStops[0]);
             sunGlowGrad.addColorStop(0.4, glowStops[1]);
             sunGlowGrad.addColorStop(1, glowStops[2]);
             ctx.fillStyle = sunGlowGrad;
-            ctx.beginPath(); ctx.arc(sunX, SUN_Y, SR * 3.4, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(dayNight.sunX, SUN_Y, SR * 3.4, 0, Math.PI*2); ctx.fill();
             // Hitaasti pyörivä sädekehä
             const spin = Date.now() * 0.00012;
             ctx.strokeStyle = 'rgba(' + rayRGB + ',0.35)';
@@ -4880,13 +4899,13 @@ const Street = (() => {
                 const r0 = SR + 5;
                 const r1 = r0 + (i % 2 === 0 ? 9 : 5);
                 ctx.beginPath();
-                ctx.moveTo(sunX + Math.cos(ang) * r0, SUN_Y + Math.sin(ang) * r0);
-                ctx.lineTo(sunX + Math.cos(ang) * r1, SUN_Y + Math.sin(ang) * r1);
+                ctx.moveTo(dayNight.sunX + Math.cos(ang) * r0, SUN_Y + Math.sin(ang) * r0);
+                ctx.lineTo(dayNight.sunX + Math.cos(ang) * r1, SUN_Y + Math.sin(ang) * r1);
                 ctx.stroke();
             }
             // Kiekko: sunColor (kaaos) tai lämmin keltainen (NORMAL bitti-identtinen)
             ctx.fillStyle = discColor;
-            ctx.beginPath(); ctx.arc(sunX, SUN_Y, SR, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(dayNight.sunX, SUN_Y, SR, 0, Math.PI*2); ctx.fill();
             ctx.restore();
         }
     }
@@ -4894,8 +4913,8 @@ const Street = (() => {
     /* Tähdet: jokaisella oma twinkle; himmenevät päivän tullessa. */
     function drawStars() {
         // Tähdet (jokaisella oma random twinkle) – himmenevät päivän tullessa
-        if (dayT < 1) {
-            const starFade = 1 - dayT;
+        if (dayNight.t < 1) {
+            const starFade = 1 - dayNight.t;
             for (const s of stars) {
                 const freq = 800 + s.blink * 3000;
                 const twinkle = Math.sin(Date.now() / freq + s.blink) * 0.5 + 0.5;
@@ -4920,24 +4939,24 @@ const Street = (() => {
            mukaan). Rakenne: hehku → valoisa kiekko → kraatterit → maavalo
            (pehmeä terminaattori) → pallomaisuus. Varjokerrokset on klipattu
            kuun kiekkoon → mikään ei karkaa reunan ulkopuolelle. */
-        if (dayT < 1) {
+        if (dayNight.t < 1) {
             ctx.save();
             const moonY = MOON_Y, moonR = MOON_R;
-            const moonFade  = 1 - dayT;                                             // sirpin häipyminen päivällä
-            const earthFade = Math.max(0, moonFade - MOON_EARTHSHINE_FADE * dayT);  // maavalo häipyy ensin
+            const moonFade  = 1 - dayNight.t;                                             // sirpin häipyminen päivällä
+            const earthFade = Math.max(0, moonFade - MOON_EARTHSHINE_FADE * dayNight.t);  // maavalo häipyy ensin
             const shadowOff = moonR * MOON_SHADOW_OFF;
-            const tint = dayT * MOON_DAWN_TINT;                                     // aamunkoitto lämmittää sirpin
+            const tint = dayNight.t * MOON_DAWN_TINT;                                     // aamunkoitto lämmittää sirpin
             const mixCh = (a, b) => Math.round(a + (b - a) * tint);
 
             // 1) Hehku
             ctx.globalAlpha = moonFade;
-            const moonGlow = ctx.createRadialGradient(moonX, moonY, moonR * 0.4, moonX, moonY, moonR * 2.8);
+            const moonGlow = ctx.createRadialGradient(dayNight.moonX, moonY, moonR * 0.4, dayNight.moonX, moonY, moonR * 2.8);
             const glowRGB = MOON_GLOW_RGB[0] + ',' + MOON_GLOW_RGB[1] + ',' + MOON_GLOW_RGB[2];
             moonGlow.addColorStop(0, 'rgba(' + glowRGB + ',' + MOON_GLOW_A.toFixed(3) + ')');
             moonGlow.addColorStop(0.4, 'rgba(' + glowRGB + ',' + (MOON_GLOW_A * 0.33).toFixed(3) + ')');
             moonGlow.addColorStop(1, 'rgba(' + glowRGB + ',0)');
             ctx.fillStyle = moonGlow;
-            ctx.beginPath(); ctx.arc(moonX, moonY, moonR * 2.8, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(dayNight.moonX, moonY, moonR * 2.8, 0, Math.PI*2); ctx.fill();
 
             // 2) Kuu-kuva (v4.79): assets/moon.png – sama koko kuin entinen
             //    kiekko (2 × MOON_R = 60 px). Käännös on tehty jo itse kuvaan
@@ -4948,23 +4967,23 @@ const Street = (() => {
             if (moonPicReady) {
                 ctx.imageSmoothingEnabled = true; // kuva → pehmennetty skaalaus
                 const d = moonR * 2;
-                ctx.drawImage(moonPic, moonX - d / 2, moonY - d / 2, d, d);
+                ctx.drawImage(moonPic, dayNight.moonX - d / 2, moonY - d / 2, d, d);
             } else {
-                // 2b) Valoisa kiekko (dayT = 0 → MOON_LIT_RGB; aamunkoitolla lämpenee)
+                // 2b) Valoisa kiekko (dayNight.t = 0 → MOON_LIT_RGB; aamunkoitolla lämpenee)
                 ctx.fillStyle = 'rgb(' + mixCh(MOON_LIT_RGB[0], MOON_DAWN_RGB[0]) + ',' +
                                          mixCh(MOON_LIT_RGB[1], MOON_DAWN_RGB[1]) + ',' +
                                          mixCh(MOON_LIT_RGB[2], MOON_DAWN_RGB[2]) + ')';
-                ctx.beginPath(); ctx.arc(moonX, moonY, moonR, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(dayNight.moonX, moonY, moonR, 0, Math.PI*2); ctx.fill();
 
                 // 3) Kraatterit ja maret (terävinä valoisalla sirpillä, himmeinä tummalla)
                 if (MOON_CRATERS.length) {
                     ctx.save();
-                    ctx.beginPath(); ctx.arc(moonX, moonY, moonR, 0, Math.PI*2); ctx.clip();
+                    ctx.beginPath(); ctx.arc(dayNight.moonX, moonY, moonR, 0, Math.PI*2); ctx.clip();
                     for (const c of MOON_CRATERS) {
                         ctx.fillStyle = 'rgba(' + MOON_CRATER_RGB[0] + ',' + MOON_CRATER_RGB[1] + ',' +
                                         MOON_CRATER_RGB[2] + ',' + c.a.toFixed(3) + ')';
                         ctx.beginPath();
-                        ctx.arc(moonX + c.x * moonR, moonY + c.y * moonR, c.r * moonR, 0, Math.PI*2);
+                        ctx.arc(dayNight.moonX + c.x * moonR, moonY + c.y * moonR, c.r * moonR, 0, Math.PI*2);
                         ctx.fill();
                     }
                     ctx.restore();
@@ -4976,12 +4995,12 @@ const Street = (() => {
                     const steps = Math.max(1, MOON_TERMINATOR_SOFT);
                     const stepA = MOON_EARTHSHINE_A * 0.4;   // 3 porrasta → ydin ≈ MOON_EARTHSHINE_A
                     ctx.save();
-                    ctx.beginPath(); ctx.arc(moonX, moonY, moonR, 0, Math.PI*2); ctx.clip();
+                    ctx.beginPath(); ctx.arc(dayNight.moonX, moonY, moonR, 0, Math.PI*2); ctx.clip();
                     for (let i = steps - 1; i >= 0; i--) {
                         const k = 1 + (steps > 1 ? i / (steps - 1) : 0) * MOON_TERMINATOR_SPREAD;
                         ctx.fillStyle = 'rgba(' + esRGB + ',' + (stepA * earthFade).toFixed(3) + ')';
                         ctx.beginPath();
-                        ctx.arc(moonX + shadowOff, moonY + moonR * MOON_SHADOW_Y,
+                        ctx.arc(dayNight.moonX + shadowOff, moonY + moonR * MOON_SHADOW_Y,
                                 moonR * MOON_SHADOW_R * k, 0, Math.PI*2);
                         ctx.fill();
                     }
@@ -4990,11 +5009,11 @@ const Street = (() => {
 
                 // 5) Pallomaisuus: reuna tummenee hiukan (limb darkening)
                 if (MOON_LIMB_DARK > 0) {
-                    const limb = ctx.createRadialGradient(moonX, moonY, moonR * 0.55, moonX, moonY, moonR);
+                    const limb = ctx.createRadialGradient(dayNight.moonX, moonY, moonR * 0.55, dayNight.moonX, moonY, moonR);
                     limb.addColorStop(0, 'rgba(0,0,0,0)');
                     limb.addColorStop(1, 'rgba(0,0,0,' + MOON_LIMB_DARK.toFixed(3) + ')');
                     ctx.fillStyle = limb;
-                    ctx.beginPath(); ctx.arc(moonX, moonY, moonR, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(dayNight.moonX, moonY, moonR, 0, Math.PI*2); ctx.fill();
                 }
             }
             ctx.restore();
@@ -5005,7 +5024,7 @@ const Street = (() => {
     /* Tähdenlento ja meteoriitti (v11.24: kaikki meteoriitit tässä kerroksessa → talot peittävät ne). */
     function drawShootingStars() {
         // Tähdenlento / meteoriitti (vain yöllä)
-        if (dayT <= 0 && shootingStar && shootingStar.active) {
+        if (dayNight.t <= 0 && shootingStar && shootingStar.active) {
             if (shootingStar.kind === 'meteorite') {
                 // v11.24: KAIKKI meteoriitit piirretään tässä kerroksessa (taustasiluetti ja
                 // katuvarren talot piirretään päälle) → myös tähdätty meteoriitti katoaa
@@ -5033,7 +5052,7 @@ const Street = (() => {
     /* Satelliitti: pieni vilkkuva piste, vain yöllä. */
     function drawSatellite() {
         // Satelliitti (pieni vilkkuva piste) – vain yöllä
-        if (dayT <= 0 && satellite && satellite.active) {
+        if (dayNight.t <= 0 && satellite && satellite.active) {
             const blink = Math.sin(satellite.blinkPhase) * 0.5 + 0.5;
             const alpha = 0.25 + blink * 0.65;
             ctx.fillStyle = 'rgba(255,255,255,' + alpha + ')';
@@ -5058,18 +5077,18 @@ const Street = (() => {
         // puut, ajoneuvot, pelaaja) ilman että yhtään piirtofunktiota tai
         // väripalettia tarvitsee säätää uudelleen. Piirretään ennen oviukon
         // vinjettiä ja kuoleman pimennystä → ne toimivat ennallaan.
-        if (dayT > 0) {
+        if (dayNight.t > 0) {
             ctx.save();
             ctx.globalCompositeOperation = 'lighter';
-            ctx.fillStyle = 'rgba(' + DAY_LIGHT_RGB[0] + ',' + DAY_LIGHT_RGB[1] + ',' + DAY_LIGHT_RGB[2] + ',' + (DAY_LIGHT_ALPHA * dayT).toFixed(3) + ')';
+            ctx.fillStyle = 'rgba(' + DAY_LIGHT_RGB[0] + ',' + DAY_LIGHT_RGB[1] + ',' + DAY_LIGHT_RGB[2] + ',' + (DAY_LIGHT_ALPHA * dayNight.t).toFixed(3) + ')';
             ctx.fillRect(0, 0, WORLD_W, WORLD_H);
             ctx.restore();
         }
 
         // ── Kuu laskeutui → maisema pimenee hiukan (v4.65) ──
-        if (moonDark > 0) {
+        if (dayNight.moonDark > 0) {
             ctx.save();
-            ctx.fillStyle = 'rgba(0,0,0,' + moonDark.toFixed(3) + ')';
+            ctx.fillStyle = 'rgba(0,0,0,' + dayNight.moonDark.toFixed(3) + ')';
             ctx.fillRect(0, 0, WORLD_W, WORLD_H);
             ctx.restore();
         }
@@ -5536,7 +5555,7 @@ const Street = (() => {
                             // Päivällä täyttö vaalenee taivaan heijastukseksi (WIN_DAY_FILL*, v4.81);
                             // valaistut ikkunat ja kaikki toiminta ennallaan.
                             ctx.fillStyle = mixHex(flatWindows ? '#05050d' : '#0a0a15',
-                                                   flatWindows ? WIN_DAY_FILL_FLAT : WIN_DAY_FILL, dayT);
+                                                   flatWindows ? WIN_DAY_FILL_FLAT : WIN_DAY_FILL, dayNight.t);
                             ctx.fillRect(wx, wy, 10, 14);
                             if (flatWindows) {
                                 ctx.fillStyle = 'rgba(0,0,0,0.35)';
@@ -6183,7 +6202,7 @@ const Street = (() => {
         // aikana pinkki maa- ja ympäristöhehku hiipuu täyteen päivään mennessä
         // nollaan – mutta itse kyltti (neon + väri) jää, sillä BAR on auki
         // myös päivällä (vrt. Jukebox: sammuttaa myös tekstin).
-        const gDayDim = 1 - dayT;
+        const gDayDim = 1 - dayNight.t;
         if (gDayDim > 0.01) {
             const gAlpha = gpulse * gDayDim;
             // 1) Valopohja kyltin alla maassa (rajoitettu katupintaan) – säde
@@ -6314,21 +6333,21 @@ const Street = (() => {
 
     /* ── Talojen kuusta tulevat varjot (v4.80) ──
        Jokaisen 9 talon pohjan alle piirretään puolisuunnikas GROUND_Y:stä
-       alaspäin; kauempi reuna siirtyy kuusta poispäin ((x − moonX)·k). Kun
+       alaspäin; kauempi reuna siirtyy kuusta poispäin ((x − dayNight.moonX)·k). Kun
        kuu liikkuu vasemmalta oikealle, varjo kääntyy oikealta vasemmalle.
        Täyttö on pystygradientti (tumma pohjassa → pois kauempaa) ja alpha
-       seuraa kuun näkyvyyttä (1 − dayT). Piirretään drawGround():n JÄLKEEN,
+       seuraa kuun näkyvyyttä (1 − dayNight.t). Piirretään drawGround():n JÄLKEEN,
        joten kaikki kadun objektit jäävät varjon sisään. */
     function drawMoonBuildingShadows() {
-        if (dayT >= 1 || MOON_BLD_SHADOW_ALPHA <= 0) return;
-        const fade = 1 - dayT;                            // kuun näkyvyys
+        if (dayNight.t >= 1 || MOON_BLD_SHADOW_ALPHA <= 0) return;
+        const fade = 1 - dayNight.t;                            // kuun näkyvyys
         for (const b of buildings) {
             if (buildingGone(buildings.indexOf(b))) continue;   // v11.22: tuhoutunut talo ei heitä varjoa
             const x0 = b.x, x1 = b.x + b.w;
             const L = b.h * MOON_BLD_SHADOW_LEN;          // varjon pituus
             const k = MOON_BLD_SHADOW_SKEW * (b.h / 100);
-            const s0 = (x0 - moonX) * k;                  // kauemman reunan siirto
-            const s1 = (x1 - moonX) * k;
+            const s0 = (x0 - dayNight.moonX) * k;                  // kauemman reunan siirto
+            const s1 = (x1 - dayNight.moonX) * k;
             const grad = ctx.createLinearGradient(0, GROUND_Y, 0, GROUND_Y + L);
             grad.addColorStop(0,    'rgba(0,0,0,' + (MOON_BLD_SHADOW_ALPHA * fade).toFixed(3) + ')');
             grad.addColorStop(0.55, 'rgba(0,0,0,' + (MOON_BLD_SHADOW_ALPHA * fade * 0.5).toFixed(3) + ')');
@@ -6417,10 +6436,10 @@ const Street = (() => {
                 const r = t.depth + 12;
                 // Keltaisten (talojen) ovivalojen hidas syke yöllä (v4.83):
                 // sama ~60 s jakso kuin BAR-kyltillä → koko katu hengittää
-                // samaan tahtiin. Päivällä (dayT → 1) syke hiipuu pois ja
+                // samaan tahtiin. Päivällä (dayNight.t → 1) syke hiipuu pois ja
                 // valo palaa tasaisesti kuten ennenkin. BAR/jukebox-värit
                 // (pinkki/violetti) pysyvät sykkimättöminä.
-                const tpulse = 1 + 0.40 * Math.sin(Date.now() / 3800) * (t.lightRGB === THRESH_LIGHT_HOUSE ? 1 - dayT : 0);
+                const tpulse = 1 + 0.40 * Math.sin(Date.now() / 3800) * (t.lightRGB === THRESH_LIGHT_HOUSE ? 1 - dayNight.t : 0);
                 const lg = ctx.createRadialGradient(t.cx, GROUND_Y + 2, 2, t.cx, GROUND_Y + 2, r);
                 lg.addColorStop(0, 'rgba(' + t.lightRGB + ',' + (0.16 * tpulse).toFixed(3) + ')');
                 lg.addColorStop(0.5, 'rgba(' + t.lightRGB + ',' + (0.06 * tpulse).toFixed(3) + ')');
@@ -6758,7 +6777,7 @@ const Street = (() => {
         get canvas() { return canvas; },
         get viewW() { return viewW; },
         get camX() { return camX; },
-        get isDay() { return isDay; }, set isDay(v) { isDay = v; },
+        get isDay() { return dayNight.isDay; }, set isDay(v) { dayNight.isDay = v; },
         get coinCount() { return coinCount; }, set coinCount(v) { coinCount = v; },
         get hamburgerCount() { return hamburgerCount; }, set hamburgerCount(v) { hamburgerCount = v; },
         get drunkLevel() { return drunkLevel; }, set drunkLevel(v) { drunkLevel = v; },
@@ -6775,7 +6794,7 @@ const Street = (() => {
            edelleen street.js:n sulkeumassa, joten sama tila pysyy. */
         get keys() { return keys; },
         get state() { return state; },
-        get dayT() { return dayT; },
+        get dayT() { return dayNight.t; },
         get actionJustPressed() { return actionJustPressed; }, set actionJustPressed(v) { actionJustPressed = v; },
         get sleepRoom() { return sleepRoom; }, set sleepRoom(v) { sleepRoom = v; },
         get sleepHeldUp() { return sleepHeldUp; }, set sleepHeldUp(v) { sleepHeldUp = v; },
@@ -6791,7 +6810,7 @@ const Street = (() => {
         get jukeSavedPos() { return jukeSavedPos; }, set jukeSavedPos(v) { jukeSavedPos = v; },
         get hamburgerTimer() { return hamburgerTimer; }, set hamburgerTimer(v) { hamburgerTimer = v; },
         get drunkTimer() { return drunkTimer; }, set drunkTimer(v) { drunkTimer = v; },
-        get cycleChangeTimer() { return cycleChangeTimer; }, set cycleChangeTimer(v) { cycleChangeTimer = v; },
+        get cycleChangeTimer() { return dayNight.cycleChangeTimer; }, set cycleChangeTimer(v) { dayNight.cycleChangeTimer = v; },
         get burgerInterval() { return burgerInterval; },
         get HUNGER_WAKE_GRACE() { return HUNGER_WAKE_GRACE; },
         get CYCLE_CHANGE_DELAY_FRAMES() { return CYCLE_CHANGE_DELAY_FRAMES; },
@@ -6837,7 +6856,7 @@ const Street = (() => {
         // Päivällä hehku himmenee (LAMP_DAY_DIM) ja moskiitot häipyvät
         // (MOSQUITO_DAY_DIM, v4.38). HUOM: lamp.lit ei muutu mihinkään →
         // yöllä ovet aukeavat potkaistusta lampusta täsmälleen kuten ennenkin.
-        const dayDim = 1 - LAMP_DAY_DIM * dayT;
+        const dayDim = 1 - LAMP_DAY_DIM * dayNight.t;
         const redSnap = lampRedSnap(lamp);   // kaaos v10.18: satunnainen punainen välähdys
 // Ylikuumentuneen lampun punainen hehku + savu
         if (lamp.overheat) {
@@ -6886,7 +6905,7 @@ const Street = (() => {
     function drawLampPost(lamp) {
         const geom = lampGeom(lamp);
         const bx = geom.bx, by = geom.by, poleTop = geom.poleTop, bulbY = geom.bulbY;
-        const dayDim = 1 - LAMP_DAY_DIM * dayT;   // hehkulampun piste + moskiitot
+        const dayDim = 1 - LAMP_DAY_DIM * dayNight.t;   // hehkulampun piste + moskiitot
         /* K7 "Valot sammuvat" (v11.39, bugikorjaus): lamppu ei pala – myöskään
            kupu eikä valopilkku. Vain PIIRTO: `lamp.lit` pysyy ennallaan, koska
            ovilogiikka (lampFreeOpen, omistajalamppu) lukee sitä. */
@@ -6985,7 +7004,7 @@ const Street = (() => {
             ctx.arc(bx, bulbY + 4, 4, 0, Math.PI*2);
             ctx.fill();
             // Moskiitot lampun valossa – häipyvät päivällä kokonaan (v4.38)
-            const mosquitoDim = 1 - MOSQUITO_DAY_DIM * dayT;
+            const mosquitoDim = 1 - MOSQUITO_DAY_DIM * dayNight.t;
             if (mosquitoDim > 0.01) {
                 ctx.globalAlpha = dayDim * mosquitoDim;
                 const t = Date.now() * 0.001;
@@ -7782,11 +7801,11 @@ const Street = (() => {
             ctx.fillRect(headX, py + 7 + bobY, 1, 3);
         }
         /* Sädease kädessä (v10.21): harmaa kepakko 45° kulmassa etukädessä, osoittaa eteen-ylös.
-           v11.21: ase näkyy vain yöllä (dayT <= 0). Päivällä se on piilossa, koska aseella ei
-           voi muutenkaan ampua (beamCanFire() vaatii dayT <= 0) eikä meteoriitteja synny.
+           v11.21: ase näkyy vain yöllä (dayNight.t <= 0). Päivällä se on piilossa, koska aseella ei
+           voi muutenkaan ampua (beamCanFire() vaatii dayNight.t <= 0) eikä meteoriitteja synny.
            Tallennettu tila (beamWeaponCollected) EI muutu → kerran napattu ase ilmestyy
            itsestään takaisin käteen, kun yö ja meteoriitit palaavat. */
-        if (beamWeaponCollected && dayT <= 0) {
+        if (beamWeaponCollected && dayNight.t <= 0) {
             ctx.save();
             ctx.translate(frontArmX + 1, frontArmY + 6);
             ctx.rotate(-Math.PI / 4);

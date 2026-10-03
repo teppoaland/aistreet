@@ -55,6 +55,10 @@ Hyvä tietää ylläpitäessä:
   läpi, loput asettavat talon meteoriitin eteen. Vaihtokytkin: `MC_SEED=2 node …`.
 - **Jukebox/avenger/hunger-scope:** kävelyt mitataan pelaajan sijainnista (`player()`-probe),
   koska 1 🍔 = 2/3-vauhti (v4.70); ovikohteet valitaan nykyisen talojärjestyksen mukaan.
+- **Preludi-penkit** (`street-beam-cd-hp`) rakentavat oman `new Function`-kontekstin ja poimivat
+  tuotannosta vain funktioita → **niiden on määriteltävä tarvitsemansa tila itse** (esim.
+  `dayNight`, koska `beamCanFire` lukee `dayNight.t`). Sama koskee hookkeja injektoivia penkkejä:
+  koukun nimen paluuarvo seuraa tuotantoa (`dayT` → `dayNight.t`).
 
 ## Penkkien kytkennät lähdetekstiin (varo näitä muuttaessasi)
 

@@ -89,8 +89,8 @@ const hooks = 'return { init, resize, closeGame, closeRoom, setChaos, saveChaosS
     '            set beamWeaponCollected(v) { beamWeaponCollected = v; },\n' +
     '            get shootingStar() { return shootingStar; },\n' +
     '            set shootingStar(v) { shootingStar = v; },\n' +
-    '            get dayT() { return dayT; },\n' +
-    '            set dayT(v) { dayT = v; },\n' +
+    '            get dayT() { return dayNight.t; },\n' +
+    '            set dayT(v) { dayNight.t = v; },\n' +
     '            aim(x, y) { aimX = x; aimY = y; },\n' +
     '            player, coin, fireBeam, update\n' +
     '        } };';

@@ -1,6 +1,6 @@
 # 📊 Projektin edistyminen
 
-> **v11.44 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026.
+> **v11.45 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026.
 > **Kompaktoitu 28.9.2026 (v11.00, 29,5 → 20,7 kt):** tiivistettiin vain v10.x/uusi aines (v10.01–v11.00 -taulukko) + rakenteelliset viat (orvot taulukkorivit, tyhjät rivit, pitkät rivit).
 > **Esiforkin v3.8x–v5.02 -historia säilyy alla sellaisenaan** (koko historia: `D:\AI\Main`, 196 committia; ffb1dd9 · cc7046b · 44db9e7) – tämän repon historia alkaa `b854771`.
 > **3.10.2026: pankkia kevennettiin** – esiforkin taulukkorivit (v3.8x–v5.02) sekä vanhat
@@ -8,12 +8,13 @@
 > vain nykyajan (v10+/v11+) rivit ja refaktoroinnin kirjaukset.
 > **Rajat (päivitetty 3.10.2026 – `progress.md` 45 → 65 kt, pysyvä):** tämä tiedosto **≤ 65 kt** · `activeContext.md` ≤ 65 kt · `systemPatterns.md` ≤ 25 kt · koko pankki **≤ 155 kt** – kokoa ei raportoida joka istunnossa; raja mainitaan vain, jos se ylittyy. Tämä tiedosto on **historia** (versiot, mittaustulokset, testipenkit): uusi rivi per versio, ei nykytilan kuvausta (se on `activeContext.md`:ssä).
 >
-> **🚧 Jatkopiste (3.10.2026, v11.44):** koodirefaktorointi **Vaiheet 0–5 osat 1–8 on tehty ja validoitu**
-> (penkit repoon, `update()` 85 rv, `render()` 143 rv, `handleAction()` 14 rv, `chaosFlags`,
-> `rooms[]`, `street/chaos-config.js` + `street/sfx.js` + `street/news.js` + `street/traffic.js` + `street/chaos-cards.js` + `street/rooms.js`).
-> **Bugikorjaukset v11.39** (K7 "Valot sammuvat" -kortti), **v11.41** (BAD/FULLin ikkunavalot),
-> **v11.43** (FULLin canvas-arvot: `#NaNNaN`-väri + `translate(NaN)`) **ja osa 8 / v11.44**
-> (huoneiden logiikka `street/rooms.js`:ään, 345 rv + uusi penkki `street-rooms-logic-test` 41/0).
+> **🚧 Jatkopiste (3.10.2026, v11.45):** koodirefaktorointi **Vaiheet 0–5 osat 1–8 ja Vaihe 4 (päivä/yö)
+> on tehty ja validoitu** (penkit repoon, `update()` 85 rv, `render()` 143 rv, `handleAction()` 14 rv,
+> `chaosFlags`, `rooms[]`, `dayNight`-olio, `street/chaos-config.js` + `street/sfx.js` + `street/news.js` +
+> `street/traffic.js` + `street/chaos-cards.js` + `street/rooms.js`). **Jäljellä vain Vaihe 6**
+> (kommenttien versiosiivous). **Bugikorjaukset v11.39** (K7 "Valot sammuvat" -kortti), **v11.41**
+> (BAD/FULLin ikkunavalot), **v11.43** (FULLin canvas-arvot: `#NaNNaN`-väri + `translate(NaN)`),
+> **v11.44** (huoneiden logiikka moduuliin + penkki 41/0) ja **v11.45** (päivä/yö-ryhmittely).
 > Työ on committoitu paikallisesti (pushia ei ole tehty). Jatko-ohjeet ja seuraavat askeleet:
 > **`activeContext.md` § "🚧 JATKOPISTE"**.
 
@@ -390,5 +391,23 @@ käyttäjän testaama koodi on täsmälleen sama). Korjaukset lyhyesti:
   4 putoamisen sattumaa → 18 putoamisella 22 % / 17 % = 1/6 ✔; arvotut luvut tulostetaan.
 - **`street-meteor-coin`:** kiinteä `Math.random`-siemen (37/40 siemenestä läpäisee, oletus 7,
   `MC_SEED=`-kytkin) + kolikkotestissä pelaaja turvaradalle (liikenne ei enää kaada kesken).
+
+**v11.45 – Vaihe 4 loppuun: päivä/yö-tila yhdeksi olioksi (`dayNight`):** 15 irtamuuttujaa
+(~178 viittausta) koottiin: `isDay` · `dayT` → `t` · `moonX` · `moonNightClock` · `moonDark` ·
+`moonSaveTimer` · `sunX` · `sunDayClock` · `sunSaveTimer` · `cycleChangeTimer` · `dayLampsOff` ·
+`nightShowArmed` · `nightShowQueue` · `nightShowTimer` · `spawnLampTimer`. **Ei toiminnallisia
+muutoksia:** järjestysherkät alkuarvot (`CYCLE_CHANGE_DELAY_FRAMES + 1`, `MOON_X_MIN`, `SUN_X`,
+`DAY_FORCE === 'night'`) asetetaan edelleen alkuperäisillä riveillään, `state.isDay` (tallennettu
+pelitila) ei nimetä ja NORMAL on bitti-identtinen (78 avainta / 0 eroa). **Ansat:** (a) bind-
+rajapinnan **avaimet** eivät saa nimetä (`get dayT()` pysyy, vain paluuarvo vaihtuu) – muuten
+syntyy `get dayNight.t()`; (b) `state.isDay` suojattiin lookbehindilla; (c) deklaraatiot piti
+korvata merkeillä *ennen* nimeämistä, etteivät olion kenttänimet nimeä. **Penkkipäivitykset
+(6 penkkiä):** `street-drunk`, `street-meteor-coin`, `street-render-smoke`, `street-rooms-logic`
+(hookit → `dayNight.*`) ja `street-beam-cd-hp` (preludi-penkki poimii funktioita tuotannosta →
+määrittelee oman `dayNight`-olion, koska `beamCanFire` lukee `dayNight.t`). **Talous jätettiin
+tarkoituksella ennalleen** (149 viittausta, sääntö 04) ja huoneiden tila hoidetaan osan 8
+get+set-pareina → **Vaihe 4 on valmis.** Työkalu `tools/refactor/group-day-night.cjs`.
+**Tulos:** NORMAL 78 avainta / 0 eroa · render-smoke 30/30 · `street-rooms-logic` 41/0 ·
+**26 penkkiä 26 puhdasta / 0 löydöstä**. `#version-tag` + 10 leimaa → **v11.45**.
 
 Vanhat penkkimuistiinpanot (v11.24–v11.27) ja vanhentunut penkkilista: `docs/pimea-katu-historia.md`.

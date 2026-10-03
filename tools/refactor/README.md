@@ -88,7 +88,7 @@ Ajon jälkeen: `node --check street.js` ja `node tools/tests/run-all.cjs`.
 - **Testikattavuus:** `street-render-smoke-test` laajennettiin: avaa jokainen huone ja
   varmistaa, että `closeRoom()` sulkee sen (ja palauttaa `false`, kun mikään ei ole auki) → 30/30.
 
-## Vaihe 4 – tilan ryhmittely olioiksi (osittain, v11.38)
+## Vaihe 4 – tilan ryhmittely olioiksi (VALMIS: kaivo + kolikko v11.38, päivä/yö v11.45)
 
 Tavoite: hajallaan olevat `let`-muuttujat aiheittain olioiksi → nollaus/tallennus yhteen
 paikkaan. **Toteutettu ne domainit, joissa hyöty on aito eikä riski kasva turhaan:**
@@ -98,22 +98,22 @@ paikkaan. **Toteutettu ne domainit, joissa hyöty on aito eikä riski kasva turh
 | **kaivo** | `manholeOpen`, `mhInside`, `mhAction` (3 irtamuuttujaa 22 viittauksessa) | `manhole = { open, inside, action, reset() }` – `rollManholeState()` käyttää `manhole.reset()` | 3 penkkiä (hookit päivitetty) |
 | **kolikko** | `coinRespawnTimer` irrallaan + `coinCheatStreak/GapTimer/Cooldown` (3 irtamuuttujaa) | `coin.respawnTimer` (coin-olioon) ja `coinCheat = { streak, gapTimer, cooldown, reset() }` | **ei yhtään** |
 | **rosvo** | – | ei muutosta: `robber` on jo olio; jäljellä on vain `robberCooldown`, joka **ei** voi asua samassa oliossa (robber on `null` juuri cooldownin aikana) | – |
+| **päivä/yö** (v11.45) | `isDay`, `dayT`, `moonX`, `moonNightClock`, `moonDark`, `moonSaveTimer`, `sunX`, `sunDayClock`, `sunSaveTimer`, `cycleChangeTimer`, `dayLampsOff`, `nightShowArmed`, `nightShowQueue`, `nightShowTimer`, `spawnLampTimer` = **15 irtamuuttujaa / ~178 viittausta** | `const dayNight = { … }` (yksi olio samassa IIFE:ssä) – järjestysherkät alkuarvot (`CYCLE_CHANGE_DELAY_FRAMES + 1`, `MOON_X_MIN`, `SUN_X`, `DAY_FORCE === 'night'`) asetetaan edelleen alkuperäisillä riveillään | **5 penkkiä** (hookit: `dayT`/`isDay`/`moonDark` → `dayNight.*`) + 1 preludi-penkki (`street-beam-cd-hp` määrittelee oman `dayNight`-olion) |
 
 ### Miksi loput jätettiin (mitattu, ei arvattu)
 
-| Domain | Viittauksia | Miksi ei nyt |
+| Domain | Viittauksia | Miksi ei |
 |---|---|---|
-| päivä/yö (`dayT`, `isDay`, `cycleChangeTimer`, `moonClock`, `sunClock`, `nightShowArmed`, `spawnLampTimer`) | **141** + 6 deklaraatiokohtaa | `isDay` lomittuu tallennettuun `state.isDay`:hin (eri asia, ei saa nimetä uudelleen) ja 4 penkkiä injektoi `dayT`-hookit. Vaatii oman vaiheensa + huolellisen `(?<![\w.$])`-rajauksen. |
-| huoneet (`sleep*`, `bar*`, `juke*`, `news*`) | **469** | Suurin; kannattaa tehdä vasta kun huoneet siirretään omiin tiedostoihin (Vaihe 5), jolloin ryhmittely maksaa itsensä takaisin. |
-| talous (`coinCount`, `hamburgerCount`, `drunkLevel`, `hamburgerTimer`) | **149** | Eniten penkkikytkentöjä (drunk 48, bm-key 19, meteor-coin 16, knockdown 17). Pelkkä uudelleennimeäminen ei tuo toiminnallista hyötyä ja osuu sääntö 04:n ydinalueeseen → **suositus: jätä ennalleen.** |
+| huoneet (`sleep*`, `bar*`, `juke*`, `news*`) | **469** | Ryhmiteltiin **Vaiheessa 5 osa 8** toisella tavalla: tila jäi street.js:n sulkeumaan ja moduuli lukee sitä **get+set-pareina** (`ENV.sleepRoom` …). Uusi penkki `street-rooms-logic-test` todistaa polun, joten erillistä olioa ei tarvita. |
+| talous (`coinCount`, `hamburgerCount`, `drunkLevel`, `hamburgerTimer`) | **149** | Eniten penkkikytkentöjä (drunk 48, bm-key 19, meteor-coin 16, knockdown 17). Pelkkä uudelleennimeäminen ei tuo toiminnallista hyötyä ja osuu sääntö 04:n ydinalueeseen → **päätös: jätetään ennalleen** (sama linja kuin aiemmin). |
 
 **Periaate jatkoon:** domain kerrallaan, aina yksi ajo `run-all.cjs` + `chaos-normal-check` +
-`street-render-smoke-test` välissä. Ryhmittely ilman tiedostojakoa on kosmeettista – tee se
-samassa yhteydessä kuin osia siirretään omiin tiedostoihin.
+`street-render-smoke-test` välissä.
 
-**Vaiheen 4 tulos:** 2 domainia ryhmitelty (kaivo, kolikko) + 6 irtamuuttujaa poistettu
-tuotannosta. Testit: NORMAL 78 avainta / 0 eroa · render-smoke 30/30 · 22 penkkiä
-16 puhdasta / 6 = sama kuin baseline. Versio pysyy **v11.38** (sama julkaisematon refaktorointi).
+**Vaiheen 4 tulos:** 3 domainia ryhmitelty (kaivo, kolikko, päivä/yö) + 21 irtamuuttujaa poistettu
+tuotannosta (`dayNight`-olio: 15). Talous jätettiin tarkoituksella ennalleen (149 viittausta,
+sääntö 04:n ydinalue). Testit: NORMAL 78 avainta / 0 eroa · render-smoke 30/30 · **26 penkkiä
+26 puhdasta / 0 löydöstä** (v11.45).
 
 
 ## Vaihe 5 – tiedostojako (osat 1–8 tehty, v11.44)
@@ -159,6 +159,15 @@ tilariippumatonta**.
 5. `tools/tests/street-src.cjs`:n `PARTS`-lista liittää osat samassa järjestyksessä →
    **penkit saavat saman kokonaisuuden kuin selain**.
 
+**⚠️ Ansa (Vaihe 4, päivä/yö):** ryhmittelyssä on kolme karikkoa – (a) **bind-rajapinnan AVAIMET
+eivät saa nimetä:** `get dayT() { return dayT; }` → paluuarvo vaihtuu (`dayNight.t`) mutta *nimen*
+pitää pysyä (`ENV.dayT`), muuten syntyy `get dayNight.t()` = syntaksivirhe; (b) **`state.isDay` on
+ERI asia** kuin istunnon `isDay` (tallennettu pelitila) → nimeäminen lookbehindilla `(?<![\w.$])`;
+(c) **järjestysherkät alkuarvot** (`CYCLE_CHANGE_DELAY_FRAMES + 1`, `MOON_X_MIN`, `SUN_X`,
+`DAY_FORCE === 'night'`) on asetettava alkuperäisillä riveillään, koska ne riippuvat myöhemmin
+määritellyistä vakioista. Lisäksi **preludi-penkit** (`street-beam-cd-hp`) poimivat funktioita
+tuotannosta omaan `new Function`-kontekstiinsa → niiden on määriteltävä tarvitsemansa tila itse.
+
 **Siirtotyökalut (repossa, ajetaan kerran – tarkistavat `expectFirst`-rivin ja
 keskeyttävät ennen kirjoitusta, jos yksikin varmistus pettää):**
 `extract.cjs` + `plan-*.json` (Vaihe 1, tiedoston sisäinen pilkonta) ·
@@ -166,7 +175,9 @@ keskeyttävät ennen kirjoitusta, jos yksikin varmistus pettää):**
 `split-cards.cjs` (Vaihe 5 osa 5, K7-kaaoskortit) · `split-rooms.cjs` (Vaihe 5 osa 6, huoneiden piirto) ·
 `split-traffic-logic.cjs` (Vaihe 5 osa 7, liikennologiikka samaan moduuliin) ·
 `split-rooms-logic.cjs` (Vaihe 5 osa 8, huoneiden logiikka samaan moduuliin:
-3 lohkoa 345 rv, lookbehind-nimeäminen + vahti "jokainen nimi 0 kertaa ilman ENV.-etuliitettä").
+3 lohkoa 345 rv, lookbehind-nimeäminen + vahti "jokainen nimi 0 kertaa ilman ENV.-etuliitettä") ·
+`group-day-night.cjs` (Vaihe 4 loppuun, v11.45: 15 irtamuuttujaa → `dayNight`-olio, ~178 viittausta;
+deklaraatiot korvataan merkeillä ensin, jotta olion kenttänimet eivät nimeä).
 
 **Tulos:** `street.js` 11 169 → **8 338 rv** (osat 1–8) · NORMAL 78 avainta / 0 eroa ·
 render-smoke 30/30 · **26 penkkiä 19 puhdasta / 7 = sama kuin baseline** (7. = tunnettu
@@ -179,7 +190,11 @@ ryhmittelyn (Vaihe 4). Suositeltu järjestys ja miksi:
 
 | Osio | Rivit | Estävä tila |
 |---|---|---|
-| Tilan ryhmittely (Vaihe 4 loppuun) | – | päivä/yö 141 + talous 149 viittausta (ks. Vaihe 4 -taulukko) |
+
+> ✅ **Tilan ryhmittely poistui listalta** (Vaihe 4 loppuun, v11.45): päivä/yö-tila (15
+> irtamuuttujaa / ~178 viittausta) koottiin `dayNight`-olioksi. **Talous jätettiin tarkoituksella
+> ennalleen** (149 viittausta, eniten penkkikytkentöjä, sääntö 04) ja **huoneiden tila** hoidettiin
+> osassa 8 get+set-pareina. Jäljellä oleva tiedostojako ei enää vaadi Vaihetta 4.
 
 > ✅ **Huoneiden logiikka poistui listalta** (Vaihe 5 osa 8): `updateSleepRoom`,
 > `updateBarRoom`, `updateJukeboxRoom`, `resetJukeboxRoom`, `jukePickedTracks`,
@@ -214,10 +229,11 @@ ryhmittelyn (Vaihe 4). Suositeltu järjestys ja miksi:
 
 
 3. ✅ **Valmis** – huonerekisteri (`rooms[]`).
-4. ◐ **Osittain valmis** – tilan ryhmittely (kaivo + kolikko tehty; katso perustelut yllä).
-5. **Tiedostojako** (klassiset `<script>`it + jaettu nimiavaruus, kuten `digGame1`) –
-   **vaatii `street-src.cjs`:n päivityksen** (osat järjestyksessä) ja penkkien
-   `expectFirst`-tarkistusten läpikäynnin.
-6. **Kommenttien versiosiivous** (479 `vNN.NN`-merkintää) → historia `CHANGELOG.md`:hen,
+4. ✅ **Valmis (v11.45)** – tilan ryhmittely: kaivo + kolikko (v11.38) ja **päivä/yö**
+   (`dayNight`-olio, v11.45). Talous jätettiin tarkoituksella ennalleen.
+5. ✅ **Valmis (osat 1–8, v11.38–v11.44)** – tiedostojako `street/`-kansioon (klassiset
+   `<script>`it + `var StreetXxx`-moduulit, kuten `digGame1`); `street-src.cjs`:n `PARTS`-lista
+   pitää penkit samassa järjestyksessä.
+6. ⏭️ **SEURAAVA – Kommenttien versiosiivous** (479 `vNN.NN`-merkintää) → historia `CHANGELOG.md`:hen,
    kommentteihin vain "miksi".
 

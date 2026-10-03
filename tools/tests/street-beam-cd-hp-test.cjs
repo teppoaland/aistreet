@@ -37,7 +37,11 @@ function arr(name) {
 const prelude = `
 let beamWeaponCollected = true, beamCooldownTimer = 0, beamFireTimer = 0;
 let beamStartX = 0, beamStartY = 0, beamEndX = 0, beamEndY = 0;
-let aimX = 0, aimY = 0, coinCount = 0, shootingStar = null, dayT = 0;
+let aimX = 0, aimY = 0, coinCount = 0, shootingStar = null;
+/* Vaihe 4 loppuun (v11.45): päivä/yö-tila on nyt yksi olio. Tämä penkki
+   rakentaa oman preludin ja poimii tuotannosta vain funktioita, joten
+   tarvittava tila (beamCanFire lukee dayNight.t) pitää määritellä tässä. */
+const dayNight = { t: 0, isDay: false, moonDark: 0 };
 const GROUND_Y = ${num('GROUND_Y')};
 const LAMP_BASE_Y = ${num('LAMP_BASE_Y')};
 const BEAM_HIT_TOLERANCE = ${num('BEAM_HIT_TOLERANCE')};
@@ -86,7 +90,7 @@ function star(over) {
 }
 return { fireBeam, beamCanFire, tick, log, star,
          setStar: s => { shootingStar = s; }, getStar: () => shootingStar,
-         setAim: (x, y) => { aimX = x; aimY = y; }, setDay: v => { dayT = v; },
+         setAim: (x, y) => { aimX = x; aimY = y; }, setDay: v => { dayNight.t = v; },
          setFacing: v => { player.facing = v; },
          cd: () => beamCooldownTimer, coins: () => coinCount,
          clear: () => { log.length = 0; }, consts: { BEAM_COOLDOWN_FRAMES, METEOR_HITS_TO_KILL } };

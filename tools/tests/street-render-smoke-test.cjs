@@ -106,8 +106,8 @@ let src = require('./street-src.cjs');
 const API = 'return { init, resize, closeGame, closeRoom, setChaos, saveChaosSession, loadChaosSession, clearChaosSession, clearBeamWeapon };';
 const DBG = API.replace(' };', `, __t: {
     update, render, player, lamps, buildings,
-    setDay: v => { dayT = v; }, setFog: v => { fogAlpha = v; },
-    setMoonDark: v => { moonDark = v; }, setShake: v => { screenShakeAmount = v; },
+    setDay: v => { dayNight.t = v; }, setFog: v => { fogAlpha = v; },
+    setMoonDark: v => { dayNight.moonDark = v; }, setShake: v => { screenShakeAmount = v; },
     setFlash: v => { meteorFlash = v ? { t: 12 } : null; },
     setSleep: (v, phase) => { sleepRoom = v; sleepPhase = phase || 0; },
     setBar: v => { barRoom = v; }, setJuke: v => { jukeboxRoom = v; }, setNews: v => { newsRoom = v; },
