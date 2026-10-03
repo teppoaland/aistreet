@@ -79,8 +79,8 @@
   `index.html` lataa osat omilla `<script>`-riveillä ennen `street.js`iä ja
   `tools/tests/street-src.cjs` `PARTS`-lista liittää penkeille saman kokonaisuuden.
   `street.js` 11 169 → **8 338 rv**.
-  **Jäljellä:** Vaihe 4 loppuun (päivä/yö 141, talous 149 viittausta) ja
-  talous) ja Vaihe 6 (kommenttisiivous). Ks. `tools/refactor/README.md`.
+  **Jäljellä:** Vaihe 4 loppuun (päivä/yö 141 ja talous 149 viittausta – suositus: talous jätetään
+  ennalleen) sekä Vaihe 6 (kommenttisiivous). Ks. `tools/refactor/README.md`.
 
 - 🏚️🚑💨🍺🗝️ **v11.30–v11.37 (historia – yksityiskohdat `progress.md`:ssä):** talojärjestyksen sekoitus
   BAD/FULLissa (v11.32) · rauniot pysäyttävät liikenteen ja eläimet (v11.36) · savukiekurat tuhoutuneista
@@ -299,10 +299,18 @@ vasta sitten korjaus + versionosto + paikallinen commit. Ei ongelmia → jatka a
   (`state`/`keys`/`jukePick` gettereinä); liikennekutsut käyttävät globaalia `StreetTraffic`ia.
   **Tulos:** NORMAL 78/0 · render-smoke 30/30 · uusi penkki 41/0 · `run-all` 19/7 = baseline.
   Yksityiskohdat ja ansat: `progress.md` (v11.44) + `tools/refactor/README.md`.
-- **B) Vaihe 4 loppuun** (SEURAAVA, jos halutaan vielä siivota): päivä/yö **141** (+4 penkkiä injektoi
-  `dayT`-hookit) · talous **149** (suositus: jätä ennalleen). Domain kerrallaan + täysi ajo välissä.
+- **B) Vaihe 4 loppuun (SEURAAVA, jos halutaan vielä siivota):** tilan ryhmittely – päivä/yö **141 viittausta**
+  (+4 penkkiä injektoi `dayT`-hookit) · talous **149 viittausta** (suositus: jätä ennalleen – arvot on
+  pelitestattu). Tämä on **ainoa jäljellä oleva refaktorointivaihe**, ja se on vapaaehtoinen siivous:
+  mikään ei enää estä Vaihetta 6.
+- **E) Penkkivelka (paras hoitaa ennen julkaisua):** 6 penkkiä on **vanhentuneita odotuksia**
+  (autohover 31 · avenger 1 · bad-warning 1 · hunger-scope 3 · jukebox 27 · manhole-bonus 3) +
+  epävakaa `street-meteor-coin` → portti ei ole vielä 100 % vihreä, vaikka uudet penkit ovat puhtaita.
 - **C) Vaihe 6 (itsenäinen, kevyt):** 479 `vNN.NN`-kommenttimerkintää → `CHANGELOG.md`:hen, kommenteihin vain "miksi".
-  **Malli osista 3–8:** siirrä *puhdas piirto/luku* ensin; get+set vasta kun mutaatio on pakko siirtää;
+- **D) Muut avoimet työt** (eivät liity refaktorointiin): ks. "Seuraavaksi"-osio – Blue Mäx -testimode,
+  pääsiäismunat Dig Däshiin, hedelmäpelin RTP-presetit, jukebox-testien päivitys.
+
+**Jos siirrät uuden osan – malli osista 3–8:** siirrä *puhdas piirto/luku* ensin; get+set vasta kun mutaatio on pakko siirtää;
   **tarkista host-nimen törmäys** paikallisiin nimiin (osa 6: `H` → `ENV`); **sido getterinä kaikki, mikä
   on määritelty bind-kohdan jälkeen** (osa 7: `PLAYER_DEPTH_MAX_Y`); ja **lisää JOKAINEN uudelleennimetty
   nimi bindiin** (osa 7:n regressio: `WORLD_W` unohtui → `undefined + w` = NaN → canvasiin kelvoton arvo,
@@ -313,12 +321,6 @@ vasta sitten korjaus + versionosto + paikallinen commit. Ei ongelmia → jatka a
   **ennen** `street.js`iä, (4) `node --check` + `run-all.cjs` + **selaintesti** + **versionosto (+0.01)**
   + **paikallinen commit (restore-piste)**. Malli: `tools/refactor/README.md` § Mekanismi;
   siirtoskriptit `tools/refactor/split-*.cjs`.
-- **B) Vaihe 4 loppuun** (SEURAAVA vapaaehtoinen siivous, kun A on tehty): päivä/yö **141**
-  (+4 penkkiä injektoi `dayT`-hookit) · talous **149** (suositus: jätä ennalleen).
-  Domain kerrallaan + täysi ajo välissä.
-- **C) Vaihe 6 (itsenäinen, kevyt):** 479 `vNN.NN`-kommenttimerkintää → `CHANGELOG.md`:hen, kommentteihin vain "miksi".
-- **D) Muut avoimet työt** (eivät liity refaktorointiin): ks. "🔜 Seuraavaksi" – Blue Mäx -testimode,
-  pääsiäismunat Dig Däshiin, hedelmäpelin RTP-presetit, jukebox-testien päivitys.
 
 **Muista:**
 - **Testaus (käyttäjän linjaus 3.10.2026):** peliä testataan **`file://`-polulla** –
@@ -335,7 +337,9 @@ vasta sitten korjaus + versionosto + paikallinen commit. Ei ongelmia → jatka a
   jokaisen validoidun vaiheen jälkeen (`git add -A && git commit -m "vNN.NN: …"`) → jokaisesta versiosta
   jää **revert-piste**, eikä committaus julkaise mitään. **Push = julkaisu** (GitHub **+ GitHub Pages**):
   **vain** kun käyttäjä sanoo "push"/"julkaise" – **ei koskaan osana committia**. Paikallinen `main` saa
-  olla `origin/main`ia edellä. Ks. `.clinerules/03` § Työnkulku.
+  olla `origin/main`ia edellä. **🔒 Julkaisukielto (käyttäjän linjaus 3.10.2026):** **pushia ei tehdä
+  ennen kuin refaktorointi on kokonaan tehty ja testattu** – keskeneräinen refaktorointi ei mene
+  pelaajille. Ks. `.clinerules/03` § Työnkulku.
 - **Versionosto (käyttäjän linjaus 3.10.2026):** **iso koodimuutos → aina +0.01**, myös rakenteellinen
   refaktorointi jonka toiminta ei muutu – käyttäjä tunnistaa numerosta, että testaa uusinta versiota
   (`?v=`-leima pakottaa tuoreet tiedostot). Refaktoroinnin osat 1–5 = **v11.38**, blackout-bugikorjaus

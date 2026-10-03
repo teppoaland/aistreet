@@ -66,6 +66,9 @@ asetukset ovat parametreja, eivät koodia — niihin saa ja pitää koskea tarvi
    joten push on **julkaisu tuotantoon**. Tehdään **vain** kun käyttäjä sanoo "push" / "julkaise".
    **Ei koskaan osana committia.** Paikallinen `main` saa olla `origin/main`ia edellä – se on merkki
    julkaisemattomasta (testatusta?) työstä.
+   **🔒 Käyttäjän linjaus 3.10.2026:** **julkaisua ei tehdä ennen kuin koodirefaktorointi on kokonaan
+   tehty ja testattu** – keskeneräinen refaktorointi ei saa mennä pelaajille ("ei ole pelaajille muuta
+   kuin harmia"). Sama koskee tilannetta, jossa yksikin tunnettu penkki on punaisella/vanhentunut.
 6. **Raportoi lyhyesti** – ei pitkiä yhteenvetoja (käyttäjä ei ehdi lukea niitä). Vain oleellinen: mitä muuttui ja lopputulos.
    Kerro aina **versionumero**, jotta käyttäjä tietää testaavansa uusinta.
 
