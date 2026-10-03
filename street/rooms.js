@@ -1,13 +1,13 @@
 /* ═══════════════════════════════════════════════════════════
    street/rooms.js – canvas-huoneiden PIIRTO (makuuhuone, jukebox, BAR)
-   (Vaihe 5 osa 6, v11.40 – siirretty street.js:stä, PELKKÄ SIIRTO.)
+   (Vaihe 5 osa 6, siirretty street.js:stä, PELKKÄ SIIRTO.)
 
    Sisältö: `drawSleepRoom` (sänky + Nuku/Poistu + Zzz-pimennys),
    `drawJukeboxRoom` + `drawJukeboxCabinet` (levy + neonkaari) ja
    `drawBarRoom` + `drawBarBeer` (olut, VAIN FULL) sekä BAR-taulun
    kuva-tila (BAR_PIC_SRC / barPic / barPicReady – ei käytetä muualla).
 
-   Lisäksi HUONEIDEN LOGIIKKA (Vaihe 5 osa 8, v11.44): updateSleepRoom /
+   Lisäksi HUONEIDEN LOGIIKKA (Vaihe 5 osa 8): updateSleepRoom /
    updateBarRoom / updateJukeboxRoom, jukeboxExitAndPlay + apurit ja
    closeSleepRoom / closeBarRoom / closeJukeboxRoom. Huoneiden tilamuuttujat
    (sleep-, bar- ja juke-) pysyvät street.js:n sulkeumassa ja sidotaan get+set
@@ -39,13 +39,13 @@ var StreetRooms = (function () {
     function bind(host) { ENV = host; }
 
     /* ── Makuuhuone (ex-palkintohuone, talo 7) ────
-       Ovi aina auki (v4.43: ei avaimia eikä lamppua). Huoneessa on kaksi valintaa:
+       Ovi aina auki (ei avaimia eikä lamppua). Huoneessa on kaksi valintaa:
          Nuku   = vaihtaa päivä/yö-tilan (päivä → yö TAI yö → päivä)
          Poistu = ei muuta mitään
        Molemmat ovat ilmaisia. Sänky on piirretty sivusta (pääty, paksu patja,
        tyyny, peitto ja jalat), ja ikkunasta näkyy tämänhetkinen tila.
 
-       SISÄLTÖ SOVITETAAN NÄKYVÄÄN IKKUNAAN (kuten jukebox v4.22): mobiilissa
+       SISÄLTÖ SOVITETAAN NÄKYVÄÄN IKKUNAAN (kuten jukebox): mobiilissa
        ENV.canvas on vain `ENV.viewW` (260–800) leveä ja kamera keskittää huoneen, joten
        kaikki sijoitetaan x = 400:n ympärille ja enintään `winW − 24` leveäksi.
        Koko piirto on save()/restore()-parin sisällä, ettei tila vuoda kadulle. */
@@ -298,11 +298,11 @@ var StreetRooms = (function () {
     }
 
     /* ── Jukebox-huone (talo 5) ────────────────────
-       Monivalinta (v4.46): rivi 0 = Poistu, rivit 1..N = kappaleet (1 🪙 /
+       Monivalinta: rivi 0 = Poistu, rivit 1..N = kappaleet (1 🪙 /
        kappale). Valitut soitetaan poistuttaessa yksi kerrallaan (1 → N).
        HUOM: jukebox ei muuta peliääniä mitenkään.
 
-       SELKEYS (v4.22): kaikki tekstit piirretään terävinä (ei
+       SELKEYS: kaikki tekstit piirretään terävinä (ei
        shadowBlur-sumennusta eikä läpinäkyvää tekstiä) ja koko asettelu
        sovitetaan siihen ikkunaan, joka ruudulla oikeasti näkyy. Mobiilissa
        ENV.canvas on vain `ENV.viewW` leveä ja kamera keskittää huoneen (ENV.camX), joten
@@ -314,7 +314,7 @@ var StreetRooms = (function () {
         const now = Date.now();
         const playing = StreetAudio.isJukeboxPlaying();
         const trackCount = ENV.JUKEBOX_TRACKS.length;
-        /* Soiva kappale jonon sijainnista (v4.46): montako on jo soitettu.
+        /* Soiva kappale jonon sijainnista: montako on jo soitettu.
            ENV.jukeQueue = kadun oma kopio soitettavista raidoista (1..N). */
         const qPos = StreetAudio.getJukeboxQueuePos();
         const curTrack = (playing && qPos >= 0 && qPos < ENV.jukeQueue.length) ? ENV.jukeQueue[qPos] : 0;
@@ -355,7 +355,7 @@ var StreetRooms = (function () {
         const numW     = Math.max(20, Math.round(rowW * 0.055));
         const priceW   = Math.max(52, Math.round(rowW * 0.16));
         const nameMaxW = rowW - numW - priceW - 16;
-        /* Lista on kasvanut (v4.60: 6 kappaletta = 7 riviä). Kun rivejä on
+        /* Lista on kasvanut (6 kappaletta = 7 riviä). Kun rivejä on
            enemmän kuin 4, rivit tiivistetään ja koko lista sovitetaan niin,
            ettei paneeli valu lattialle (ENV.GROUND_Y) eikä peitä alaohjetta.
            3 kappaleen ulkoasu säilyy täsmälleen ennallaan (compact = false). */
@@ -569,7 +569,7 @@ var StreetRooms = (function () {
 
         // 6) Jukebox-kone oikealla – vain kun sille jää tilaa (ei peitä listaa)
         if (wide) {
-            /* Soivan kappaleen kansikuva (v4.61): raidat 4–6 → kuva, muut → null */
+            /* Soivan kappaleen kansikuva: raidat 4–6 → kuva, muut → null */
             const cover = (curTrack > 0) ? ENV.jukeCovers[curTrack - 1] : null;
             drawJukeboxCabinet(panelX + panelW + CAB_GAP, ENV.GROUND_Y + 4, now, playing,
                                ENV.jukeSel > 0 || pickCount > 0, cover);
@@ -587,7 +587,7 @@ var StreetRooms = (function () {
     }
 
     /* Jukebox-kone: Wurlitzer-henkinen kaappi (proseduraalinen, ei kuvatiedostoja
-       – paitsi soivan kappaleen kansikuva, jos sellainen on, v4.61) */
+       paitsi soivan kappaleen kansikuva, jos sellainen on) */
     function drawJukeboxCabinet(x, baseY, now, playing, armed, cover) {
         const w = 176, h = 210;
         const top = baseY - h;
@@ -729,7 +729,7 @@ var StreetRooms = (function () {
     }
 
     /* ── BAR-huone (talo 8) ────────────────────── */
-    /* ── Oluttuoppi pöydällä (v11.31, VAIN FULL) ─────────────────
+    /* ── Oluttuoppi pöydällä (VAIN FULL) ─────────────────
        Korvaa hampurilaisen BAR-huoneessa FULLissa. Piirretään pöydän
        pinnan (tableTop) päälle, keskitetty x = cx. Korkeus = ENV.BAR_BEER_H. */
     function drawBarBeer(cx, tableTop) {
@@ -791,13 +791,13 @@ var StreetRooms = (function () {
         ENV.ctx.fillRect(tx + 10, ty + th, 10, 50);
         ENV.ctx.fillRect(tx + tw - 20, ty + th, 10, 50);
 
-        /* Iso hampurilainen – pöydän pinnalla, skaalattu 2/3:een (v4.25).
+        /* Iso hampurilainen – pöydän pinnalla, skaalattu 2/3:een.
            Skaalaus tehdään pöydän pinnan keskipisteestä (bx, ty), joten
            hampurilaisen alaosa pysyy tarkalleen pöydän pinnassa. */
         const BURGER_SCALE = 2 / 3;
         const BURGER_H = 68;                 // alkuperäinen korkeus (by−26 … by+42)
         const bx = tx + tw / 2, by = ty - 42;
-        /* v11.31: FULLissa pöydällä on oluttuoppi (korkeampi kuin hampurilainen)
+        /* FULLissa pöydällä on oluttuoppi (korkeampi kuin hampurilainen)
            → ostorivi lasketaan todellisen ruuan yläreunasta, ettei se osu. */
         const burgerTop = ty - (ENV.chaosFlags.beer ? ENV.BAR_BEER_H : BURGER_H * BURGER_SCALE);
 
@@ -899,11 +899,11 @@ var StreetRooms = (function () {
         }
 
         ENV.ctx.restore();   // hampurilaisen skaalaus päättyy
-        }   // v11.31: (FULL = olut / muut moodit = hampurilainen)
+        }   // (FULL = olut / muut moodit = hampurilainen)
 
         /* ── Asettelu: taulu + äidin lappu + ostotilanne ────────────────
            Kaikki mitoitetaan siitä ikkunasta, joka ruudulla oikeasti näkyy
-           (kuten jukebox-huoneessa v4.22): mobiilissa ENV.canvas on vain `ENV.viewW`
+           (kuten jukebox-huoneessa): mobiilissa ENV.canvas on vain `ENV.viewW`
            leveä ja kamera keskittää huoneen (ENV.camX), joten kiinteä 800 px:n
            asettelu jäisi kankaan ulkopuolelle. Fonttikoko valitaan näytön
            skaalan mukaan (`needPx`) → tekstit pysyvät luettavina myös
@@ -1052,7 +1052,7 @@ var StreetRooms = (function () {
         ENV.ctx.textAlign = 'start';
     }
 
-    /* Makuuhuone (talo 7): liikenne jatkaa taustalla (v11.09), nukkumisen pimennys vaihtaa päivä/yö-tilan ja antaa +1 🍔 (katto 10), Poistu ei muuta mitään. */
+    /* Makuuhuone (talo 7): liikenne jatkaa taustalla, nukkumisen pimennys vaihtaa päivä/yö-tilan ja antaa +1 🍔 (katto 10), Poistu ei muuta mitään. */
     function updateSleepRoom(dt) {
         // ── Makuuhuone (ex-palkintohuone, talo 7) ──
         //   ▲ / W = Nuku     ▼ / S = Poistu   (valinta liikkuu reunoilla)
@@ -1060,9 +1060,9 @@ var StreetRooms = (function () {
         //   Poistuminen ilman nukkumista ei muuta päivä/yö-tilaa mihinkään.
         //   Nuku → pimennys (ENV.SLEEP_FADE_FRAMES) → tila vaihtuu → takaisin kadulle.
         if (ENV.sleepRoom) {
-            /* LIIKENNE EI PYSÄHDY (v11.09): kadun autot ajavat taustalla myös
+            /* LIIKENNE EI PYSÄHDY: kadun autot ajavat taustalla myös
                makuuhuoneessa ja nukkumisen pimennyksen aikana – sama periaate
-               kuin jukebox-huoneessa (v4.61). Muuten ajoneuvo jäisi jyrräämään
+               kuin jukebox-huoneessa. Muuten ajoneuvo jäisi jyrräämään
                paikalleen (moottoriäänen panorointi seuraa v.x:ää) ja palaisi
                kadulle täsmälleen samasta kohdasta. Pelaaja on sisällä talossa
                → `playerSafe = true` (ei törmäystä, ei tainnutusta eikä
@@ -1077,22 +1077,22 @@ var StreetRooms = (function () {
                     // Tila vaihtuu siitä, miltä katu parhaillaan näyttää
                     // (toimii myös keskellä hämärtymistä ja ?day-testityökalulla)
                     ENV.isDay = !(ENV.dayT >= 0.5);        // päivä → yö  TAI  yö → päivä
-                    // Uusi yö → kuu nousee uudelleen vasemmalta (v4.65), ei arvota.
-                    ENV.cycleChangeTimer = ENV.CYCLE_CHANGE_DELAY_FRAMES + 1;  // uusi jakso alkaa (v4.89)
+                    // Uusi yö → kuu nousee uudelleen vasemmalta, ei arvota.
+                    ENV.cycleChangeTimer = ENV.CYCLE_CHANGE_DELAY_FRAMES + 1;  // uusi jakso alkaa
                     if (!ENV.isDay) ENV.resetMoon();
-                    if (ENV.isDay) ENV.resetSun();              // aurinko alkuun (v4.89)
+                    if (ENV.isDay) ENV.resetSun();              // aurinko alkuun
                     if (!ENV.DAY_FORCE) {              // testityökalut eivät tallenna
                         ENV.state.isDay = ENV.isDay;
                         GameState.save(ENV.state);
                     }
-                    // +1 🍔 nukkumisesta (v4.44) – myös FULLissa (v11.31:
+                    // +1 🍔 nukkumisesta – myös FULLissa (:
                     // ainoa tapa hankkia 🍔 takaisin, koska BAR myy vain olutta)
                     if (!ENV.DAY_FORCE && ENV.hamburgerCount < 10) {
                         ENV.hamburgerCount++;
                         ENV.state.inventory.hamburgerCount = ENV.hamburgerCount;
                         GameState.save(ENV.state);
                     }
-                    // Herätysrauha (v4.41): ajastin jatkuu siitä mihin se jäi,
+                    // Herätysrauha: ajastin jatkuu siitä mihin se jäi,
                     // mutta vähintään ENV.HUNGER_WAKE_GRACE-verran – muuten 1 🍔:lla
                     // nukkunut voisi kuolla heti herätessään.
                     ENV.hamburgerTimer = Math.max(ENV.hamburgerTimer, ENV.HUNGER_WAKE_GRACE);
@@ -1136,8 +1136,8 @@ var StreetRooms = (function () {
         //   ▲ / W = osta 1 hampurilainen (1 kolikko)      ▼ / S = peru viimeisin osto
         //   (o) / Space / Enter = poistu
         if (ENV.barRoom) {
-            /* LIIKENNE EI PYSÄHDY (v11.09): sama periaate kuin jukebox-huoneessa
-               (v4.61) – kadun autot ajavat taustalla normaalisti, jotta
+            /* LIIKENNE EI PYSÄHDY: sama periaate kuin jukebox-huoneessa
+               kadun autot ajavat taustalla normaalisti, jotta
                yksikään ajoneuvo ei jää jyrräämään paikalleen (moottoriäänen
                panorointi seuraa v.x:ää) eikä palaa kadulle samasta kohdasta.
                Pelaaja on sisällä talossa → `playerSafe = true` (ei törmäystä,
@@ -1149,12 +1149,12 @@ var StreetRooms = (function () {
             const buyDown = !!(ENV.keys['ArrowDown'] || ENV.keys['s'] || ENV.keys['S']);
 
             if (ENV.chaosFlags.beer) {
-                /* FULL (v11.31): BAR myy olutta 🍺 (1 🪙), katto ENV.DRUNK_MAX.
+                /* FULL: BAR myy olutta 🍺 (1 🪙), katto ENV.DRUNK_MAX.
                    Olut nostaa humalaa ja nollaa haihtumisajastimen. */
                 if (buyUp && !ENV.barBuyHeldUp && ENV.coinCount > 0 && ENV.drunkLevel < ENV.DRUNK_MAX) {
                     ENV.drunkLevel++;
                     ENV.drunkTimer = ENV.burgerInterval;
-                    ENV.saveChaosSession();   // v11.31e: F5 ei hukkaa humalaa
+                    ENV.saveChaosSession();   // F5 ei hukkaa humalaa
                     ENV.coinCount--;
                     ENV.barBuyQty++;
                     ENV.state.inventory.coinCount = ENV.coinCount;
@@ -1164,7 +1164,7 @@ var StreetRooms = (function () {
                 }
                 if (buyDown && !ENV.barBuyHeldDown && ENV.barBuyQty > 0) {
                     ENV.drunkLevel--;
-                    ENV.saveChaosSession();   // v11.31e
+                    ENV.saveChaosSession();
                     ENV.coinCount++;
                     ENV.barBuyQty--;
                     ENV.state.inventory.coinCount = ENV.coinCount;
@@ -1209,9 +1209,9 @@ var StreetRooms = (function () {
         return false;
     }
 
-    /* Jukebox-huone (talo 5): monivalinta (v4.46), kursori vapaa myös soiton aikana (v4.99), poistuminen soittaa valitut (jukeboxExitAndPlay). */
+    /* Jukebox-huone (talo 5): monivalinta, kursori vapaa myös soiton aikana, poistuminen soittaa valitut (jukeboxExitAndPlay). */
     function updateJukeboxRoom(dt) {
-        // JUKEBOX-huone (talo 5) – monivalinta (v4.46)
+        // JUKEBOX-huone (talo 5) – monivalinta
         //   ▲ / W = kursori ylös   ▼ / S = kursori alas (0 = Poistu-rivi, 1..N = kappale)
         //   (o) / Space / ⚡ = ota kappale listalle tai poista se
         //   (o) / Space / ⚡ rivillä 0 = soita valitut & poistu
@@ -1220,12 +1220,12 @@ var StreetRooms = (function () {
         //   Ei valintoja → poistuminen ei veloita eikä soita mitään
         //   Valitut soitetaan poistuttaessa yksi kerrallaan (1 → N), 1 🪙 / kappale
         if (ENV.jukeboxRoom) {
-            /* Liikenne ei pysähdy (v4.61): kadun autot ajavat taustalla
+            /* Liikenne ei pysähdy: kadun autot ajavat taustalla
                normaalisti, jotta yksikään ajoneuvo ei jää jyrräämään
                paikalleen huoneeseen mentäessä. Pelaaja on sisällä talossa →
                `playerSafe = true` (ei törmäystestiä, ei tainnutusta eikä
                🍔-menetystä kesken musiikin valinnan). Ei talousmuutoksia
-               (sääntö 04); nälkä kuluu kuten ennenkin (v4.49/v4.50). */
+               (sääntö 04); nälkä kuluu kuten ennenkin. */
             StreetTraffic.update(dt, true);
 
             const selUp = !!(ENV.keys['ArrowUp'] || ENV.keys['w'] || ENV.keys['W']);
@@ -1235,7 +1235,7 @@ var StreetRooms = (function () {
             const toggleDown = !!(ENV.keys[' '] || ENV.keys['o'] || ENV.keys['O']);
             const enterDown = !!ENV.keys['Enter'];
 
-            // Kursori aina vapaana (v4.99): valinta onnistuu myös soiton aikana,
+            // Kursori aina vapaana: valinta onnistuu myös soiton aikana,
             // jolloin uudet valinnat lisätään soivan jonon perään.
             if (selUp && !ENV.jukeHeldUp) ENV.jukeSel = Math.max(0, ENV.jukeSel - 1);
             if (selDown && !ENV.jukeHeldDown) ENV.jukeSel = Math.min(trackCount, ENV.jukeSel + 1);
@@ -1260,7 +1260,7 @@ var StreetRooms = (function () {
         return false;
     }
 
-    /* ═══ JUKEBOX: valinnat ja poistuminen (v4.46) ═════════════
+    /* ═══ JUKEBOX: valinnat ja poistuminen ═════════════
        Rivi 0 = Poistu, rivit 1..N = kappaleet. (o) / Space / ⚡ ottaa kappaleen
        listalle tai poistaa sen; rivillä 0 sama nappi soittaa valitut ja poistuu.
        Enter soittaa valitut ja poistuu mistä tahansa riviltä. Valitut soitetaan
@@ -1289,7 +1289,7 @@ var StreetRooms = (function () {
     }
 
     /* Poistu ja soita valitut: veloitus 1 🪙 / kappale.
-       Jos jono soi jo → valinnat lisätään jonon perään (v4.99).
+       Jos jono soi jo → valinnat lisätään jonon perään.
        Jos ei → uusi soitto alkaa valituista. */
     function jukeboxExitAndPlay() {
         const picks = jukePickedTracks();
@@ -1390,10 +1390,10 @@ var StreetRooms = (function () {
         return false;
     }
 
-    /* Sulkee jukebox-huoneen: valinnat pois ILMAN veloitusta (v4.46). true = oli auki. */
+    /* Sulkee jukebox-huoneen: valinnat pois ILMAN veloitusta. true = oli auki. */
     function closeJukeboxRoom() {
         if (ENV.jukeboxRoom) {
-            // ✕ = peruuta: valinnat pois ilman veloitusta (v4.46)
+            // ✕ = peruuta: valinnat pois ilman veloitusta
             resetJukeboxRoom();
             return true;
         }

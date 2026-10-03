@@ -59,6 +59,11 @@ Hyvä tietää ylläpitäessä:
   tuotannosta vain funktioita → **niiden on määriteltävä tarvitsemansa tila itse** (esim.
   `dayNight`, koska `beamCanFire` lukee `dayNight.t`). Sama koskee hookkeja injektoivia penkkejä:
   koukun nimen paluuarvo seuraa tuotantoa (`dayT` → `dayNight.t`).
+- **Älä kytke tarkistusta kommentin versiomerkintään** (Vaihe 6, v11.45: kommenteista siivottiin
+  kaikki `vNN.NN`-merkinnät). Kytke koodiin: funktioon, vakioon tai merkkijonoon. Aiemmin
+  kommenttiin nojanneet tarkistukset korjattiin: LIIKENNE-regexistä poistui `(v11.09)`
+  (`street-traffic-rooms`, `street-knockdown-traffic`) ja `resetBuildingDamage();`-greipistä
+  kommentti (`street-building-collapse`, `street-meteor-aftermath`).
 
 ## Penkkien kytkennät lähdetekstiin (varo näitä muuttaessasi)
 

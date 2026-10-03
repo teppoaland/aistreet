@@ -13,10 +13,11 @@
 >
 > > *"Testasitko v11.45:n (`docs/testilista.md`)? Löytyikö ongelmia?"*
 >
-> - **Ei ongelmia** → Vaihe 5 osat 1–8 **ja** Vaihe 4 (päivä/yö-ryhmittely) on tehty: jatka
->   `memory-bank/activeContext.md` § JATKOPISTE → **C) Vaihe 6** (kommenttisiivous).
->   **Erityisen tärkeä testi tässä versiossa: § 1a′** – huoneiden logiikka (osa 8) **ja päivä/yö**
->   (Nuku + auringonlasku/lamppushow, osa Vaihe 4).
+> - **Ei ongelmia** → **refaktorointi on valmis (Vaiheet 0–6)**: päätä jatkosta –
+>   **julkaistaanko v11.45** ("push") vai jatketaanko muita töitä (`memory-bank/activeContext.md`
+>   § "🔜 Seuraavaksi": Blue Mäx -testimode, pääsiäismunat, hedelmäpelin RTP-presetit).
+>   **Testaa silti v11.45**: § 1a′ (huoneiden logiikka + päivä/yö) – Vaihe 4 ryhmitteli päivä/yön
+>   ja Vaihe 6 siivosi kommentit (ei toimintamuutoksia).
 > - **Ongelmia** → pyydä alla oleva **raportointipohja (§ 6)** ja toimi **kurinalaisesti (koodari):**
 >   1. **Toista havainto itse** mekaanisesti (vm-harness / fuzz) – älä arvaa.
 >   2. **A/B-todista** onko vika uusi vai ennestään ollut: `git show HEAD:street.js`,

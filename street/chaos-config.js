@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    street/chaos-config.js – kaaoskonfiguraatio ja -matematiikka
-   (Vaihe 5, v11.38 – siirretty street.js:stä, PELKKÄ SIIRTO.)
+   (Vaihe 5, siirretty street.js:stä, PELKKÄ SIIRTO.)
 
    Sisältö: NORMAL/FULL-oletukset · deterministinen arvontageneraattori
    (?seed=) · K1-visuaaliset arvonta-apurit · chaosProfile ja
@@ -24,13 +24,13 @@ const CHAOS_DEFAULTS = {
     coinRespawnFrames: 7200,
     robberChance: 0.4, robberSpeed: 1.05, robberCooldown: 1500, robberTtl: 900
 };
-/* CHAOS_DEFAULTS2 = täysi superset (v10.02): kaikki kaaosakselit NORMAL-arvoilla.
+/* CHAOS_DEFAULTS2 = täysi superset: kaikki kaaosakselit NORMAL-arvoilla.
    NORMAL = nykyiset literaalit → peli pysyy bitti-identtisenä (pääsääntö 1). */
 const CHAOS_DEFAULTS2 = Object.assign({}, CHAOS_DEFAULTS, {
-    playerSpeedMult: 1,               // kävelynopeuskerroin (kaaos K4, v10.04; klampi 0.6–1.6)
+    playerSpeedMult: 1,               // kävelynopeuskerroin (kaaos K4; klampi 0.6–1.6)
     avengerChance: 0.12, avengerSpeed: 1.0, avengerTelegraph: 21,
     avengerStun: 600, avengerFreeze: 180, avengerCooldown: 1800,
-    robberStun: 900, robberChasesY: false, cabinetOnChance: 0.5,   // robberChasesY: rosvo jahtaa vapaasti y-akselilla (v10.12, vain BAD)
+    robberStun: 900, robberChasesY: false, cabinetOnChance: 0.5,   // robberChasesY: rosvo jahtaa vapaasti y-akselilla (vain BAD)
     startBurgers: 5, startCoins: 2, hungerWakeGrace: 600, burgerInterval: 2400,
     fogAlpha: 0,
     cloudCount: 18, cloudOpacityMult: 1, cloudBandTop: 40, cloudBandH: 40,
@@ -45,12 +45,12 @@ const CHAOS_DEFAULTS2 = Object.assign({}, CHAOS_DEFAULTS, {
     daySkyTop: '#3f7fc0', daySkyMid: '#78b4e0', daySkyHorizon: '#ffd9a0',
     silhouetteChance: 0.5, winDayFill: '#151716',
     lampRadius: 30, batCountMax: 5, buildingPalette: null,
-    // K2 (kellon rytmit) + K6 (SFX) – v10.05
+    // K2 (kellon rytmit) + K6 (SFX)
     dayFadeFrames: 1200, nightFadeFrames: 1200, cycleChangeDelayFrames: 900,
     nightLampFirst: 30, nightLampInterval: 18, spawnLampDelay: 240,
     cabBlinkMin: 420, cabBlinkMax: 700, cabRerollMin: 900, cabRerollMax: 2100,
     mosquitoDayDim: 1, meteorTempoMult: 1, sfxVolumeMult: 1,
-    // Kaaos v10.18 – uudet akselit (NORMAL = no-op)
+    // Kaaos – uudet akselit (NORMAL = no-op)
     doorLockChance: 0, staggerAmount: 0, screenShakeAmount: 0,
     lampRedFlicker: 0, barBurntLetter: -1, cabFlicker: 0, sunSizeMult: 1
 });
@@ -92,7 +92,7 @@ const SUN_GLOW_DEFAULT = ['rgba(255,224,120,0.55)', 'rgba(255,210,100,0.20)', 'r
    piirto olettavat HEX-muotoa – aiemmin randomHuePalette palautti hsl(...)-merkkijonoja,
    jolloin parseInt('sl',16) = NaN → '#NaNNaNxx' = virheellinen fillStyle, jonka selain
    hylkää hiljaa (canvas jäi edelliseen väriin) → FULLissa talot/tausta "katosivat".
-   v11.43 (bugikorjaus): paletti tuottaa samat värit hex-muodossa. */
+   Bugikorjaus: paletti tuottaa samat värit hex-muodossa. */
 function hslToHex(h, s, l) {
     s /= 100; l /= 100;
     const k = (n) => (n + h / 30) % 12;
@@ -145,8 +145,8 @@ function generateFullChaosSeed() {
         robberSpeed: rnd(0.7, 2.0),
         robberCooldown: rndInt(300, 3000),
         robberTtl: rndInt(300, 2000),
-        // K3 (uhka) + K4 (keho/reppu) – v10.04. Kaikki kulkee portin läpi.
-        // v10.18: hidastus poistettu (tylsä) → vain normaali/nopeampi; hoipertelu korvaa sen.
+        // K3 (uhka) + K4 (keho/reppu). Kaikki kulkee portin läpi.
+        // hidastus poistettu (tylsä) → vain normaali/nopeampi; hoipertelu korvaa sen.
         playerSpeedMult: rnd(1.0, 1.6),
         avengerChance: rnd(0, 0.6),
         avengerSpeed: rnd(0.5, 1.4),
@@ -156,15 +156,15 @@ function generateFullChaosSeed() {
         avengerStun: rndInt(150, 600),
         robberStun: rndInt(150, 900),
         cabinetOnChance: rnd(0, 0.9),
-        // v10.32: aloituskolikot KIINTEÄT = sama kuin NO CHAOS (CHAOS_DEFAULTS2.startCoins = 2).
+        // aloituskolikot KIINTEÄT = sama kuin NO CHAOS (CHAOS_DEFAULTS2.startCoins = 2).
         // Ennen rndInt(1, 100) → kolikkoja oli alussa liikaa, eikä meteoriittien
         // ampumiselle ollut motivaatiota. Muut kaaosakselit ennallaan.
         startCoins: CHAOS_DEFAULTS2.startCoins,
         startBurgers: rndInt(2, 10),
         hungerWakeGrace: rndInt(600, 1800),
-        burgerInterval: 2400,   // v11.31: FULLin kulutustahti KIINTEÄ 40 s (oli rndInt(1200,12000)
+        burgerInterval: 2400,   // FULLin kulutustahti KIINTEÄ 40 s (oli rndInt(1200,12000)
                                 //   = jopa ~200 s / taso → vaikutti siltä, ettei 🍺/🍔 kulu lainkaan)
-        // K1 (v10.03) – visuaalinen
+        // K1 – visuaalinen
         cloudCount: rndInt(4, 34),
         cloudOpacityMult: rnd(0.6, 2.5),
         cloudSizeMult: rnd(0.6, 2.5),
@@ -188,7 +188,7 @@ function generateFullChaosSeed() {
         windowTargetMax: rndInt(0, 12),
         windowDurMin: rndInt(3000, 60000), windowDurMax: rndInt(60000, 300000),
         buildingPalette: randomHuePalette(),
-        // K2 + K6 (v10.05)
+        // K2 + K6
         dayFadeFrames: rndInt(300, 3000), nightFadeFrames: rndInt(300, 3000),
         cycleChangeDelayFrames: rndInt(120, 1800),
         nightLampFirst: rndInt(4, 90), nightLampInterval: rndInt(2, 60), spawnLampDelay: rndInt(0, 900),
@@ -196,7 +196,7 @@ function generateFullChaosSeed() {
         cabRerollMin: rndInt(300, 1800), cabRerollMax: rndInt(1800, 3600),
         mosquitoDayDim: (Math.random() < 0.5 ? 0 : 1),
         meteorTempoMult: rnd(0.1, 5), sfxVolumeMult: rnd(0.5, 1.5),
-        // Kaaos v10.18 – uudet akselit. Ikävät (oviukko/hoipertelu/tärinä) arvotaan:
+        // Kaaos – uudet akselit. Ikävät (oviukko/hoipertelu/tärinä) arvotaan:
         // FULL voi saada ne tai olla ilman; BAD saa ne aina chaosProfile():ssa.
         doorLockChance: rnd(0, 0.6),
         staggerAmount: rnd(0, 1.0),
@@ -219,7 +219,7 @@ function chaosProfile(level) {
                 coinRespawnFrames: rndInt(4800, 9600),
                 robberChance: rnd(0.25, 0.55), robberSpeed: rnd(0.9, 1.25),
                 robberCooldown: rndInt(1000, 2000), robberTtl: rndInt(700, 1200),
-                // K3 + K4 (v10.04) – v10.18: ei hidastusta (vain normaali/nopeampi)
+                // K3 + K4: ei hidastusta (vain normaali/nopeampi)
                 playerSpeedMult: rnd(1.0, 1.1),
                 avengerChance: rnd(0.08, 0.16), avengerSpeed: rnd(0.9, 1.1),
                 avengerTelegraph: rndInt(19, 23), avengerFreeze: rndInt(150, 210),
@@ -242,7 +242,7 @@ function chaosProfile(level) {
                 nightLampFirst: rndInt(21, 39), nightLampInterval: rndInt(13, 23), spawnLampDelay: 240,
                 cabBlinkMin: 420, cabBlinkMax: 700, cabRerollMin: 900, cabRerollMax: 2100,
                 mosquitoDayDim: 1, meteorTempoMult: 0.8, sfxVolumeMult: rnd(0.9, 1.1),
-                // Kaaos v10.18 – MILD: ei ikäviä (oviukko/hoipertelu/tärinä = 0), vain hennot neutraalit efektit
+                // Kaaos – MILD: ei ikäviä (oviukko/hoipertelu/tärinä = 0), vain hennot neutraalit efektit
                 doorLockChance: 0, staggerAmount: 0, screenShakeAmount: 0,
                 lampRedFlicker: rnd(0.0008, 0.002), barBurntLetter: -1,
                 cabFlicker: rnd(0.1, 0.25), sunSizeMult: rnd(1.0, 1.1)
@@ -255,7 +255,7 @@ function chaosProfile(level) {
                 birdMin: 14, birdMax: 22,
                 coinRespawnFrames: 3600,
                 robberChance: 0.12, robberSpeed: 0.8, robberCooldown: 2500, robberTtl: 600,
-                // K3 + K4 (v10.04)
+                // K3 + K4
                 playerSpeedMult: 1.0,
                 avengerChance: rnd(0.02, 0.06), avengerSpeed: rnd(0.6, 0.8),
                 avengerTelegraph: rndInt(26, 40), avengerFreeze: rndInt(240, 300),
@@ -279,7 +279,7 @@ function chaosProfile(level) {
                 nightLampFirst: 45, nightLampInterval: 28, spawnLampDelay: 300,
                 cabBlinkMin: 300, cabBlinkMax: 800, cabRerollMin: 1800, cabRerollMax: 3600,
                 mosquitoDayDim: 1, meteorTempoMult: 1.5, sfxVolumeMult: rnd(0.7, 0.85),
-                // Kaaos v10.18 – GOOD: ei ikäviä, vain hennot neutraalit efektit
+                // Kaaos – GOOD: ei ikäviä, vain hennot neutraalit efektit
                 doorLockChance: 0, staggerAmount: 0, screenShakeAmount: 0,
                 lampRedFlicker: rnd(0.0008, 0.002), barBurntLetter: -1,
                 cabFlicker: rnd(0.1, 0.2), sunSizeMult: rnd(1.0, 1.15)
@@ -294,12 +294,12 @@ function chaosProfile(level) {
                 // Rosvo jahtaa vapaasti (robberChasesY) → ei saa ilmestyä useammin kuin 30 s välein (1800 f)
                 robberChance: 0.75, robberSpeed: 1.5, robberCooldown: 1800, robberTtl: 1400,
                 robberChasesY: true,
-                // K3 + K4 (v10.04) – v10.18: ei hidastusta (hoipertelu korvaa sen)
+                // K3 + K4: ei hidastusta (hoipertelu korvaa sen)
                 playerSpeedMult: 1.0,
                 avengerChance: rnd(0.30, 0.50), avengerSpeed: rnd(1.2, 1.4),
                 avengerTelegraph: rndInt(12, 21), avengerFreeze: rndInt(60, 180),
                 avengerCooldown: rndInt(600, 1200), cabinetOnChance: rnd(0.70, 0.90),
-                /* v11.26+ (parametri, ei versionnostoa): BAD = katsojamoodi –
+                /* + (parametri, ei versionnostoa): BAD = katsojamoodi –
                    maailmanloppu katsotaan, ei pelata → kiinteä syntymäpaketti
                    100 🪙 + 10 🍔 (klampit sallivat tasan nämä). Arvot luetaan
                    init():n freshGame-portissa → uusi peli / hard reset
@@ -326,8 +326,8 @@ function chaosProfile(level) {
                 dayFadeFrames: rndInt(400, 700), nightFadeFrames: rndInt(400, 700), cycleChangeDelayFrames: rndInt(200, 450),
                 nightLampFirst: 8, nightLampInterval: 4, spawnLampDelay: 60,
                 cabBlinkMin: 200, cabBlinkMax: 400, cabRerollMin: 500, cabRerollMax: 900,
-                mosquitoDayDim: 0, meteorTempoMult: 0.15, sfxVolumeMult: rnd(1.15, 1.35),   // v11.26: 0.3 -> 0.15 (tiheämpi tahti)
-                // Kaaos v10.18 – BAD: ikävät päällä (lukitut ovet, hoipertelu, tärinä) + neutraalit rajummin
+                mosquitoDayDim: 0, meteorTempoMult: 0.15, sfxVolumeMult: rnd(1.15, 1.35),   // 0.3 -> 0.15 (tiheämpi tahti)
+                // Kaaos – BAD: ikävät päällä (lukitut ovet, hoipertelu, tärinä) + neutraalit rajummin
                 doorLockChance: rnd(0.4, 0.6),
                 staggerAmount: rnd(0.5, 1.0),
                 screenShakeAmount: rnd(0.25, 0.5),
@@ -368,7 +368,7 @@ function threatBudget(cfg) {                        // montako uhka-akselia ää
 function clampChaosCfg(cfg) {
     const C = chaosAbilityFor(cfg);
     const c = Object.assign({}, cfg);
-    c.playerSpeedMult  = clamp(c.playerSpeedMult, 1.0, 1.6);   // kävelynopeus (K4) – v10.18: ei hidastusta
+    c.playerSpeedMult  = clamp(c.playerSpeedMult, 1.0, 1.6);   // kävelynopeus (K4): ei hidastusta
     c.cloudCount       = clamp(c.cloudCount, 4, 34);
     c.cloudOpacityMult = clamp(c.cloudOpacityMult, 0.4, 2.5);
     c.windSpeedMult    = clamp(c.windSpeedMult, 0.4, 3.5);
@@ -392,7 +392,7 @@ function clampChaosCfg(cfg) {
     c.hungerWakeGrace  = clamp(c.hungerWakeGrace, 600, 1800);
     c.burgerInterval   = Math.max(c.burgerInterval, burgerIntervalMin(c, C));  // 🍔-tahti
     c.fogAlpha         = clamp(c.fogAlpha, 0, 0.5);
-    // K2 (kellon rytmit) + K6 (SFX) – v10.05
+    // K2 (kellon rytmit) + K6 (SFX)
     c.dayFadeFrames    = clamp(c.dayFadeFrames, 300, 3000);
     c.nightFadeFrames  = clamp(c.nightFadeFrames, 300, 3000);
     c.cycleChangeDelayFrames = clamp(c.cycleChangeDelayFrames, 120, 1800);
@@ -406,7 +406,7 @@ function clampChaosCfg(cfg) {
     c.mosquitoDayDim   = clamp(c.mosquitoDayDim, 0, 1);
     c.meteorTempoMult  = clamp(c.meteorTempoMult, 0.1, 5);
     c.sfxVolumeMult    = clamp(c.sfxVolumeMult, 0.3, 2.0);
-    // Kaaos v10.18 – uudet akselit (visuaaliset/ei-tappavat → vain klampit, ei validointia)
+    // Kaaos – uudet akselit (visuaaliset/ei-tappavat → vain klampit, ei validointia)
     c.doorLockChance   = clamp(c.doorLockChance, 0, 1);
     c.staggerAmount    = clamp(c.staggerAmount, 0, 1);
     c.screenShakeAmount= clamp(c.screenShakeAmount, 0, 1);

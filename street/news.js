@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    street/news.js – sanomalehden asettelu ja piirto
-   (Vaihe 5 osa 3, v11.38 – siirretty street.js:stä, PELKKÄ SIIRTO.)
+   (Vaihe 5 osa 3, siirretty street.js:stä, PELKKÄ SIIRTO.)
 
    Sisältö: lehden sisältödata (NEWSPAPER_PAGES + manuaalin ASCII-piirros),
    tekstin kääriminen (wrapNewsText), fontin sovitus (fitNewsFont),
@@ -29,16 +29,16 @@ var StreetNews = (function () {
     /* ── Moduulin oma tila ── */
     let screen = 0;            // näkyvä "näyttö" (pitkä sivu voi olla usealla)
 
-    /* ═══ SANOMALEHTI: sisältö ja poiminta (v4.53) ═════════════════════
+    /* ═══ SANOMALEHTI: sisältö ja poiminta ═════════════════════
        Kadulla lojuva lehti voidaan poimia toimintonapilla (⚡ / Space /
        Enter) → aukeaa sanomalehtinäkymä, jossa ovat pelin omat peliohjeet.
        Lukeminen on ILMAISTA eikä muuta taloutta (sääntö 04); nälkä kuluu
-       myös lukiessa, kuten huoneissa (v4.49/v4.50). Lehti jää katuun, joten
+       myös lukiessa, kuten huoneissa. Lehti jää katuun, joten
        ohjeet voi lukea uudelleen – ei tallennettavaa tilaa eikä uutta
        localStorage-avainta (gameState.js ei muutu). */
     const NEWS_READ_R = 26;      // kuinka läheltä lehden voi poimia (px)
 
-    /* Manuaalisivu (5. sivu, v4.55): sama rahavirta ASCII-piirroksena.
+    /* Manuaalisivu (5. sivu): sama rahavirta ASCII-piirroksena.
        Kaksi leveyttä – leveä PC:lle/vaakanäytölle ja kapea pystykännykälle;
        `newsLayout()` valitsee sen, jolla teksti on ruudulla isompi.
        Rivit on rakennettu niin, että reunat ovat tarkalleen kohdakkain
@@ -139,7 +139,7 @@ var StreetNews = (function () {
             ]
         },
         {
-            /* Manuaali (5. sivu, v4.55) – rahavirta piirroksena.
+            /* Manuaali (5. sivu) – rahavirta piirroksena.
                `art` = leveä, `artNarrow` = kapea; newsLayout valitsee. */
             title: 'MANUAL',
             art: NEWS_MANUAL_WIDE,
@@ -195,7 +195,7 @@ var StreetNews = (function () {
         return (dx * dx + dy * dy) <= NEWS_READ_R * NEWS_READ_R;
     }
 
-    /* Pieni vihje lehden yläpuolella, kun sen voi poimia (v4.53) */
+    /* Pieni vihje lehden yläpuolella, kun sen voi poimia */
     function drawNewspaperHint() {
         if (H.newsRoom || H.iframeOpen) return;
         const n = (H.foreground && H.foreground.newspaper) ? H.foreground.newspaper : null;
@@ -257,7 +257,7 @@ var StreetNews = (function () {
         return fs;
     }
 
-    /* ── Sanomalehden asettelu (v4.53) ────────────────────────────
+    /* ── Sanomalehden asettelu ────────────────────────────
        Sama näyttösovitus kuin huoneissa (winW, vs, needPx): kapea kännykkä
        zoomataan 1:1:tä suuremmaksi, joten fontin maailmakoko voi olla
        pienempi ja näkyä silti isona. Kaikki kappaleet kääritään sarakkeen
@@ -304,7 +304,7 @@ var StreetNews = (function () {
         for (let p = 0; p < NEWSPAPER_PAGES.length; p++) {
             const page = NEWSPAPER_PAGES[p];
 
-            /* Manuaalisivu (v4.55): ASCII-piirros piirretään merkki
+            /* Manuaalisivu: ASCII-piirros piirretään merkki
                kerrallaan kiinteälle ruudukolle, joten reunat pysyvät
                kohdakkain myös emojien kanssa. Leveä ja kapea versio –
                valitaan se, jolla teksti on ruudulla isompi. */
@@ -372,7 +372,7 @@ var StreetNews = (function () {
         return layout;
     }
 
-    /* Sanomalehtinäkymä (v4.53): vaalea paperiarkki, tumma selkeä teksti.
+    /* Sanomalehtinäkymä: vaalea paperiarkki, tumma selkeä teksti.
        Piirto on save()/restore()-parin sisällä, ettei tila vuoda kadulle. */
     function drawNewspaperView() {
         const L = newsLayout();
@@ -406,7 +406,7 @@ var StreetNews = (function () {
 
         // 3) Ylätunniste: lehden nimi (vasen) ja sivunumero (oikea).
         //    Jos kadulla on ajoneuvo liikkeellä, vasen teksti vaihtuu
-        //    vilkkuvaksi varoitukseksi (v4.54) – lukija ehtii sulkea lehden.
+        //    vilkkuvaksi varoitukseksi – lukija ehtii sulkea lehden.
         const trafficComing = !!(H.vehicles[0] || H.vehicles[1]);
         const topTxt = trafficComing ? '⚠ WATCH OUT – TRAFFIC NEVER STOPS!'
                                      : 'NEWS · GAME GUIDE';

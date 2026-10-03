@@ -325,7 +325,7 @@ ok('showNotification-kutsuja ei lisätty (14)', notif === 14, 'nyt ' + notif);
 ok('ei uusia kolikko-/🍔-kirjoituksia uusissa funktioissa',
    !newFns.some(n => /coinCount\s*=|hamburgerCount\s*=/.test(extract(n))));
 ok('drawRubble kutsutaan drawBuildingsista', extract('drawBuildings').includes('drawRubble(b, idx)'));
-ok('init nollaa tuhon jälkitilan (resetBuildingDamage)', src.includes('resetBuildingDamage();      // v11.22: talot ehjinä uudessa pelissä'));
+ok('init nollaa tuhon jälkitilan (resetBuildingDamage)', src.includes('resetBuildingDamage();'));
 const html = fs.readFileSync('d:/AI/AI_street/index.html', 'utf8');
 ok('#version-tag ' + ver.VERSION, ver.tagOk(html));
 ok('kaikki ?v=-leimat = ' + ver.NUM + ' (≥4 kpl, ei jäänteitä)',

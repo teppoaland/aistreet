@@ -18,7 +18,7 @@ const Street = (() => {
         walkFrame: 0, walkTimer: 0,
         kicking: false, kickFrame: 0,
         knockedDown: false, knockdownTimer: 0,
-        knockFallY: undefined   // auton osuman putoamistaso (osumakohta −25 px, v11.12); muutoin GROUND_Y+10 (v4.78)
+        knockFallY: undefined   // auton osuman putoamistaso (osumakohta −25 px); muutoin GROUND_Y+10
     };
     const PLAYER_SPEED = 1.225;   // hidastettu 30% (oli 1.75) – kävely hitaampi kuin autot
     const GRAVITY = 0.4;
@@ -44,7 +44,7 @@ const Street = (() => {
         { x: 730, w: 70, h: 195 }
     ];
 
-    /* Rakot talojen välissä (v11.32): kiinteä jono, jonka avulla talot
+    /* Rakot talojen välissä: kiinteä jono, jonka avulla talot
        voidaan latoa uudelleen järjestykseen niin, että asettelu on AINA
        täsmälleen 0…800 (leveydet 590 + rakot 210 = 800) eikä synny
        päällekkäisyyksiä. Käytetään VAIN kaaosjärjestyksen arvonnassa
@@ -76,7 +76,7 @@ const Street = (() => {
         }
     }
 
-    /* ── Kaaos: talojen järjestyksen arpominen (v11.32) ────────────────
+    /* ── Kaaos: talojen järjestyksen arpominen ────────────────
        VAIN BAD/FULL. Talot pysyvät KOKONAISINA – korkeus, kyltti, rooli,
        ovi, väri ja lamppu kulkevat mukana – mutta niiden keskinäinen
        järjestys kadulla arvotaan. Rakot (BUILDING_GAPS) säilyvät, joten
@@ -128,7 +128,7 @@ const Street = (() => {
            uudelle asettelulle; ikkunavälimuisti ja -valot nollataan). */
         _allWindows = null;
         litWindows.length = 0;
-        /* v11.41 (bugikorjaus): kylvä ikkunavalot HETI uudelleen. Muuten BAD/FULL jäi
+        /* Bugikorjaus: kylvä ikkunavalot HETI uudelleen. Muuten BAD/FULL jäi
            ilman ikkunavaloja koko runiksi, koska updateLitWindows() arpoo uuden
            tavoitteen vain kun jokin ikkuna sammuu → tyhjä lista ei koskaan täyty. */
         seedLitWindows();
@@ -187,12 +187,12 @@ const Street = (() => {
     const COIN_Y_MAX = (WORLD_H - 50) + player.h;   // 380 – jalat alimmillaan (aidan takana)
     function randomCoinX() { return COIN_X_MIN + Math.random() * (COIN_X_MAX - COIN_X_MIN); }
     function randomCoinY() { return COIN_Y_MIN + Math.random() * (COIN_Y_MAX - COIN_Y_MIN); }
-    let COIN_RESPAWN_FRAMES = 7200;   // 120 s @ 60 fps – säädettävissä kaaostasolla (v5.03)
+    let COIN_RESPAWN_FRAMES = 7200;   // 120 s @ 60 fps – säädettävissä kaaostasolla
 
-    /* ── Sädease (v10.20) – poimittava kadulta, vain FULL CHAOS ── */
+    /* ── Sädease – poimittava kadulta, vain FULL CHAOS ── */
     let beamWeaponCollected = false;   // tallennettu tila (gameState.js)
     let beamPickup = null;             // { x, y } – esine kadulla (null = ei näkyvissä)
-    /* v11.15 (bugikorjaus): poiminta onnistuu vain, jos pelaajan JALKAPISTE on alle
+    /* Bugikorjaus: poiminta onnistuu vain, jos pelaajan JALKAPISTE on alle
        10 px päässä esineestä (`update`). Satunnainen y (`randomCoinY`) saattoi viedä
        esineen täsmälleen lampputolpan kohdalle, jossa sitä ei saanut napattua:
          • matalilla y-arvoilla (310–325) koko esine jää pylvään TAAKSE piiloon
@@ -215,13 +215,13 @@ const Street = (() => {
     let aimX = 0, aimY = 0;            // tähtäyspiste (maailmakoordinaatit)
     let aimActive = false;             // hiiri on käynyt (ristikko näytetään PC:llä)
     let beamFireTimer = 0;             // säteen piirto frameä laukaisun jälkeen
-    let beamCooldownTimer = 0;         // laukaisun lukitus (v11.14) – tikittää update()ssa
+    let beamCooldownTimer = 0;         // laukaisun lukitus – tikittää update()ssa
     let beamStartX = 0, beamStartY = 0;  // säteen lähtöpiste (jäädytetään laukaisussa)
     let beamEndX = 0, beamEndY = 0;      // säteen kohdepiste (jäädytetään laukaisussa)
-    const BEAM_HIT_TOLERANCE = 0;      // osuma vain jos säde osuu meteoriitin kehään (tarkka, v10.26)
+    const BEAM_HIT_TOLERANCE = 0;      // osuma vain jos säde osuu meteoriitin kehään (tarkka)
     const BEAM_FIRE_FRAMES = 60;       // säteen näkyvyysaika (frameä) – ~1 s valoraita
-    const BEAM_COOLDOWN_FRAMES = 60;   // v11.14: laukaisuväli 1,0 s – huti maksaa saman kuin osuma
-    const METEOR_HITS_TO_KILL = 2;     // v11.14: meteoriitti kestää 2 osumaa (kuori halkeaa ensin)
+    const BEAM_COOLDOWN_FRAMES = 60;   // laukaisuväli 1,0 s – huti maksaa saman kuin osuma
+    const METEOR_HITS_TO_KILL = 2;     // meteoriitti kestää 2 osumaa (kuori halkeaa ensin)
 
     /* ── Sähkökaapit (talojen kyljissä, kerrostalon vas. seinä) ── */
     // 1. kaappi: 1. puu (trees[0], x 175) on talojen 1–2 välissä. Sen oikealla
@@ -238,7 +238,7 @@ const Street = (() => {
     // eikä kaappi iske. Testityökalu (ei tallenna): ?cabs=1 = molemmat päällä,
     // ?cabs=0 = molemmat sammuksissa (jäädyttää tilakellon).
     let   ELECTRIC_CABINET_ON = 0.5;      // todennäköisyys, että kaappi on päällä (kaaos K3)
-    let   CAB_BLINK_MIN = 420, CAB_BLINK_MAX = 700;   // oma vilkunta ms / kaappi (kaaos K2, v10.05)
+    let   CAB_BLINK_MIN = 420, CAB_BLINK_MAX = 700;   // oma vilkunta ms / kaappi (kaaos K2)
     let   CAB_REROLL_MIN = 900, CAB_REROLL_MAX = 2100;  // uusi arpa 15–35 s välein / kaappi (kaaos K2)
     const CAB_FORCE = (typeof location !== 'undefined' && typeof URLSearchParams !== 'undefined')
         ? new URLSearchParams(location.search).get('cabs') : null;
@@ -255,7 +255,7 @@ const Street = (() => {
           timer: cabRerollTimer() }    // talo 7 – vasen seinä
     ];
 
-    /* v11.32: talojen/lamppujen/kaappien/puiden OLETUSPAIKAT talteen, jotta
+    /* talojen/lamppujen/kaappien/puiden OLETUSPAIKAT talteen, jotta
        NORMAL/MILD/GOOD palautuvat bitti-identtisiksi myös BAD/FULL-runin
        jälkeen (shuffleBuildingOrder mutatoi x-arvot pysyvästi). */
     const BUILDING_X_DEFAULT = buildings.map(b => b.x);
@@ -271,7 +271,7 @@ const Street = (() => {
         for (let i = 0; i < trees.length; i++) trees[i].x = TREE_X_DEFAULT[i];
         _allWindows = null;
         litWindows.length = 0;
-        seedLitWindows();   // v11.41: sama syy (esim. BAD/FULL → NORMAL samassa sessiossa)
+        seedLitWindows();   // sama syy (esim. BAD/FULL → NORMAL samassa sessiossa)
         buildingOrderShuffled = false;
     }
 
@@ -284,7 +284,7 @@ const Street = (() => {
         return digKeyCollected && boulderKeyCollected && bmKeyCollected;
     }
     /* ── Makuuhuone (ex-palkintohuone, talo 7) ────────
-       Ovi on aina auki (v4.43, sama käytös kuin BAR:lla): ei avaimia
+       Ovi on aina auki (sama käytös kuin BAR:lla): ei avaimia
        eikä lamppua, päivällä ja yöllä – pelaaja päättää itse, milloin
        haluaa nukkua. Huoneessa on kaksi valintaa: Nuku ja Poistu.
          Poistu = ei muuta mitään (päivä/yö pysyy ennallaan)
@@ -298,18 +298,18 @@ const Street = (() => {
     const SLEEP_DARK_FRAMES = 45;   // ~0,75 s: ruutu ehtii mustaksi ennen Zzziä
     const SLEEP_ZZZ_FRAMES  = 280;  // ~3 s: itse Zzz-efekti mustalla taustalla
     const SLEEP_FADE_FRAMES = SLEEP_DARK_FRAMES + SLEEP_ZZZ_FRAMES;  // ~3,75 s yhteensä
-    /* ── Nälkä on jäissä vain nukkuessa (v4.41, käyttäjän linjaus) ──
+    /* ── Nälkä on jäissä vain nukkuessa (käyttäjän linjaus) ──
        Makuuhuone ja nukkumisen Zzz-pimennys pysäyttävät nälkäajastimen,
        joten pelaaja ei voi kuolla nukkuessaan. Kaikkialla muualla (katu,
-       BAR, jukebox, iframe-pelit) kulutus jatkuu kuten kadulla (v4.49) –
+       BAR, jukebox, iframe-pelit) kulutus jatkuu kuten kadulla –
        pelaaja huolehtii itse, ettei pelaa tai käy "ostoksilla" nälissään. */
     function hungerOnHold() { return sleepRoom || sleepPhase > 0; }
     /* Tila, jossa kuolema ei näkyisi: huone peittää kadun tai alapeli on
        auki. Sinne ei jätetä pelaajaa kuolemaan – huone/alapeli suljetaan
        ensin (leaveHiddenStateForDeath), jotta kuolinsekvenssi näkyy kadulla.
-       Myös sanomalehden lukutila (v4.53) peittää kadun. */
+       Myös sanomalehden lukutila peittää kadun. */
     function insideHiddenState() { return iframeOpen || barRoom || jukeboxRoom || newsRoom; }
-/* ── Päivä/yö-tila (Vaihe 4 loppuun, v11.45): yksi olio ────────────
+/* ── Päivä/yö-tila (Vaihe 4 loppuun): yksi olio ────────────
        Aiemmin 15 irtamuuttujaa (~178 viittausta): isDay, dayT, moonX,
        moonNightClock, moonDark, moonSaveTimer, sunX, sunDayClock,
        sunSaveTimer, cycleChangeTimer, dayLampsOff, nightShowArmed,
@@ -325,11 +325,11 @@ const Street = (() => {
         moonX: 0,                // kuun nykyinen x   (asetetaan alla: MOON_X_MIN)
         moonNightClock: 0,       // yön kulku (framet) kuun rataa varten
         moonDark: 0,             // kuun laskusta johtuva pimeneminen
-        moonSaveTimer: 0,        // tallennusvälin laskuri (v4.74)
+        moonSaveTimer: 0,        // tallennusvälin laskuri
         sunX: 0,                 // auringon x       (asetetaan alla: SUN_X)
         sunDayClock: 0,          // päivän kulku (framet) auringon rataa varten
-        sunSaveTimer: 0,         // tallennusvälin laskuri (v4.89)
-        dayLampsOff: false,      // päivä sammutti katuvalot kerran (v4.38)
+        sunSaveTimer: 0,         // tallennusvälin laskuri
+        dayLampsOff: false,      // päivä sammutti katuvalot kerran
         nightShowArmed: false,   // yön lamppushow saa laueta (asetetaan alla: DAY_FORCE)
         nightShowQueue: [],      // syttymättömien lamppujen indeksit
         nightShowTimer: 0,       // frameä seuraavaan lamppuun
@@ -346,17 +346,17 @@ const Street = (() => {
        1 kolikko = 1 kappale, joka soi kokonaan loppuun asti. */
     const JUKEBOX_BLDG_IDX = 4;
     /* Makuuhuone (ex-palkintohuone, talo 7, ovi x 675, lamps[3]):
-       ovi aina auki, ei lukkoa eikä kolikoita (v4.43) */
+       ovi aina auki, ei lukkoa eikä kolikoita */
     const SLEEP_BLDG_IDX = 7;
-    const BAR_BLDG_IDX = 8;      // BAR-talo (tuhoutuu vasta viimeisenä, v11.22)
+    const BAR_BLDG_IDX = 8;      // BAR-talo (tuhoutuu vasta viimeisenä)
     /* Laivanupotus (talo 2, buildings[2]) – ei omaa lamppua,
        1. potku sytyttää ikkunat, 2. potku avaa oven. Aina auki yöllä ja päivällä. */
     const SINKSHIP_BLDG_IDX = 2;
-    /* Tiedostonimet vastaavat sisältöä (korjattu 20.9.2026, v4.27): aiemmin
+    /* Tiedostonimet vastaavat sisältöä (korjattu 20.9.2026): aiemmin
        `our_song.mp3` ja `unafraid.mp3` olivat ristissä keskenään → raita 1 ja 2
        soivat valitun nimen vastaisesti. Älä "korjaa" nimiä takaisin ristiin.
-       Rivit 4–6 lisätty 22.9.2026 (v4.60): D:\AI\free_music -kansion kolme
-       ilmaista heavy metal -raitaa entisten jatkoksi (1 → 6). v4.97: raidat 7–9
+       Rivit 4–6 lisätty 22.9.2026: D:\AI\free_music -kansion kolme
+       ilmaista heavy metal -raitaa entisten jatkoksi (1 → 6).: raidat 7–9
        lisätty (Alex Morgan + 2× NickPanek). Hinta ja veloitus ennallaan:
        1 🪙 / kappale (sääntö 04). */
     const JUKEBOX_TRACKS = [
@@ -403,18 +403,18 @@ const Street = (() => {
     let jukeSel = 0;               // kursori: 0 = Poistu-rivi, 1..N = kappale
     let jukeHeldUp = false;        // ▲ reunanilmaisu
     let jukeHeldDown = false;      // ▼ reunanilmaisu
-    /* Monivalinta (v4.46): kappaleita voi valita useamman ja valitut soitetaan
+    /* Monivalinta: kappaleita voi valita useamman ja valitut soitetaan
        poistuttaessa yksi kerrallaan (1 → N). Hinta ennallaan: 1 🪙 / kappale. */
     let jukePick = JUKEBOX_TRACKS.map(() => false);  // valitut kappaleet (true = listalla)
     let jukeSpaceHeld = false;     // Space/⚡/(o) reunanilmaisu (ota/poista)
     let jukeEnterHeld = false;     // Enter-reunanilmaisu (soita & poistu)
     let jukeQueue = [];            // soivat kappaleet numeroina (1..N), sama kuin audio-jono
-    let jukeSavedPos = -1;         // viimeksi tallennettu jukebox-positio (v4.92)
+    let jukeSavedPos = -1;         // viimeksi tallennettu jukebox-positio
 
-    /* ── Sanomalehti (v4.53) ──────────────────────────
+    /* ── Sanomalehti ──────────────────────────
        Kadulla lojuva lehti avataan toimintonapilla → peliohjeet.
        Lukutila on kuin canvas-huone: maailma jäätyy, nälkä kuluu
-       (v4.49/v4.50) ja ✕-nappi sulkee (closeRoom). Sivuja selataan
+       ja ✕-nappi sulkee (closeRoom). Sivuja selataan
        ▲/▼, Space (⚡) vie seuraavalle sivulle ja poistuu viimeiseltä,
        (o)/Enter poistuu heti. Ei tallennettavaa tilaa. */
     let newsRoom = false;
@@ -435,7 +435,7 @@ const Street = (() => {
        järjestys on vapaa; se on kuitenkin sama kuin entinen käsittelyjärjestys.
        HUOM: oven avaaminen (potku, valot, avaimet) on yhä omissa
        tryXxxDoor()-funktioissaan – huone ei avaa itseään. */
-    /* ── Huoneiden LOGIIKKA omasta tiedostosta (Vaihe 5 osa 8, v11.44) ──
+    /* ── Huoneiden LOGIIKKA omasta tiedostosta (Vaihe 5 osa 8) ──
        street/rooms.js omistaa huoneiden update/close- ja jukebox-funktiot
        (piirto siirtyi jo osassa 6). Tähän tuodaan samat nimet, joten rekisteri
        ja kutsut eivät muutu. */
@@ -455,8 +455,8 @@ const Street = (() => {
     let coinCount = 0;
     let hamburgerCount = 5;
     let hamburgerTimer = 2400;  // 40s @ ~60fps – lukittu tahti (sääntö 04)
-    let burgerInterval = 2400;  // 🍔-kulutustahti kaaosakselina (K4, v10.04); NORMAL 2400
-    /* ── Olut & humala (v11.31, VAIN FULL CHAOS) ─────────────────────────
+    let burgerInterval = 2400;  // 🍔-kulutustahti kaaosakselina (K4); NORMAL 2400
+    /* ── Olut & humala (VAIN FULL CHAOS) ─────────────────────────
        FULLissa BAR myy olutta 🍺 hampurilaisten sijaan. Elämä on
        KAKSIKERROKSINEN: 🍺 (ylin, ostettava, tuottaa humalan) kuluu ensin,
        ja vasta kun oluet on juotu loppuun, klassinen 🍔-nälkä palaa.
@@ -470,7 +470,7 @@ const Street = (() => {
        Skaalautuu lineaarisesti 1 → 10; lopullinen amplitudi ≈ ×0,6 / ×0,45. */
     const DRUNK_WOBBLE_MAX = 3.0;
     /* Tästä humalatasosta ylöspäin pelaaja ottaa PAIKALLAAN hallitsemattomia
-       askeleita (v11.31b/c): seistessäkin keho horjahtaa suuntaan tai toiseen
+       askeleita (/c): seistessäkin keho horjahtaa suuntaan tai toiseen
        – voi ajautua auton alle tekemättä mitään. Askeleen pituus ja tahti
        kasvavat humalan mukana (10 ≈ lähes mahdoton ohjata). */
     const DRUNK_IDLE_WOBBLE_MIN = 7;
@@ -484,9 +484,9 @@ const Street = (() => {
     let drunkLurchX = 0;          // jäljellä oleva hallitsematon siirtymä (px, liukuva)
     let drunkLurchY = 0;
     let drunkLurchFrames = 0;     // montako frameä liukua on jäljellä
-    /* v11.31d/f: humalassa ≥ DRUNK_AIM_MIN (3) sädeaseen TÄHTÄYS alkaa horjua
+    /* /f: humalassa ≥ DRUNK_AIM_MIN (3) sädeaseen TÄHTÄYS alkaa horjua
        (ristikko + itse laukaus). 1–2 = ei virhettä; 8–10 = osuu enää tuurilla.
-       v11.31f: käyrä LOIVENNETTU – 3–5 🍺 vielä helppo (pieni heitto),
+       käyrä LOIVENNETTU – 3–5 🍺 vielä helppo (pieni heitto),
        jyrkkenee vasta 6→10. Taulukko: siirtymä (px) per humalataso (0–10). */
     const DRUNK_AIM_MIN = 3;
     const DRUNK_AIM_PX = [0, 0, 0, 3, 5, 7, 10, 15, 30, 46, 60];
@@ -494,7 +494,7 @@ const Street = (() => {
         if (drunkLevel <= 0) return 0;
         return (drunkLevel / DRUNK_MAX) * DRUNK_WOBBLE_MAX;
     }
-    /* Tähtäysvirhe humalassa (v11.31d/f): horjuva siirtymä tähtäyspisteeseen. */
+    /* Tähtäysvirhe humalassa (/f): horjuva siirtymä tähtäyspisteeseen. */
     function drunkAimShift() {
         if (!chaosFlags.drunk || drunkLevel < DRUNK_AIM_MIN) return { x: 0, y: 0 };
         const lvl = Math.max(0, Math.min(DRUNK_MAX, Math.round(drunkLevel)));
@@ -507,12 +507,12 @@ const Street = (() => {
             y: Math.sin(t * (1.3 + f * 2.4) + 1.1) * amp * 0.8
         };
     }
-    /* Herätysrauha (v4.41): nukkumisen jälkeen nälkäajastimelle jää vähintään
+    /* Herätysrauha: nukkumisen jälkeen nälkäajastimelle jää vähintään
        tämä aika, ettei 1 🍔:lla nukkunut voi kuolla heti sängystä noustuaan.
        Ajastin ei nollaudu täyteen → ei ilmaista 40 s:ää eikä sängyssä
        käymisen hyväksikäyttöä. */
-    let   HUNGER_WAKE_GRACE = 600;  // 10 s @ ~60fps (kaaos K4, v10.04)
-    /* HUD:n 🍔-varoitus (v4.39): vilkkuva punainen, kun tämä määrä tai
+    let   HUNGER_WAKE_GRACE = 600;  // 10 s @ ~60fps (kaaos K4)
+    /* HUD:n 🍔-varoitus: vilkkuva punainen, kun tämä määrä tai
        vähemmän on jäljellä. 3 on oikea raja – siinä kannattaa jo syödä,
        ettei henki lähde seuraavasta osumasta. */
     const HUNGER_WARN = 3;
@@ -553,7 +553,7 @@ const Street = (() => {
     let kickCoin = null;             // { x, y, vy, landed, ttl } – kolikko potkusta
     let kickCoinCooldown = 0;        // 30s tauko ennen kuin uusi kolikko voi pudota potkusta
 
-    /* ── Salainen kolikkopalkkio (TESTITYÖKALU, v4.23) ────────
+    /* ── Salainen kolikkopalkkio (TESTITYÖKALU) ────────
        Vitoslamppu (lamps[4], x 720) 20 potkua putkeen → +20 kolikkoa.
        Avain-cheat (5 potkua → kaikki avaimet + koko valorivi syttyy) säilyy
        koskemattomana; tämä on sen jatko ("5 + 15 heti perään").
@@ -595,13 +595,13 @@ const Street = (() => {
     let avenger = null;              // { x, y, w, h, bldgIdx, facing, phase, timer, walkTimer, scale }
     let avengerCooldown = 0;         // tauko ennen kuin uusi oviukko voi tulla
 
-    /* ── Rosvo (v4.66) – partioi jalkakäytävällä ──
+    /* ── Rosvo – partioi jalkakäytävällä ──
        Pysyvä hahmo: kävelee edestakaisin talojen puoleisella jalkakäytäväkaistalla.
        Kiinniotto = tainnutus + 1 hampurilainen (kuten avenger), mutta väistettävissä:
        loiki kadun toiselle puolelle (↓) pois kaistalta → rosvo ei seuraa sinne. */
     const ROBBER_W       = 20;
     const ROBBER_H       = 30;
-    let   ROBBER_SPEED   = 1.05;      // peruskävelynopeus – arvotaan spawnissa; kaaos (v5.03)
+    let   ROBBER_SPEED   = 1.05;      // peruskävelynopeus – arvotaan spawnissa; kaaos
     const ROBBER_SPEED_MIN_MULT = 0.80;   // alaraja −20 % → 0,84
     const ROBBER_SPEED_MAX_MULT = 1.50;   // yläraja +50 % → 1,575
     const ROBBER_HIT_R   = 16;        // kiinnioton säde (px)
@@ -611,15 +611,15 @@ const Street = (() => {
     const ROBBER_LANE_BOTTOM = GROUND_Y + 16;     // 326
     const ROBBER_FOOT_Y      = GROUND_Y + 4;      // rosvon jalkojen lepokorkeus
     // Yllätysesiintyminen: rosvo ilmestyy vain paluussa pelistä/jukeboxista/BARista
-    let   ROBBER_APPEAR_CHANCE = 0.4;   // 1/2.5 että rosvo ilmestyy paluussa; kaaos (v5.03)
-    let   ROBBER_COOLDOWN      = 1500;  // ~25 s tauko rosvon esiintymisten välillä; kaaos (v5.03)
+    let   ROBBER_APPEAR_CHANCE = 0.4;   // 1/2.5 että rosvo ilmestyy paluussa; kaaos
+    let   ROBBER_COOLDOWN      = 1500;  // ~25 s tauko rosvon esiintymisten välillä; kaaos
     const ROBBER_MIN_DIST      = 130;   // min. etäisyys pelaajasta, kun rosvo ilmestyy
-    let   ROBBER_TTL           = 900;   // ~15 s elinikä – katoaa jos ei nappaa kiinni; kaaos (v5.03)
+    let   ROBBER_TTL           = 900;   // ~15 s elinikä – katoaa jos ei nappaa kiinni; kaaos
     const ROBBER_BAR_EXCLUDE_R = 100;   // ei koskaan aivan BAR-oven kohdalle – pelaaja käy
                                         // BAR:ssa usein; muissa ovissa huono tuuri sallitaan
     let   ROBBER_STUN          = 900;   // ~15 s tainnutus kiinniotosta – pidempi kuin muiden
                                         // osumien 600, jotta pelaaja ehtii nähdä, mitä kävi; kaaos K4
-    let   ROBBER_CHASES_Y      = false; // v10.12: rosvo jahtaa vapaasti y-akselilla (vain BAD CHAOS)
+    let   ROBBER_CHASES_Y      = false; // rosvo jahtaa vapaasti y-akselilla (vain BAD CHAOS)
     let robber = null;        // { x, y, w, h, facing, dir, speed, pause, walkTimer, ttl }
     let robberCooldown = 0;   // tauko ennen kuin uusi rosvo voi ilmestyä
     let playerDead = false;          // kuolemasekvenssi käynnissä
@@ -632,8 +632,8 @@ const Street = (() => {
     let animClock = 0;                // animaatiokello (~frameä): hengitys + silmän vilkahdus
     let hitPauseTimer = 0;            // hit pause -laskuri: maailma jäätyy osumasta (frameä)
     let vehicleShakeTimer =0;          // tärinä ajoneuvon törmäyksestä  (frameä, vain visuaalinen)
-    let meteorShakeTimer = 0;         // meteoriitin törmäyksen tärinä (v10.15, frameä, vain visuaalinen)
-    let meteorFlash = null;           // meteoriitin taivasvälähdys { t } (v10.16)
+    let meteorShakeTimer = 0;         // meteoriitin törmäyksen tärinä (frameä, vain visuaalinen)
+    let meteorFlash = null;           // meteoriitin taivasvälähdys { t }
     let iframeOpen = false;           // alapeli auki (overlay) → päivän liuku pysähtyy
 
     /* ── Kamera (mobiili: vaakasuuntainen seuranta) ── */
@@ -658,7 +658,7 @@ const Street = (() => {
     const BACKDROP_WIN_OY = Math.max(3, Math.round(10 * BACKDROP_SCALE));   // 5
     let backdrop = null;                 // { blocks: [...] } – generoidaan kerran init():ssä
 
-    /* ── Päivä/yö (v4.33) ──
+    /* ── Päivä/yö ──
        Kun pelaaja on läpäissyt kaikki kolme peliä, kadulle nousee päivä kerran
        (kuu vaihtuu auringoksi, valoisuus päivätasolle). Sen jälkeen tilan voi
        vaihtaa talon 7 makuuhuoneessa (Nuku: päivä ⇄ yö) ja valinta tallennetaan
@@ -666,42 +666,42 @@ const Street = (() => {
        muutokset, joten yö-tila piirtyy täsmälleen kuten ennen (kaikki lisäykset
        ovat ehtoja dayNight.t > 0). VISUAALINEN VAIN: hitboxit, törmäykset, kamera,
        avaimet ja talous eivät muutu mihinkään. Poikkeus: Jukebox ja
-       Hedelmäpeli ovat auki vain öisin (v4.34, ks. CLOSED_SIGN). */
-    let   DAY_FADE_FRAMES   = 1200;        // ~20 s auringonnousu (yö → päivä; kaaos K2, v10.05)
+       Hedelmäpeli ovat auki vain öisin (ks. CLOSED_SIGN). */
+    let   DAY_FADE_FRAMES   = 1200;        // ~20 s auringonnousu (yö → päivä; kaaos K2)
     let   NIGHT_FADE_FRAMES = 1200;        // ~20 s auringonlasku (päivä → yö; kaaos K2)
-    let DAY_SKY_TOP     = '#3f7fc0';     // päivätaivaan yläosa (kaaos K1, v10.03)
+    let DAY_SKY_TOP     = '#3f7fc0';     // päivätaivaan yläosa (kaaos K1)
     let DAY_SKY_MID     = '#78b4e0';     // keskikohta
     let DAY_SKY_HORIZON = '#ffd9a0';     // lämmin horisontti
-    /* YÖ/PÄIVÄ -KIERTO (v4.89): kuu ja aurinko vaeltavat taivaan yli ja
+    /* YÖ/PÄIVÄ -KIERTO: kuu ja aurinko vaeltavat taivaan yli ja
        vuorokausi vaihtuu automaattisesti. Kun kuu laskee → 15 s → päivä,
        aurinko laskee → 15 s → yö. Nukkuminen ja lampun potku toimivat
        edelleen erillisinä tapoina vaihtaa vuorokaudenaikaa. */
-    /* KUUN RATA (v4.65): kuu alkaa aina vasemmasta laidasta (MOON_X_MIN) ja
+    /* KUUN RATA: kuu alkaa aina vasemmasta laidasta (MOON_X_MIN) ja
        liukuu yön kuluessa oikealle, kunnes laskeutuu kokonaan pois näkyvistä
        (MOON_SET_X, oikean reunan yli). Laskeutuessaan se pimentää maisemaa
        hiukan (MOON_SET_DARK_ALPHA).
-       Kuun paikka TALLENNETAAN (v4.74, state.moonClock): F5/reload ei enää
+       Kuun paikka TALLENNETAAN (state.moonClock): F5/reload ei enää
        palauta kuuta lähtöasemaan, vaan se jatkaa siitä mihin jäi. Kuu alkaa
        alusta vain kun uusi yö alkaa (Nuku) tai kun koko tallennus nollataan
        (kuolema / ✕ "aloita alusta" → GameState.reset / removeItem). */
     const SUN_Y = 62, SUN_R = 26;       // auringon korkeus ja koko
-    const SUN_X = -SUN_R * 3;              // auringon alku = ulos vasemmalta (v4.89), laskeutuu oikealle
+    const SUN_X = -SUN_R * 3;              // auringon alku = ulos vasemmalta, laskeutuu oikealle
     const MOON_Y = 60, MOON_R = 30;               // kuun korkeus ja koko
-    let   DAY_CYCLE_FRAMES = 10800;               // ~3 min: yhden yön TAI päivän kesto; kaaos (v5.03)
-    const MOON_X_MIN = -MOON_R * 3;               // kuun alku = ulos vasemmalta (v4.89), laskeutuu oikealle
+    let   DAY_CYCLE_FRAMES = 10800;               // ~3 min: yhden yön TAI päivän kesto; kaaos
+    const MOON_X_MIN = -MOON_R * 3;               // kuun alku = ulos vasemmalta, laskeutuu oikealle
     const MOON_SET_X = WORLD_W + MOON_R * 3;      // laskeuma ≈ 890 → kokonaan pois
     let   MOON_NIGHT_FRAMES = DAY_CYCLE_FRAMES;   // kuun liukuaika (sama kuin sykli)
     const MOON_SET_START = 0.60;                  // tästä p:stä alkaen kuu häipyy → maisema pimenee
     const MOON_SET_DARK_ALPHA = 0.15;             // "hiukan": max pimeneminen (0 = ei)
-    const MOON_SAVE_FRAMES = 120;                 // tallenna kuun paikka ~2 s välein (v4.74)
-    /* Auringon liuku päivällä (v4.89): sama mekaniikka kuin kuulla yöllä.
+    const MOON_SAVE_FRAMES = 120;                 // tallenna kuun paikka ~2 s välein
+    /* Auringon liuku päivällä: sama mekaniikka kuin kuulla yöllä.
        Aurinko alkaa vasemmalta (SUN_X) ja liukuu oikealle DAY_CYCLE_FRAMES
        aikana, kunnes laskeutuu pois (SUN_SET_X). Paikka tallennetaan. */
     const SUN_SET_X = WORLD_W + SUN_R * 3;        // laskeuma ≈ 878 → kokonaan pois
     let   SUN_DAY_FRAMES = DAY_CYCLE_FRAMES;      // auringon liukuaika (sama kuin sykli)
     const SUN_SAVE_FRAMES = 120;                  // tallenna auringon paikka ~2 s välein
-    let   CYCLE_CHANGE_DELAY_FRAMES = 900;        // 15 s viive ennen automaattista vaihtoa (kaaos K2, v10.05)
-    /* ── Kuun ulkoasu (v4.72) ──
+    let   CYCLE_CHANGE_DELAY_FRAMES = 900;        // 15 s viive ennen automaattista vaihtoa (kaaos K2)
+    /* ── Kuun ulkoasu ──
        Kuu piirretään tähtien JÄLKEEN (mutta pilvien eteen), jotta tähdet eivät
        enää tuiki kuun läpi – ennen kuu näytti "leikatulta reijältä". Pimeä puoli
        ei ole pikimusta vaan maavalon (earthshine) siniharmaa: kuu näyttää
@@ -736,7 +736,7 @@ const Street = (() => {
         { x:  0.45, y:  0.32, r: 0.16, a: 0.09 },
         { x:  0.12, y:  0.55, r: 0.12, a: 0.08 },
     ];
-/* ── Talojen kuusta tulevat varjot (v4.80) ──
+/* ── Talojen kuusta tulevat varjot ──
        Kuu on talojen TAKANA → talot varjostavat koko kadun. Varjon kauempi
        reuna siirtyy kuusta poispäin (dayNight.moonX), joten suunta kääntyy kuun
        liikkuessa. Puhtaasti visuaalista – ei koske taloutta, hitboxeja eikä
@@ -746,12 +746,12 @@ const Street = (() => {
     const MOON_BLD_SHADOW_ALPHA = 0.50;   // tummuus talon juuressa (0 = pois)
 dayNight.moonX = MOON_X_MIN;                 // kuun nykyinen x (ks. update)
 dayNight.moonNightClock = 0;                 // yön kulku (framet) kuun rataa varten
-dayNight.moonSaveTimer = 0;                  // tallennusvälin laskuri (v4.74)
-dayNight.sunX = SUN_X;                       // auringon x (päivällä liukuu, v4.89)
+dayNight.moonSaveTimer = 0;                  // tallennusvälin laskuri
+dayNight.sunX = SUN_X;                       // auringon x (päivällä liukuu)
 dayNight.sunDayClock = 0;                    // päivän kulku (framet) auringon rataa varten
-dayNight.sunSaveTimer = 0;                   // tallennusvälin laskuri (v4.89)
-dayNight.cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES + 1;  // > DELAY = "ei käynnissä" (v4.89)
-/* Kuun kuva (v4.79): assets/moon.png (alpha-PNG) – korvaa proseduraalisen
+dayNight.sunSaveTimer = 0;                   // tallennusvälin laskuri
+dayNight.cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES + 1;  // > DELAY = "ei käynnissä"
+/* Kuun kuva: assets/moon.png (alpha-PNG) – korvaa proseduraalisen
        sirpin kun kuva on ladattu. Jos kuva ei lataudu (tai headless-testi),
        piirretään entinen proseduraalinen kuu (fallback). Käännös on tehty jo
        itse kuvaan → piirrossa ei ole ctx.rotatea. */
@@ -766,8 +766,8 @@ dayNight.cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES + 1;  // > DELAY = "ei kä
     const DAY_LIGHT_RGB   = [70, 58, 40];  // additive-päivänvalon sävy
     const DAY_LIGHT_ALPHA = 0.30;          // 0 = ei valoa … ~0.35 = kirkas päivä
     const LAMP_DAY_DIM    = 0.15;          // paljonko lampun hehkusta jää päivällä
-    let   MOSQUITO_DAY_DIM = 1;            // 1 = moskiitot häviävät päivällä (yöllä ennallaan); kaaos K2 (v10.05)
-    /* ── Pilvien päivätummuus (v4.40) ──
+    let   MOSQUITO_DAY_DIM = 1;            // 1 = moskiitot häviävät päivällä (yöllä ennallaan); kaaos K2
+    /* ── Pilvien päivätummuus ──
        Muoto ja määrä ovat yön ennallaan (initClouds) – vain väri tummenee ja
        peittävyys kasvaa dayT:n mukana, jotta pilvet erottuvat päivätaivaalta.
        dayNight.t = 0 → väri ja alpha ovat täsmälleen yön ennallaan. */
@@ -775,7 +775,7 @@ dayNight.cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES + 1;  // > DELAY = "ei kä
     const CLOUD_NIGHT_HAZY   = [180, 195, 215];  // yön hunnut
     const CLOUD_DAY_CIRRUS   = [96, 104, 124];   // päivä: tummanharmaa juova
     const CLOUD_DAY_HAZY     = [62, 68, 84];     // päivä: selvästi tummempi huntu
-    let CLOUD_DAY_ALPHA    = 5;                // peittävyyskerroin päivällä (1 = ei muutosta) – kaaos K1 (v10.03)
+    let CLOUD_DAY_ALPHA    = 5;                // peittävyyskerroin päivällä (1 = ei muutosta) – kaaos K1
     const VEHICLE_HEADLIGHT_DIM = 1;       // ajovalot: 1 = kokonaan pois päivällä, 0 = ei muutosta
     /* Testityökalut (eivät tallenna mitään): ?day=1 = päivä heti,
        ?day=0 = pakota yö. Pakotettu tila ohittaa tallennetun tilan eikä
@@ -785,8 +785,8 @@ dayNight.cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES + 1;  // > DELAY = "ei kä
     const DAY_FORCE = (DAY_PARAM === '1') ? 'day' : (DAY_PARAM === '0' ? 'night' : null);
     const DAY_DEBUG = DAY_FORCE !== null;   // pakotettu → liuku heti perille
 
-    /* ── Yölepakot (v4.93) ──────────────────────── */
-    let BAT_COUNT_MAX   = 5;               // 0–5 lepakkoa, random – kaaos K1 (v10.03)
+    /* ── Yölepakot ──────────────────────── */
+    let BAT_COUNT_MAX   = 5;               // 0–5 lepakkoa, random – kaaos K1
     const BAT_Y_MIN       = 45;              // ylin: kuun korkeudella (MOON_Y=60, R=30 → alareuna 90)
     const BAT_Y_MAX       = 245;             // minimi: lampun kupujen yläpuolella (bulbY = 257)
     const BAT_SPEED_MIN   = 0.25;            // hitain vauhti
@@ -797,9 +797,9 @@ dayNight.cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES + 1;  // > DELAY = "ei kä
     const BAT_LIFE_MAX    = 3600;            // maksimi elinikä
     const BAT_COLORS      = ['#000000', '#080808', '#0a0a0a', '#050510', '#000005'];
 
-    /* ── Päivälinnut (v5.00) ─────────────────────── */
-    let   BIRD_COUNT_MIN  = 10;   // kaaos (v5.03)
-    let   BIRD_COUNT_MAX  = 15;   // kaaos (v5.03)
+    /* ── Päivälinnut ─────────────────────── */
+    let   BIRD_COUNT_MIN  = 10;   // kaaos
+    let   BIRD_COUNT_MAX  = 15;   // kaaos
     const BIRD_WING_MIN   = 2;
     const BIRD_WING_MAX   = 5;
     const BIRD_SPEED_MIN  = 0.2;
@@ -808,12 +808,12 @@ dayNight.cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES + 1;  // > DELAY = "ei kä
     const BIRD_LIFE_MAX   = 4800;
     const BIRD_COLORS     = ['#000000', '#080808'];
 
-    /* Päivä sammuttaa katuvalot kerran (v4.38): kun aurinko on noussut
+    /* Päivä sammuttaa katuvalot kerran: kun aurinko on noussut
        täyteen (dayNight.t === 1), kaikki lamput sammutetaan kertaalleen. Ne voi
        silti potkaista uudelleen päälle myös päivällä. Lippu nollautuu vasta
        kun yö on palannut → seuraava auringonnousu sammuttaa taas kerran. */
 
-    /* ── Yö sytyttää katuvalot yksi kerrallaan (v4.42) ──
+    /* ── Yö sytyttää katuvalot yksi kerrallaan ──
        Päivän peilikuva: kun aurinko on laskenut täyteen (dayNight.t === 0) ja
        pelaaja on jo edennyt (päivä/yö ratkaistu = state.isDay === false,
        ts. 3 avainta + makuuhuoneen Nuku yöhön), katuvalot syttyvät itsestään
@@ -822,11 +822,11 @@ dayNight.cycleChangeTimer = CYCLE_CHANGE_DELAY_FRAMES + 1;  // > DELAY = "ei kä
        HUOM: kickCount ei kasva → avain-cheat (5 potkua), kolikkopalkkio
        (20 potkua) ja ylikuumeneminen (5 potkua) pysyvät täysin ennallaan.
        Testityökalu ?day=0 näyttää efektin heti. */
-    let   NIGHT_LAMP_FIRST    = 30;      // ~0,5 s ennen ensimmäistä lamppua (kaaos K2, v10.05)
+    let   NIGHT_LAMP_FIRST    = 30;      // ~0,5 s ennen ensimmäistä lamppua (kaaos K2)
     let   NIGHT_LAMP_INTERVAL = 18;      // ~0,3 s lamppujen välissä (5 lamppua ≈ 1,7 s; kaaos K2)
     const NIGHT_LAMP_ORDER    = 'wave';  // 'wave' = x-järjestys · 'near' = lähin ensin
 dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päivä→yö-siirtymästä
-    let   SPAWN_LAMP_DELAY = 240;        // 4 s viive ennen lamppushowta spawnissa (kaaos K2, v10.05)
+    let   SPAWN_LAMP_DELAY = 240;        // 4 s viive ennen lamppushowta spawnissa (kaaos K2)
 
     /* Saako yön lamppushow laueta? Vain kun päivä/yö on jo ratkaistu
        (pelaaja on edennyt). Testityökalu ?day=0 ohittaa portin. */
@@ -849,7 +849,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         dayNight.nightShowTimer = NIGHT_LAMP_FIRST;
     }
 
-    /* ── Aukiolo (v4.34): Jukebox ja Hedelmäpeli auki vain öisin ──
+    /* ── Aukiolo: Jukebox ja Hedelmäpeli auki vain öisin ──
        Päivällä ovesta tulee sama teksti-popup kuin lukitusta ovesta.
        Talousarvot eivät muutu – vain aukioloaika. Nuppi: CLOSED_AT_DAYT
        (sama raja kuin makuuhuoneen tilanvaihdossa: dayNight.t >= 0.5 = päivä). */
@@ -857,12 +857,12 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     const CLOSED_AT_DAYT = 0.5;   // tämän yli = päivä = ovet kiinni
     function nightOnlyClosed() { return dayNight.t >= CLOSED_AT_DAYT; }
 
-    /* ── Ovet auki ilman lampun potkaisua päivällä (v4.38) ──
+    /* ── Ovet auki ilman lampun potkaisua päivällä ──
        Päivällä (dayNight.t >= CLOSED_AT_DAYT) ovi aukeaa ilman että katuvalo
        pitää potkaista päälle – valoisalla kadulla lamppu ei ole portti.
        Avainportit (Dig Däsh vaatii digKey, Blue Mäx vaatii boulderKey)
        pysyvät ennallaan, samoin koko yökäytös. Makuuhuone (talo 7) on
-       aina auki eikä tarvitse lamppua (v4.43).
+       aina auki eikä tarvitse lamppua.
        Nuppi DOOR_NO_LAMP_AT_DAY: false = vanha käytös (lamppu ensin aina). */
     const DOOR_NO_LAMP_AT_DAY = true;
     function lampFreeOpen() { return DOOR_NO_LAMP_AT_DAY && dayNight.t >= CLOSED_AT_DAYT; }
@@ -875,7 +875,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         return dayNight.isDay ? 1 : 0;
     }
 
-    /* ── Kuun kello (v4.74) ──
+    /* ── Kuun kello ──
        Yksi lähde kuun paikalle: kellosta (framet) lasketaan x ja pimeneminen.
        Samaa funktiota käyttävät init (tallennettu kello), resetMoon (0) ja
        update (kello + dt), joten kaava ei voi livahtaa eri versioiksi.
@@ -904,7 +904,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         GameState.save(state);
     }
 
-    /* ── Kuun nollaus (v4.65 / v4.74) ──
+    /* ── Kuun nollaus ──
        Kuu alkaa vasemmasta laidasta (MOON_X_MIN) ja pimeneminen nollataan.
        Kutsutaan jokaisessa uudessa yössä (makuuhuoneen Nuku) → nollatila
        tallennetaan heti, ettei reload palauta edellisen yön paikkaa. */
@@ -914,7 +914,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         saveMoonClock();
     }
 
-    /* ── Auringon kello (v4.89) ──
+    /* ── Auringon kello ──
        Sama lähdeperiaate kuin kuulla: kellosta (framet) lasketaan x.
        Samaa funktiota käyttävät init (tallennettu kello), resetSun (0) ja
        update (kello + dt). dayNight.sunX säilyy murto-osaisena (EI Math.round). */
@@ -947,15 +947,15 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     ];
     let vehicles = [null, null];      // yksi ajoneuvo per kaista
     let spawnTimers = [300, 300];     // 5 s ekaan spawniin molemmille
-    const TRAFFIC_DAY_MULT = 2;       // päivällä liikennevirta tuplataan (v4.37, spawn-väli /2)
+    const TRAFFIC_DAY_MULT = 2;       // päivällä liikennevirta tuplataan (spawn-väli /2)
 
-    /* ── Viemärinkannet: avoin kaivo (v4.51/v4.52, käyttäjän pyyntö 21.9.2026) ──
+    /* ── Viemärinkannet: avoin kaivo (käyttäjän pyyntö 21.9.2026) ──
        Kadulla on 2 viemärinkantta (foreground.manholes). Jos kansi puuttuu,
        kohta on musta reikä: siihen astuva pelaaja putoaa alas (katoaa) ja
        köpii takaisin ylös.
-       MENETYS (v4.52): putoaminen vie **enintään 2 🪙** (kolikot hulahtavat
+       MENETYS: putoaminen vie **enintään 2 🪙** (kolikot hulahtavat
        viemäriin): 3 → 1, 2 → 0, 1 → 0 (ainutkin kolikko menee), 0 → ei mitään.
-       TULO (v4.69, käyttäjän pyyntö 23.9.2026): randomina **1/6 putoamisista
+       TULO (käyttäjän pyyntö 23.9.2026): randomina **1/6 putoamisista
        kaivon pohjalta löytyy rahaa +3 🪙** – muuten menetys kuten ennen.
        Putoaminen ei syö 🍔:tä eikä tapa pelaajaa.
        Ei tainnutusta (toisin kuin auto/sähkökaappi/kukkaruukku).
@@ -968,9 +968,9 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
        ?hole=2 = 2. kansi puuttuu, ?hole=0 = molemmat paikallaan. */
     const MANHOLE_START_CHANCE  = 1 / 6;   // uusi peli / sivun lataus
     const MANHOLE_RETURN_CHANCE = 1 / 10;  // paluu huoneesta / alapelistä
-    const MH_COIN_COST = 2;                // putoaminen vie enintään 2 kolikkoa (v4.52)
-    const MH_BONUS_CHANCE = 1 / 6;         // 1/6 putoamisista: kaivosta löytyy rahaa (v4.69, parametri)
-    const MH_BONUS_COINS  = 3;             // löydön suuruus: +3 🪙 (v4.69)
+    const MH_COIN_COST = 2;                // putoaminen vie enintään 2 kolikkoa
+    const MH_BONUS_CHANCE = 1 / 6;         // 1/6 putoamisista: kaivosta löytyy rahaa (parametri)
+    const MH_BONUS_COINS  = 3;             // löydön suuruus: +3 🪙
     const MH_HIT_RX = 11;                  // törmäysellipsi: piirros on 14×7,
     const MH_HIT_RY = 5;                   //   hitusen pienempi → ovelle mahtuu
     const MH_FALL_FRAMES  = 36;            // ~0,6 s: vajoaa reikään (katoaa) – nopea
@@ -1031,7 +1031,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     }
 
     /* Paluu kadulle -vahti: kun huone tai alapeli sulkeutuu, arvotaan 1/10
-       viemärinkannelle ja (v4.66) mahdollisesti ilmestyy rosvo yllätyksenä.
+       viemärinkannelle ja mahdollisesti ilmestyy rosvo yllätyksenä.
        Kattaa kaikki poistumistiet: ✕, Poistu, Space, Enter, RETURN_TO_STREET. */
     let wasHiddenKind = null;   // 'iframe' | 'sleep' | 'bar' | 'jukebox' | null
     function trackHiddenStreet() {
@@ -1039,7 +1039,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         const nowKind = iframeOpen ? 'iframe' : sleepRoom ? 'sleep' : barRoom ? 'bar' : jukeboxRoom ? 'jukebox' : null;
         if (wasHiddenStreet && !nowHidden) {
             maybeRerollManholeState();
-            // Rosvo (v4.66): yllätys vain paluussa pelistä / jukeboxista / BARista
+            // Rosvo: yllätys vain paluussa pelistä / jukeboxista / BARista
             if (wasHiddenKind === 'iframe' || wasHiddenKind === 'jukebox' || wasHiddenKind === 'bar') {
                 maybeSpawnRobber();
             }
@@ -1068,7 +1068,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         };
     }
 
-    /* ── Rosvo: yllätysesiintyminen jalkakäytävällä (v4.66) ──
+    /* ── Rosvo: yllätysesiintyminen jalkakäytävällä ──
        Ilmestyy satunnaiseen kohtaan vähintään ROBBER_MIN_DIST päähän pelaajasta
        ja kävelee kohti tätä, kunnes nappaa kiinni (katoaa) tai elinikä (ttl) loppuu.
        Tila vain muistissa (ei tallenneta localStorageen). */
@@ -1077,7 +1077,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     function randomRobberSpeed() {
         const lo = ROBBER_SPEED * ROBBER_SPEED_MIN_MULT;
         const hi = ROBBER_SPEED * ROBBER_SPEED_MAX_MULT;
-        // Kaaos K3 (v10.04): rosvon nopeusarpa ei saa ylittää 1.4 × C (kyvykkyys)
+        // Kaaos K3: rosvon nopeusarpa ei saa ylittää 1.4 × C (kyvykkyys)
         const max = threatSpeedMax(chaosAbility());
         return Math.min(lo + Math.random() * (hi - lo), max);
     }
@@ -1196,7 +1196,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         }
     }
 
-    /* ── Rosvon päivitys: partiointi + kiinniotto (v4.66) ──
+    /* ── Rosvon päivitys: partiointi + kiinniotto ──
        Partioi vain jalkakäytäväkaistalla (ei mene tielle). Kiinniotto
        tapahtuu vain kun pelaajan jalat ovat samalla kaistalla JA rosvo on
        riittävän lähellä → väistö = loiki kadun toiselle puolelle (↓). */
@@ -1218,7 +1218,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             }
         }
 
-        // v10.12: BAD CHAOS → rosvo jahtaa vapaasti (molemmat akselit, kuten avenger).
+        // BAD CHAOS → rosvo jahtaa vapaasti (molemmat akselit, kuten avenger).
         // Muuten partioi jalkakäytäväkaistalla edestakaisin + reunapysähdys (väistöikkuna).
         if (r.pause > 0) {
             r.pause -= dt;
@@ -1252,7 +1252,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             playKnock();
             knockPlayerDown();   // tainnutus + −1 🍔 (0 → kuolema)
             if (!playerDead) player.knockdownTimer = ROBBER_STUN;   // pidennetty maassaolo – ehtii nähdä, mitä kävi
-            // Rosvo vie kaikki rahat (v4.68): kolikkosaldo nollataan.
+            // Rosvo vie kaikki rahat: kolikkosaldo nollataan.
             // Ei erillistä dialogia (sääntö 06) – pelaaja huomaa itse.
             if (coinCount > 0) {
                 coinCount = 0;
@@ -1266,7 +1266,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         }
     }
 
-    /* ── Törmäysvaikutus (v11.31) ───────────────────────────────
+    /* ── Törmäysvaikutus ───────────────────────────────
        FULLissa osuma vie YLIMMÄN kerroksen: −1 🍺 jos olutta on, muuten
        −1 🍔 (0 → kuolema) – sama sääntö kuin aikapohjaisella nälällä.
        MUUT MOODIT täsmälleen entinen: −1 🍔 ja 0 → kuolema.
@@ -1275,7 +1275,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         if (chaosFlags.drunk && drunkLevel > 0) {
             drunkLevel--;                 // olutkerros imee iskun
             drunkTimer = burgerInterval;
-            saveChaosSession();           // v11.31e: F5 ei hukkaa humalaa
+            saveChaosSession();           // F5 ei hukkaa humalaa
             updateHUD();
             return;
         }
@@ -1313,10 +1313,10 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         StreetAudio.playDeathGong(); // gongi kumahtaa
     }
 
-    /* ── Avoin kaivo: pudotus ja ylöskiipeäminen (v4.51/v4.52/v4.69) ───────
+    /* ── Avoin kaivo: pudotus ja ylöskiipeäminen ───────
        Pelaaja astui reiän ellipsiin → vajoaa alas (katoaa), köpii takaisin
        ylös ja jatkaa matkaa. Menetys: **enintään 2 🪙** (1 → 0, 0 → ei mitään);
-       mutta **1/6 putoamisista kaivon pohjalta löytyy +3 🪙** (v4.69).
+       mutta **1/6 putoamisista kaivon pohjalta löytyy +3 🪙**.
        Ei tainnutusta eikä 🍔-menetystä.
        Sekvenssin ajan katu on jäissä (update palaa heti alussa). */
     function startManholeFall(idx) {
@@ -1336,7 +1336,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         a.t -= dt;
 
         if (a.phase === 'climb') {
-            /* Kiipeäminen (v4.51): hahmo nousee hitaasti KAIVON KESKELTÄ
+            /* Kiipeäminen: hahmo nousee hitaasti KAIVON KESKELTÄ
                (jalat reiän keskipisteessä) ja astuu lopuksi reunan yli
                kuivalle. Logiikka seuraa visuaalia → loppuasento on valmis
                eikä hahmo hypähdä viimeisellä framella. */
@@ -1364,7 +1364,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         player.vx = 0; player.vy = 0;
         if (a.t > 0) return;
 
-        /* Pohjassa (v4.52 / v4.69): tavallisesti kolikot hulahtavat viemäriin
+        /* Pohjassa: tavallisesti kolikot hulahtavat viemäriin
            – menetys enintään 2 🪙: 3 → 1, 2 → 0, 1 → 0 (ainutkin kolikko
            menee), 0 → ei mitään. Mutta **1/6 putoamisista** kaivon pohjalta
            löytyy rahaa: **+3 🪙**. Ei 🍔-menetystä eikä kuolemaa. */
@@ -1450,7 +1450,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         get dayT() { return dayNight.t; },
         VEHICLE_HEADLIGHT_DIM: VEHICLE_HEADLIGHT_DIM,
         /* Vaihe 5 osa 7 – liikennologiikka lukee/mutatoi näitä. */
-        WORLD_W: WORLD_W,   // ← v11.43: PUUTTUI (spawn x = WORLD_W + w → undefined+w = NaN!)
+        WORLD_W: WORLD_W,   // ←: PUUTTUI (spawn x = WORLD_W + w → undefined+w = NaN!)
         get vehicles() { return vehicles; },
         get spawnTimers() { return spawnTimers; },
         get player() { return player; },
@@ -1476,7 +1476,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
        ALOITUS
        ═══════════════════════════════════════════════════ */
     /* ═══════════════════════════════════════════════════════════
-       AI CHAOS – kaaostasot (v5.03)
+       AI CHAOS – kaaostasot
        Keskitetty profiilirakenne: muuttaa VAIN olemassa olevia
        arvoja/kertoimia – ei uutta pelilogiikkaa. NORMAL = nykyiset
        arvot bitti-identtisinä. FULL CHAOS arpoo uniikin siemenen.
@@ -1499,13 +1499,13 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
     let chaosLevel = 'normal';
     let chaosCfg = Object.assign({}, CHAOS_DEFAULTS2);
-    /* Johdetut moodiliput (Vaihe 2, v11.38): sama tieto kuin `chaosLevel === 'full'`
+    /* Johdetut moodiliput (Vaihe 2): sama tieto kuin `chaosLevel === 'full'`
        / `'bad'`, mutta YHDESSÄ paikassa (applyChaosFlags). Koodi lukee näitä
        chaosCfg:n rinnalla → mooditarkistus ei ole ripoteltuna pitkin tiedostoa.
        Liput johdetaan AINA chaosLevelistä (myös F5-palautuksessa), joten ne
        eivät voi jäädä vanhentuneiksi. */
     const chaosFlags = {
-        beer: false,          // FULL: BAR myy olutta 🍺 hampurilaisten sijaan (v11.31)
+        beer: false,          // FULL: BAR myy olutta 🍺 hampurilaisten sijaan
         drunk: false,         // FULL: humala horjuttaa ohjausta ja tähtäystä
         beamWeapon: false,    // FULL: sädease + meteoriitin ampuminen
         meteorAlways: false,  // FULL: meteoriitti joka välissä
@@ -1521,7 +1521,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     let trafficSpeedMult = 1, trafficSpawnMult = 1;
     let skyDir = 1;
     /* Uudet kaaosakselimuuttujat (K1/K2/K3) – alustetaan NORMAL-arvoihin.
-       Kirjoitetaan applyChaosProfile():issa vasta vaiheissa v10.03/v10.04. */
+       Kirjoitetaan applyChaosProfile():issa vasta vaiheissa. */
     let cloudCount = 18, cloudOpacityMult = 1, cloudBandTop = 40, cloudBandH = 40;
     let cloudSizeMult = 1, cloudCirrusShare = 0.35, starCount = 80, starSizeMult = 1;
     let sunColor = null, sunGlow = null;
@@ -1530,10 +1530,10 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     let windowTargetMax = 5, windowDurMin = 10000, windowDurMax = 30000;
     let lampHueShift = 0, threatWarnMult = 1;
     let buildingPalette = null;   // talojen väripaletti (null = BUILDING_PALETTE)
-    let meteorTempoMult = 1;      // tähdenlennon/satelliitin tahti (K2, v10.05)
+    let meteorTempoMult = 1;      // tähdenlennon/satelliitin tahti (K2)
     /* SFX-taso (K6) asuu äänimoduulissa (Vaihe 5): StreetSfx.setVolume() */
-    let fogAlpha        = 0;      // sumuverhon peittävyys (K7/K1, v10.05)
-    // Kaaos v10.18 – uudet akselit (polariteetti: ikävät = BAD/FULL, neutraalit = kaikki chaos-tasot)
+    let fogAlpha        = 0;      // sumuverhon peittävyys (K7/K1)
+    // Kaaos – uudet akselit (polariteetti: ikävät = BAD/FULL, neutraalit = kaikki chaos-tasot)
     let doorLockChance   = 0;     // lukitut ovet (jukebox + hedelmäpeli), 0 = ei koskaan (NORMAL)
     let staggerAmount    = 0;     // pelaajan hoipertelu (0–1), 0 = suora kävely (NORMAL)
     let screenShakeAmount = 0;    // koko ajan hiukan tärisevä kuva (0–1), 0 = ei (NORMAL)
@@ -1542,25 +1542,25 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     let cabFlicker       = 0;     // sähkökaapin valon "rätinä" (0–1)
     let sunSizeMult      = 1;     // auringon koko (1 = nykyinen, 2 = tupla)
 
-    /* Kaaos v10.18 – satunnaisesti lukittu ovi (jukebox + hedelmäpeli).
+    /* Kaaos – satunnaisesti lukittu ovi (jukebox + hedelmäpeli).
        Ei ilmoitusta (sääntö 06): ovi ei vain aukea. BAR ja makuuhuone
        ovat aina auki (pelaajan turvapaikat) – niitä ei koskaan lukita. */
     function doorLocked() { return doorLockChance > 0 && Math.random() < doorLockChance; }
 
-    /* Deterministinen siemen + testikytkimet (v10.02, K0-infra).
+    /* Deterministinen siemen + testikytkimet (K0-infra).
        ?seed=N → sama kaaos jokaisella latauksella · ?debug → konsolidumppi. */
 
 
-    /* Kaaos K1 – visuaaliset apurit (v10.03): talopaletit + auringon värit */
+    /* Kaaos K1 – visuaaliset apurit: talopaletit + auringon värit */
 
-    /* ── Tähdenlento + satelliitti – apufunktiot (v10.03, ❓4) ──
+    /* ── Tähdenlento + satelliitti – apufunktiot (❓4) ──
        Sama logiikka oli aiemmin kahtena kopiona (tainnutus-haara + kadun
        update). Yhdistetty, jotta sama koodi pätee molemmissa paikoissa. */
-    const METEOR_SHAKE_FRAMES = 150;  // meteoriitin törmäyksen tärinän kesto (frameä, ~2.5 s, v10.16)
-    const METEOR_FLASH_FRAMES = 60;   // meteoriitin taivasvälähdyksen kesto (frameä, ~1 s, v10.16)
-    const METEOR_BACKDROP_HOUSES = 3; // meteoriitin osuma tuhoaa N taustataloa rivistä (v10.19)
+    const METEOR_SHAKE_FRAMES = 150;  // meteoriitin törmäyksen tärinän kesto (frameä, ~2.5 s)
+    const METEOR_FLASH_FRAMES = 60;   // meteoriitin taivasvälähdyksen kesto (frameä, ~1 s)
+    const METEOR_BACKDROP_HOUSES = 3; // meteoriitin osuma tuhoaa N taustataloa rivistä
 
-    /* ── Katuvarren talon tuhoutuminen meteoriitista (v11.22) ────────────────
+    /* ── Katuvarren talon tuhoutuminen meteoriitista ────────────────
        BAD ja FULL: kun taustarivistä on tuhoutunut tarpeeksi (BACKDROP_GONE_SHARE),
        meteoriitit alkavat osua KATUVARREN taloihin – kaikki 9 taloa, mutta BAR
        (idx 8) vasta viimeisenä (siksi pelaaja voi ostaa 🍔:tä loppuun asti).
@@ -1568,7 +1568,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
        BADissa asetta ei ole → tuho on vääjäämätön (moodin ironia).
        Tila on vain muistissa (kuten rosvo/kaivo) → palautuu init()issä, ja
        kuolema/F5 lataa sivun uudelleen (talot ehjinä, kuten taustarivikin). */
-    const BACKDROP_GONE_SHARE = 0.60;   // v11.26: eskalaatio, kun taustarivistä on jäljellä ≤ 60 %
+    const BACKDROP_GONE_SHARE = 0.60;   // eskalaatio, kun taustarivistä on jäljellä ≤ 60 %
     const BLDG_DMG_FLASH   = 30;    // ~0,5 s: kaikki ikkunat keltaisiksi
     const BLDG_DMG_SHAKE   = 60;    // ~1,0 s: talo tärisee (pölyä irtoaa)
     const BLDG_DMG_BLACK   = 60;    // ~1,0 s: seinät ja ikkunat mustiksi
@@ -1584,7 +1584,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     const AIM_ANGLE_MIN    = 20 * Math.PI / 180;   // tähdätyn meteoriitin kulma
     const AIM_ANGLE_MAX    = 84 * Math.PI / 180;
     let buildingDmg = {};              // idx → { phase, t } · 'gone' = tuhoutunut talo
-    /* v11.24 – tuhon jälkitila siivottiin:
+    /* tuhon jälkitila siivottiin:
          buildingRubble  = tuhoutuneen talon paikalle jäävä musta romukasa
                            (arvotaan kerran, kasa ≤ RUBBLE_H_MAX = DOOR_H/2)
          standingDoorIdx = yksi satunnainen talo pitää ovensa pystyssä pelkkinä
@@ -1595,7 +1595,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     let standingDoorIdx = -1;
     const RUBBLE_H_MAX = Math.round(DOOR_H / 2);   // 16 px – kasa ei koskaan tätä korkeampi
     const BAD_DEMO_DELAY = 120;        // ~2 s kadulle tulosta
-    /* v11.26 – BAD-finaali: kun eskalaatio on päällä (`backdropMostlyGone`),
+    /* BAD-finaali: kun eskalaatio on päällä (`backdropMostlyGone`),
        BADissa ei enää arvota tähtiä vaan jokainen meteoriitti tähdätään taloon
        ja väli on kiinteän lyhyt → katuvarren talot sortuvat ~11–19 s välein
        (~4,3–7 s väli + lento 6–12 s). FULL säilyy ennallaan (600 f, ammuttavissa alas). */
@@ -1622,7 +1622,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
     function buildingGone(idx) { return buildingDmg[idx] === 'gone'; }
 
-    /* v11.36: kaikki 9 katuvarren taloa tuhoutuneet (vain BAD/FULL). */
+    /* kaikki 9 katuvarren taloa tuhoutuneet (vain BAD/FULL). */
     function buildingsAllGone() {
         for (let i = 0; i < buildings.length; i++) {
             if (!buildingGone(i)) return false;
@@ -1634,9 +1634,9 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     }
 
     /* Eskalaatio: taustarivistä ≥ 40 % tuhoutunut (tai testikytkin päällä). */
-    /* v11.24: lohkoja ei enää poisteta vaan ne merkitään raunioiksi (b.ruin) →
+    /* lohkoja ei enää poisteta vaan ne merkitään raunioiksi (b.ruin) →
        kynnys laskee EHJISTÄ lohkoista (raunio ei ole enää "jäljellä").
-       v11.26: kynnys 25 % → 60 % (ks. BACKDROP_GONE_SHARE). */
+       kynnys 25 % → 60 % (ks. BACKDROP_GONE_SHARE). */
     function backdropMostlyGone() {
         if (BLDG_FORCE || BLDG_TARGET !== null) return true;
         if (!backdrop || !backdrop.total) return false;
@@ -1645,14 +1645,14 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         return intact <= Math.ceil(backdrop.total * BACKDROP_GONE_SHARE);
     }
 
-    /* v11.26: BAD-finaali = eskalaatio päällä BADissa. Silloin tähtiä ei enää
+    /* BAD-finaali = eskalaatio päällä BADissa. Silloin tähtiä ei enää
        arvota lainkaan (aina tähdätty meteoriitti) ja väli on lyhyt (nextSkyGap).
        FULL/MILD/GOOD/NORMAL eivät koskaan osu tähän haaraan. */
     function badFinalePhase() {
         return chaosFlags.badFinale && backdropMostlyGone();
     }
 
-    /* v11.26: seuraavan taivaankappaleen väli (frameä). FULL = 600 kuten ennen,
+    /* seuraavan taivaankappaleen väli (frameä). FULL = 600 kuten ennen,
        BAD-finaali = lyhyt kiinteä väli, muuten entinen arpa. Arvontajärjestys
        säilyy muilla tasoilla täsmälleen ennallaan → NORMAL bitti-identtinen. */
     function nextSkyGap() {
@@ -1664,7 +1664,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     }
 
     /* Kohdetalo: satunnainen ehjä talo – BAR vasta kun muut on tuhottu.
-       v11.26: myös KESKEN oleva romahdus ohitetaan (`buildingDmg` olemassa),
+       myös KESKEN oleva romahdus ohitetaan (`buildingDmg` olemassa),
        koska startBuildingCollapse hylkäisi osuman → meteoriitti menisi hukkaan. */
     function pickBuildingTarget() {
         if (BLDG_TARGET !== null) return buildingDmg[BLDG_TARGET] ? -1 : BLDG_TARGET;
@@ -1679,7 +1679,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         return pool[Math.floor(Math.random() * pool.length)];
     }
 
-    /* Tähdätty meteoriitti (v11.22): lähtee lähimmältä laidalta hieman ruudun
+    /* Tähdätty meteoriitti: lähtee lähimmältä laidalta hieman ruudun
        ulkopuolelta ja kulma ratkaistaan niin, että osuma tulee tarkalleen talon
        kohdalle. Kulma vaihtelee luontevasti: keskitalo ~35° (viisto), laidan
        talo (esim. BAR) ~82° (jyrkkä syöksy). Lento kestää ~6–12 s, joten
@@ -1706,11 +1706,11 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             hpLeft: METEOR_HITS_TO_KILL,
             cracked: false, hitFlash: 0,
             trail: [],
-            timer: nextSkyGap()   // v11.26: FULL 600 · BAD-finaali lyhyt väli · muuten entinen arpa
+            timer: nextSkyGap()   // FULL 600 · BAD-finaali lyhyt väli · muuten entinen arpa
         };
     }
 
-    /* ── BAD-avaus (v11.24): BAD = BAD ──────────────────────────────────────
+    /* ── BAD-avaus: BAD = BAD ──────────────────────────────────────
        Heti kadulle tullessa (~2 s) yksi SATUNNAINEN eturivin talo tuhoutuu
        malliksi siitä, mitä on luvassa – jopa BAR (idx 8) voi olla se talo,
        koska BADissa ei ole asetta eikä armoa. Meteoriitti syntyy vain kadulla
@@ -1756,7 +1756,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     }
 
     /* Tuhoutuminen alkaa: talo menettää toimintonsa heti (valot pois, ei uusia
-       ikkunavaloja, oviukko katoaa talon mukana). v11.24: ovi katoaa – vain yksi
+       ikkunavaloja, oviukko katoaa talon mukana).: ovi katoaa – vain yksi
        satunnainen talo pitää ovensa pystyssä pelkkinä ulkokarmina (drawDoor). */
     function startBuildingCollapse(idx) {
         const b = buildings[idx];
@@ -1775,7 +1775,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         playBuildingCollapse();
         spawnParticles(cx, GROUND_Y - 8, '#cfc6b4', 18);
         spawnParticles(cx, GROUND_Y - 8, '#8d8578', 10);
-        /* v11.34: talon tuhoutuessa sen viereinen lamppu sammuu (kupu mustaksi,
+        /* talon tuhoutuessa sen viereinen lamppu sammuu (kupu mustaksi,
            ei enää hehkua). Hakee lampun joko bldgIdx- tai leftBldgIdx-kentästä. */
         for (let i = 0; i < lamps.length; i++) {
             if (lamps[i].leftBldgIdx === idx || lamps[i].bldgIdx === idx) {
@@ -1810,8 +1810,8 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
                 }
                 if (d.phase >= BLDG_DMG_PHASES.length) {
                     buildingDmg[key] = 'gone';
-                    makeBuildingRubble(Number(key));   // v11.24: paikalle jää musta kasa
-                    // v11.24: yksi satunnainen talo pitää ovensa pystyssä pelkkinä
+                    makeBuildingRubble(Number(key));   // paikalle jää musta kasa
+                    // yksi satunnainen talo pitää ovensa pystyssä pelkkinä
                     // ulkokarmina – arpa heitetään vain kerran (ks. drawDoor).
                     if (standingDoorIdx === -1) standingDoorIdx = Math.floor(Math.random() * buildings.length);
                     spawnParticles(cx, GROUND_Y - 6, '#5c574f', 16);
@@ -1821,7 +1821,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     }
 
     /* Uusi peli / reset: kaikki talot takaisin ehjinä (vain muistissa).
-       v11.24: myös romukasat, pystyyn jäävä ovikehys ja BAD-avaus nollautuvat. */
+       myös romukasat, pystyyn jäävä ovikehys ja BAD-avaus nollautuvat. */
     function resetBuildingDamage() {
         buildingDmg = {};
         buildingRubble = {};
@@ -1830,7 +1830,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         badDemoDone = false;
     }
 
-    /* v11.24: tuhoutuneen talon paikalle jäävä musta romukasa. Muoto arvotaan
+    /* tuhoutuneen talon paikalle jäävä musta romukasa. Muoto arvotaan
        KERRAN (ei per frame), jotta kasa ei välky. Kasa ei koskaan ylitä puolta
        ovenkorkeudesta (RUBBLE_H_MAX = DOOR_H / 2 = 16 px). */
     function makeBuildingRubble(idx) {
@@ -1851,7 +1851,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             w, h, lumps,
             x: Math.round((b.w - w) / 2),                               // keskitetty talon pohjalle
             shade: 0.06 + Math.random() * 0.12,                         // hiiltymän sävy
-            /* v11.33: tuhoutuneesta talosta nousevat vaaleat savukiekurat
+            /* tuhoutuneesta talosta nousevat vaaleat savukiekurat
                (vain BAD/FULL). */ 
             bldgH: b.h,                                                 // talon alkuperäinen korkeus (savun max-korkeus = bldgH/3)
             smokeParticles: [],
@@ -1860,17 +1860,17 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         };
     }
 
-    /* Meteoriitin esiintymistodennäköisyys (v10.20/v10.24): tappavat meteoriitit
+    /* Meteoriitin esiintymistodennäköisyys: tappavat meteoriitit
        tulevat FULL CHAOS -modessa aina ja BAD CHAOS -modessa harvakseltaan
        (BAD:ssa ei ole sädeasetta → pelaaja joutuu katsomaan kaupungin tuhoutuvan).
        MILD/GOOD/NORMAL = 0 (ei koskaan). */
     function meteoriteChance() {
         if (chaosFlags.meteorAlways) return 1;       // aina (sädease testattavissa)
-        if (chaosFlags.meteorHalf) return 0.5;      // v11.26: 25 → 50 % (tuho nopeammaksi, ei asetta)
+        if (chaosFlags.meteorHalf) return 0.5;      // 25 → 50 % (tuho nopeammaksi, ei asetta)
         return 0;
     }
 
-    /* Meteoriitin osuma tuhoaa taustarivin taloja (v10.19): lähin lohko + sen
+    /* Meteoriitin osuma tuhoaa taustarivin taloja: lähin lohko + sen
        viereiset (yhteensä METEOR_BACKDROP_HOUSES), jotta skyline sortuu paikallisesti
        siihen missä meteoriitti osui. Wrap-around pitää rivin ehjänä reunalla. */
     function destroyBackdropHouses(impactX) {
@@ -1880,24 +1880,24 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         const blocks = backdrop.blocks;
         let best = -1, bestDist = Infinity;
         for (let i = 0; i < blocks.length; i++) {
-            if (blocks[i].ruin) continue;   // v11.26: raunio ei kelpaa kohteeksi
+            if (blocks[i].ruin) continue;   // raunio ei kelpaa kohteeksi
             const cx = blocks[i].x + blocks[i].w / 2;
             const d = Math.abs(cx - target);
             if (d < bestDist) { bestDist = d; best = i; }
         }
-        if (best < 0) return;   // v11.26: koko rivi jo raunioina
-        // v11.24: lohkoja EI enää poisteta – lähin + seuraavat rapistuvat
+        if (best < 0) return;   // koko rivi jo raunioina
+        // lohkoja EI enää poisteta – lähin + seuraavat rapistuvat
         // raunioiksi (kierrä reunalla, jotta skyline sortuu osumakohdassa).
         const hit = [];
         for (let k = 0; k < blocks.length && hit.length < METEOR_BACKDROP_HOUSES; k++) {
             const b = blocks[(best + k) % blocks.length];
-            if (b.ruin) continue;   // v11.26: vain ehjät lohkot -> aina 3 uutta rauniota
+            if (b.ruin) continue;   // vain ehjät lohkot -> aina 3 uutta rauniota
             hit.push(b);
         }
         for (const b of hit) ruinBackdropBlock(b);
     }
 
-    /* v11.24: taustalohko → RAUNIO. Iso kerrostalo ei katoa kokonaan: horisonttiin
+    /* taustalohko → RAUNIO. Iso kerrostalo ei katoa kokonaan: horisonttiin
        jää kohtuu korkea RUNKO (pystypalkit + laattaviivat = seinät puuttuvat) ja
        lisäksi 1–3 seinäpalaa. Lohko pysyy rivissä (x/w ennallaan), joten skyline
        ei saa aukkoa. Toinen osuma samaan lohkoon: runko ei enää laske, mutta
@@ -1930,26 +1930,26 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         b.ruin = ruin;
     }
 
-    /* ── Sädease: tähtäys + laukaisu (v10.20) ── */
+    /* ── Sädease: tähtäys + laukaisu ── */
     function beamCanFire() {
         if (!beamWeaponCollected) return false;
-        if (beamCooldownTimer > 0) return false;   // v11.14: laukaisuväli (piilottaa myös ristikon)
+        if (beamCooldownTimer > 0) return false;   // laukaisuväli (piilottaa myös ristikon)
         if (!shootingStar || !shootingStar.active || shootingStar.kind !== 'meteorite') return false;
         if (dayNight.t > 0) return false;
-        // v10.22: pelaajan on oltava kääntyneenä meteoriitin tulosuuntaan (ei ammuntaa selästä)
+        // pelaajan on oltava kääntyneenä meteoriitin tulosuuntaan (ei ammuntaa selästä)
         if (player.facing * shootingStar.vx >= 0) return false;
-        // v10.22: ampuu vain lamppurivistön alapuolella (kadun puolella, ei talojen takaa)
+        // ampuu vain lamppurivistön alapuolella (kadun puolella, ei talojen takaa)
         if (player.y + player.h < LAMP_BASE_Y) return false;
         return true;
     }
 
-    /* Sädeaseen piipun kärki maailmakoordinaateissa (v10.22): sama piste
+    /* Sädeaseen piipun kärki maailmakoordinaateissa: sama piste
        piirrolle ja säteen lähtöpisteelle → säde lähtee aseesta, ei sen alta. */
     function beamMuzzle() {
         const cx = player.x + player.w / 2;
         const dir = player.facing;
         const gripX = cx + dir * 5;         // etukäden ote
-        const gripY = player.y + 18;        // nostettu ote (v10.22)
+        const gripY = player.y + 18;        // nostettu ote
         const len = 12.5;                   // piipun kärjen etäisyys otteesta
         const a = -Math.PI / 4;             // 45° ylös-eteen
         return {
@@ -1961,14 +1961,14 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     /* Onko meteoriitti jonkin katurivin talon takana (meteoriitti piirretään
        talojen takana → talon läpi ei voi osua). Tarkistaa meteoriitin SIJAINNIN,
        ei säteen linjaa – linja kulkee aina talovyöhykkeen läpi, joten linja-tarkistus
-       estäisi kaikki osumat. v10.25 */
+       estäisi kaikki osumat. */
     function meteoriteBehindBuilding() {
         const mx = shootingStar.x, my = shootingStar.y;
-        // v11.24: tähdätty meteoriitti piirretään nyt talojen TAKANA kuten muutkin
+        // tähdätty meteoriitti piirretään nyt talojen TAKANA kuten muutkin
         // (ks. render), joten talon runko estää säteen myös siltä: osuma onnistuu
         // vain, kun meteoriitti on katon yläpuolella. Tuhoutunut talo ei estä.
         for (const b of buildings) {
-            if (buildingGone(buildings.indexOf(b))) continue;   // v11.22: tuhoutunut talo ei estä sädettä
+            if (buildingGone(buildings.indexOf(b))) continue;   // tuhoutunut talo ei estä sädettä
             if (mx >= b.x && mx <= b.x + b.w && my >= GROUND_Y - b.h && my <= GROUND_Y) {
                 return true;
             }
@@ -1986,24 +1986,24 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     }
 
     function fireBeam() {
-        // v11.14: lukon aikana kuiva klikki – muuten hiljainen "ei laukausta"
+        // lukon aikana kuiva klikki – muuten hiljainen "ei laukausta"
         // (päivällä, ilman meteoriittia tai väärinpäin seisten ei kuulu klikkiä)
         if (beamCooldownTimer > 0) { playBeamEmpty(); return; }
         if (!beamCanFire()) return;
-        // v11.14: lukko päälle ENNEN osumatarkistusta → huti maksaa saman kuin osuma
+        // lukko päälle ENNEN osumatarkistusta → huti maksaa saman kuin osuma
         beamCooldownTimer = BEAM_COOLDOWN_FRAMES;
         beamFireTimer = BEAM_FIRE_FRAMES;
         const m = beamMuzzle();
-        const sh = drunkAimShift();          // v11.31d: humala horjuttaa tähtäystä
+        const sh = drunkAimShift();          // humala horjuttaa tähtäystä
         const ax = aimX + sh.x, ay = aimY + sh.y;
         beamStartX = m.x; beamStartY = m.y;
         beamEndX = ax; beamEndY = ay;
         playLaser();
-        // v10.25: talon takana olevaan meteoriittiin ei voi osua (tarkistaa sijainnin, ei linjaa)
+        // talon takana olevaan meteoriittiin ei voi osua (tarkistaa sijainnin, ei linjaa)
         if (meteoriteBehindBuilding()) return;
         const d = distanceToSegment(shootingStar.x, shootingStar.y, m.x, m.y, ax, ay);
         if (d < shootingStar.r + BEAM_HIT_TOLERANCE) {
-            // v11.14: meteoriitti kestää METEOR_HITS_TO_KILL osumaa. Ensimmäinen
+            // meteoriitti kestää METEOR_HITS_TO_KILL osumaa. Ensimmäinen
             // osuma vain lämmittää sen (sävy vaihtuu tasaisesti oranssiksi: ydin,
             // vana ja hehku) ja kolahtaa; tuhoutuminen ja kolikko vasta tappavasta.
             const hpBefore = (shootingStar.hpLeft === undefined) ? METEOR_HITS_TO_KILL : shootingStar.hpLeft;
@@ -2019,7 +2019,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             spawnParticles(shootingStar.x, shootingStar.y, '#dbe6ff', 22);
             spawnParticles(shootingStar.x, shootingStar.y, '#f4f8ff', 12);
             shootingStar.active = false;
-            // v10.32: FULL CHAOS – jokainen ammuttu meteoriitti = +1 🪙.
+            // FULL CHAOS – jokainen ammuttu meteoriitti = +1 🪙.
             // Portti chaosFlags.meteorKill: ase on jaettu tallennuskenttä, joten
             // BADissa (25 % meteoriitit) ei tule kolikkoa – muut tasot pysyvät ennallaan.
             // Sääntö 06: ei uutta tekstiä – pling + kultakipinät + HUD-lukema riittävät.
@@ -2037,7 +2037,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     function spawnBeamPickup() {
         // Vain FULL CHAOS ja vain jos ase on vielä ansaitsematta.
         if (!chaosFlags.beamWeapon || beamWeaponCollected) { beamPickup = null; return; }
-        /* v11.15: y on AINA sama (teräsaidan vieressä, pelaajan alin jalkapiste) –
+        /* y on AINA sama (teräsaidan vieressä, pelaajan alin jalkapiste) –
            satunnainen y vei esineen toisinaan lampputolpan taakse, josta sitä ei
            voinut poimia lainkaan. Vain x arvotaan, ja sekään ei aivan reunaan. */
         const bx = BEAM_PICKUP_X_MIN + Math.random() * (BEAM_PICKUP_X_MAX - BEAM_PICKUP_X_MIN);
@@ -2049,10 +2049,10 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             if (shootingStar) { shootingStar.timer -= dt; }
             if (!shootingStar || shootingStar.timer <= 0) {
                 if (chaosFlags.anyChaos && (Math.random() < meteoriteChance() || badFinalePhase())) {
-                    // Iso, hitaasti putoava meteoriitti (v10.15/v10.16) – tähdenlennon tilalla.
-                    // v10.16: viisto laskeutumiskulma 40–60° vaakasuorasta (kuten tähdenlento),
+                    // Iso, hitaasti putoava meteoriitti – tähdenlennon tilalla.
+                    // viisto laskeutumiskulma 40–60° vaakasuorasta (kuten tähdenlento),
                     // jotta ehtii nähdä ja säikähtää. Suunta oikealle/vasemmalle, lähtö vastakkaiselta reunalta.
-                    // v11.22: eskalaation jälkeen meteoriitti tähdätään ehjään
+                    // eskalaation jälkeen meteoriitti tähdätään ehjään
                     // katuvarren taloon (kaikki 9, mutta BAR viimeisenä) → tuho
                     // etenee vääjäämättä, ellei pelaaja ammu meteoriittia alas
                     // (FULL: sädease). Ennen eskalaatiota syntyy kuten ennen.
@@ -2069,9 +2069,9 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
                         vy: Math.sin(mAng) * mSpd,
                         r: 8 + Math.random() * 6,
                         active: true, life: 0,
-                        hpLeft: METEOR_HITS_TO_KILL,   // v11.14: 2 osumaa tuhoaa
+                        hpLeft: METEOR_HITS_TO_KILL,   // 2 osumaa tuhoaa
                         cracked: false, hitFlash: 0,   // cracked = ottanut osuman → lämmin oranssi sävy
-                        trail: [], timer: nextSkyGap()   // v11.26: BAD-finaalissa lyhyt väli
+                        trail: [], timer: nextSkyGap()   // BAD-finaalissa lyhyt väli
                     };
                 } else {
                     const ang = -0.3 - Math.random() * 0.5;
@@ -2091,14 +2091,14 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             shootingStar.x += shootingStar.vx * dt;
             shootingStar.y += shootingStar.vy * dt;
             shootingStar.life += dt;
-            if (shootingStar.hitFlash > 0) shootingStar.hitFlash -= dt;   // v11.14: osumavälähdys
+            if (shootingStar.hitFlash > 0) shootingStar.hitFlash -= dt;   // osumavälähdys
             shootingStar.trail.push({x: shootingStar.x, y: shootingStar.y});
-            if (shootingStar.trail.length > 72) shootingStar.trail.shift();  // v11.34: 1.5x pidempi häntä (oli 48)
+            if (shootingStar.trail.length > 72) shootingStar.trail.shift();  // 1.5x pidempi häntä (oli 48)
             if (shootingStar.y >= GROUND_Y) {
                 meteorShakeTimer = METEOR_SHAKE_FRAMES;
-                meteorFlash = { t: METEOR_FLASH_FRAMES };   // v10.16: taivas välähtää (ei etualan palloa)
-                destroyBackdropHouses(shootingStar.x);      // v10.19: taustarivi sortuu osumakohdasta
-                // v11.22: eskalaation jälkeen osuma tuhoaa katuvarren talon
+                meteorFlash = { t: METEOR_FLASH_FRAMES };   // taivas välähtää (ei etualan palloa)
+                destroyBackdropHouses(shootingStar.x);      // taustarivi sortuu osumakohdasta
+                // eskalaation jälkeen osuma tuhoaa katuvarren talon
                 if (shootingStar.targetBldgIdx !== undefined) startBuildingCollapse(shootingStar.targetBldgIdx);
                 spawnParticles(shootingStar.x, GROUND_Y - 4, '#dbe6ff', 18);
                 spawnParticles(shootingStar.x, GROUND_Y - 4, '#f4f8ff', 10);
@@ -2120,12 +2120,12 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
     function drawMeteorite() {
         const m = shootingStar;
-        // v11.14: osuman ottanut meteoriitti on "lämmennyt" – muoto ja syke pysyvät
+        // osuman ottanut meteoriitti on "lämmennyt" – muoto ja syke pysyvät
         // täysin ennallaan, vain sävy vaihtuu tasaisesti lämpimään oranssiin
         // (ei halkeamia eikä muita muotoyksityiskohtia: se näytti mustalta rastilta).
         const dmg = m.cracked === true;
         const trailRGB = dmg ? '255,155,50' : '205,220,245';
-        // v11.34: lämmenneen meteoriitin vana on hoikempi (0.5 + k*0.8, oli 0.7 + k*1.4)
+        // lämmenneen meteoriitin vana on hoikempi (0.5 + k*0.8, oli 0.7 + k*1.4)
         // ja 1.5x pidempi (72 pistettä, oli 48) + kylläinen oranssi väri
         for (let t = 0; t < m.trail.length; t++) {
             const tr = m.trail[t];
@@ -2151,7 +2151,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         // Ydin (lämmenneenä kylläinen oranssi)
         ctx.fillStyle = dmg ? '#ffa030' : '#f4f8ff';
         ctx.beginPath(); ctx.arc(m.x, m.y, r * 0.7, 0, Math.PI * 2); ctx.fill();
-        // Osumavälähdys: lyhyt lämmin pop (~10 f) – pelkkä sävy, ei muotoa (v11.14)
+        // Osumavälähdys: lyhyt lämmin pop (~10 f) – pelkkä sävy, ei muotoa
         if (m.hitFlash > 0) {
             const flash = Math.min(1, m.hitFlash / 10);
             ctx.fillStyle = 'rgba(255,214,160,' + (0.75 * flash).toFixed(3) + ')';
@@ -2225,7 +2225,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         trafficSpeedMult     = chaosCfg.trafficSpeedMult;
         trafficSpawnMult     = chaosCfg.trafficSpawnMult;
         skyDir               = chaosCfg.skyDir;
-        // K1 – visuaaliset akselit (v10.03)
+        // K1 – visuaaliset akselit
         cloudCount          = chaosCfg.cloudCount;
         cloudOpacityMult    = chaosCfg.cloudOpacityMult;
         cloudSizeMult       = chaosCfg.cloudSizeMult;
@@ -2255,7 +2255,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         WIN_DAY_FILL        = chaosCfg.winDayFill;
         LAMP_RADIUS         = chaosCfg.lampRadius;
         BAT_COUNT_MAX       = chaosCfg.batCountMax;
-        // K2 (kellon rytmit) + K6 (SFX) – v10.05
+        // K2 (kellon rytmit) + K6 (SFX)
         DAY_FADE_FRAMES     = chaosCfg.dayFadeFrames;
         NIGHT_FADE_FRAMES   = chaosCfg.nightFadeFrames;
         CYCLE_CHANGE_DELAY_FRAMES = chaosCfg.cycleChangeDelayFrames;
@@ -2270,7 +2270,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         meteorTempoMult     = chaosCfg.meteorTempoMult;
         StreetSfx.setVolume(chaosCfg.sfxVolumeMult);
         fogAlpha            = chaosCfg.fogAlpha;
-        // Kaaos v10.18 – uudet akselit
+        // Kaaos – uudet akselit
         doorLockChance      = chaosCfg.doorLockChance;
         staggerAmount       = chaosCfg.staggerAmount;
         screenShakeAmount   = chaosCfg.screenShakeAmount;
@@ -2282,7 +2282,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         for (const cab of electricCabinets) cab.period = CAB_BLINK_MIN + Math.random() * (CAB_BLINK_MAX - CAB_BLINK_MIN);
         // K7-korttipakka: aktivoi vain ei-NORMAL-tasoilla
         StreetChaosCards.reset();
-        // K3 (uhka) + K4 (keho/reppu) – v10.04: C-indeksi tuotantokäyttöön
+        // K3 (uhka) + K4 (keho/reppu): C-indeksi tuotantokäyttöön
         AVENGER_CHANCE      = chaosCfg.avengerChance;
         AVENGER_SPEED       = chaosCfg.avengerSpeed;
         AVENGER_TELEGRAPH   = chaosCfg.avengerTelegraph;
@@ -2313,13 +2313,13 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         return chaosLevel;
     }
 
-    /* Kaaossession (v10.06): F5/reload palauttaa saman moden ilman alkuhubia.
+    /* Kaaossession: F5/reload palauttaa saman moden ilman alkuhubia.
        sessionStorage selviää reloadista mutta tyhjenee uudessa välilehdessä
        (→ "peliin tulo" näyttää hubin). ✕-hard reset ja kuolema tyhjentävät sen. */
     const CHAOS_SESSION_KEY = 'aistreet_chaos_session';
     function saveChaosSession() {
         try {
-            /* v11.31e: humala (🍺) tallennetaan session mukana, jotta F5-soft
+            /* humala (🍺) tallennetaan session mukana, jotta F5-soft
                reset ei hukkaa sitä – vain hard reset (✕ / kuolema / uusi
                välilehti) tyhjentää koko session (clearChaosSession). */
             sessionStorage.setItem(CHAOS_SESSION_KEY, JSON.stringify({
@@ -2340,7 +2340,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         try { sessionStorage.removeItem(CHAOS_SESSION_KEY); } catch (e) {}
     }
 
-    /* Poistaa sädeaseen inventorysta (v11.20): kutsutaan, kun peli palaa
+    /* Poistaa sädeaseen inventorysta: kutsutaan, kun peli palaa
        Click/Press-aloitusnäytölle (ei kaaos-sessiota = uusi peli / kuolema /
        ✕-resetti). Sädease on "kerran per run" -esine, joten se ei saa jäädä
        käteen uudella kierroksella. F5-soft reset ei kutsu tätä → sädease
@@ -2358,10 +2358,10 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     }
 
     /* ═══════════════════════════════════════════════════════════
-       KAAOS v2 – portti (v10.02)
+       KAAOS v2 – portti
        Kaikki kaaosarvot kulkevat clampChaosCfg() → validateChaosCfg()
        -portin läpi (pääsääntö 2). NORMAL = nykyiset literaalit.
-       Kutsutaan tuotannossa vaiheissa v10.03/v10.04; tässä vaiheessa
+       Kutsutaan tuotannossa vaiheissa; tässä vaiheessa
        toiminnot ovat valmiina ja ?debug raportoi ne.
        ═══════════════════════════════════════════════════════════ */
 
@@ -2380,7 +2380,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
     // 5) Portti: hyväksyntä – hylkää epäreilu arpa (pääsääntö 2)
 
-    // 6) FULL-arpa: enintään 40 yritystä, muuten turvallinen klampattu arpa (v10.04)
+    // 6) FULL-arpa: enintään 40 yritystä, muuten turvallinen klampattu arpa
 
 
     /* ── K7-kaaoskortit omasta tiedostosta (Vaihe 5 osa 5) ──
@@ -2430,14 +2430,14 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         // Pikseliterävyys: ei pehmennystä skaalattaessa (sprite-piirto)
         ctx.imageSmoothingEnabled = false;
         randomizeBuildingColors();  // arvo taloille uudet sävyt joka kerta
-        /* v11.32: palauta oletusasettelu (myös BAD/FULL-runin jälkeen), sitten
+        /* palauta oletusasettelu (myös BAD/FULL-runin jälkeen), sitten
            BAD/FULL arpoo talojen keskinäisen järjestyksen kadulla. Talot pysyvät
            kokonaisina (korkeus/kyltti/rooli/ovi/lamppu mukana); NORMAL/MILD/GOOD
            eivät kutsu arvontaa (bitti-identtiset). */
         resetBuildingOrder();
-        if (chaosFlags.ruin) shuffleBuildingOrder();   // BAD/FULL: talojärjestys arvotaan (v11.32)
-        resetBuildingDamage();      // v11.22: talot ehjinä uudessa pelissä (vain muistissa)
-        /* v11.34: laske jokaiselle lampulle sen vasemman puoleinen talo (naapuri).
+        if (chaosFlags.ruin) shuffleBuildingOrder();   // BAD/FULL: talojärjestys arvotaan
+        resetBuildingDamage();      // talot ehjinä uudessa pelissä (vain muistissa)
+        /* laske jokaiselle lampulle sen vasemman puoleinen talo (naapuri).
            Lamppu on aina kahden talon välissä – bldgIdx kertoo oikean puolen,
            leftBldgIdx lasketaan tässä talojen nykyisten sijaintien perusteella. */
         for (let i = 0; i < lamps.length; i++) {
@@ -2460,8 +2460,8 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         delete progressState.moonClock;
         delete progressState.sunClock;
         const freshGame = (JSON.stringify(progressState) === JSON.stringify(GameState.defaultState));
-        // Kaaos K4 (v10.04): uuden pelin syntymäpaketti kaaosakselina
-        // (aloituskolikot · aloitus🍔 2–10). v10.32: aloituskolikot ovat FULLissa
+        // Kaaos K4: uuden pelin syntymäpaketti kaaosakselina
+        // (aloituskolikot · aloitus🍔 2–10).: aloituskolikot ovat FULLissa
         // KIINTEÄT = NO CHAOSin arvo (CHAOS_DEFAULTS2.startCoins); muilla tasoilla
         // ne ovat aina olleet CHAOS_DEFAULTS2:sta. Tallennettu saldo voittaa aina
         // (sääntö 01) → koskee vain aivan uutta peliä.
@@ -2475,15 +2475,15 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             lamps[i].kickCount = lamps[i].kickCount || 0;
             lamps[i].overheat = lamps[i].overheat || false;
             lamps[i].overheatTimer = lamps[i].overheatTimer || 0;
-            lamps[i]._mosq = null;   // v11.33: BAD/FULL arpoo moskiittojen koon/värin uudelleen joka kierroksella
+            lamps[i]._mosq = null;   // BAD/FULL arpoo moskiittojen koon/värin uudelleen joka kierroksella
             if (!lamps[i].baseShade) {
                 const g = 35 + Math.random() * 30;  // 35–65 harmaan vaaleus
-                // Kaaos K1 (v10.03): lampHueShift värjää tolpan sävyn (0 = harmaa, kuten ennen)
+                // Kaaos K1: lampHueShift värjää tolpan sävyn (0 = harmaa, kuten ennen)
                 lamps[i].baseShade = lampHueShift ? ('hsl(' + lampHueShift + ',22%,' + g + '%)') : ('hsl(0,0%,' + g + '%)');
                 lamps[i].hatShade  = lampHueShift ? ('hsl(' + lampHueShift + ',22%,' + (g - 8) + '%)') : ('hsl(0,0%,' + (g - 8) + '%)');
             }
         }
-        // Siivoa vanha 6 lampun tila localStorageen jääneestä tallennuksesta (v4.96)
+        // Siivoa vanha 6 lampun tila localStorageen jääneestä tallennuksesta
         if (state.litLamps.length > lamps.length) {
             state.litLamps.length = lamps.length;
             GameState.save(state);
@@ -2494,9 +2494,9 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         coin.despawnTimer = coin.collected ? 0 : 600;
         hamburgerCount = state.inventory.hamburgerCount || 5;
         hamburgerTimer = burgerInterval;
-        drunkLevel = 0;              // v11.31: humala alkaa aina nollasta (vain FULL)
+        drunkLevel = 0;              // humala alkaa aina nollasta (vain FULL)
         drunkTimer = burgerInterval;
-        /* v11.31e: F5-soft reset palauttaa humalan kaaos-sessiosta; hard reset
+        /* F5-soft reset palauttaa humalan kaaos-sessiosta; hard reset
            (✕ / kuolema / uusi välilehti) tyhjentää session → humala nollautuu. */
         if (chaosFlags.drunk) {
             const ds = loadChaosSession();
@@ -2516,15 +2516,15 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         bmKeyCollected = state.bmKeyCollected || false;
         beamWeaponCollected = state.beamWeaponCollected || false;
         spawnBeamPickup();
-        beamCooldownTimer = 0;   // v11.14: uusi peli ei ala keskeneräisellä lukolla
-        /* v11.24 BAD-avaus: BAD = BAD – laskuri viritetään tässä, mutta meteoriitti
+        beamCooldownTimer = 0;   // uusi peli ei ala keskeneräisellä lukolla
+        /* BAD-avaus: BAD = BAD – laskuri viritetään tässä, mutta meteoriitti
            syntyy vasta kadulla ja yöllä (updateBadDemo yön haarassa). */
         badDemoTimer = (chaosFlags.badDemo && !BAD_DEMO_OFF) ? BAD_DEMO_DELAY : -1;
         badDemoDone = false;
-        /* Päivä/yö on tallennettu tila (state.isDay, v4.33):
+        /* Päivä/yö on tallennettu tila (state.isDay):
              null  = ei vielä ratkaistu → 3 avainta nostaa päivän kerran
              true  = päivä, false = yö (makuuhuoneen Nuku-valinta)
-           Valmiiksi läpäisty peli avautuu siis suoraan päivänä (v4.32-käytös),
+           Valmiiksi läpäisty peli avautuu siis suoraan päivänä (käytös),
            mutta nukkumalla tilan voi vaihtaa ja valinta pysyy tallessa. */
         if (state.isDay == null && !DAY_FORCE && allKeysCollected()) {
             state.isDay = true;
@@ -2532,14 +2532,14 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         }
         dayNight.isDay = (state.isDay === true);
         dayNight.t = dayTarget();
-        /* Kuun paikka palautetaan tallennuksesta (v4.74): F5/reload ei palauta
+        /* Kuun paikka palautetaan tallennuksesta: F5/reload ei palauta
            kuuta lähtöasemaan. Nollatila syntyy vain kun tallennus on tyhjä
            (kuolema / ✕ "aloita alusta") tai kun uusi yö alkaa Nukusta.
            Testityökalut ?day=0/1 näyttävät kuun lähtöasemasta kuten ennen. */
         applyMoonClock(DAY_FORCE ? 0 : (Number(state.moonClock) || 0));
         applySunClock(DAY_FORCE ? 0 : (Number(state.sunClock) || 0));
-        dayNight.spawnLampTimer = freshGame ? SPAWN_LAMP_DELAY : 0;  // 4 s → lamppushow vain uudessa pelissa (v4.90)
-        /* Jukebox-soitto palautetaan tallennuksesta (v4.92): F5 ei katkaise soittoa. */
+        dayNight.spawnLampTimer = freshGame ? SPAWN_LAMP_DELAY : 0;  // 4 s → lamppushow vain uudessa pelissa
+        /* Jukebox-soitto palautetaan tallennuksesta: F5 ei katkaise soittoa. */
         if (state.jukeQueue && state.jukeQueue.length > 0 && state.jukePos !== undefined) {
             const urls = [];
             for (let i = 0; i < state.jukeQueue.length; i++) {
@@ -2563,7 +2563,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         initClouds();
         initBackdrop();
         initForeground();
-        rollManholeState();   // avoin kaivo: 1/6 (tai ?hole=0/1/2) – v4.51
+        rollManholeState();   // avoin kaivo: 1/6 (tai ?hole=0/1/2)
         setupInput();
         resize();
         lastTime = performance.now();
@@ -2613,7 +2613,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             if (e.key === ' ' || e.key === 'Enter') actionPressed = false;
         });
 
-        // Sädease (v10.20): PC = hiiri (tähtäys + klikkaus), mobiili = täppäys taivaalle
+        // Sädease: PC = hiiri (tähtäys + klikkaus), mobiili = täppäys taivaalle
         canvas.addEventListener('mousemove', (e) => {
             const p = clientToWorld(e.clientX, e.clientY);
             aimX = p.x; aimY = p.y; aimActive = true;
@@ -2704,7 +2704,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         render();
         actionJustPressed = false;
     }
-    let LAMP_RADIUS = 30;   // kaaos K1 (v10.03)
+    let LAMP_RADIUS = 30;   // kaaos K1
 /* ═══════════════════════════════════════════════════
        PÄIVITYS
        ═══════════════════════════════════════════════════ */
@@ -2716,23 +2716,23 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         if (Math.abs(target - camX) < 0.5) camX = target;
     }
 
-    /* v11.42 (Vaihe 5 osa 7): liikennologiikka siirrettiin street/traffic.js-moduuliin
+    /* Vaihe 5 osa 7: liikennologiikka siirrettiin street/traffic.js-moduuliin
        (updateTraffic). Tila (vehicles, spawnTimers, player, kertoimet) sidotaan
        gettereillä tuonnempana; kutsut ovat muotoa StreetTraffic.update(dt[, playerSafe]). */
 
-    /* v11.44 (Vaihe 5 osa 8): huoneiden LOGIIKKA (updateSleepRoom,
+    /* Vaihe 5 osa 8: huoneiden LOGIIKKA (updateSleepRoom,
        updateBarRoom, updateJukeboxRoom) siirrettiin street/rooms.js-moduuliin.
        Huoneiden tila (sleep-, bar- ja juke-muuttujat) sidotaan get+set
        -pareina alempana; kutsut tulevat huonerekisterin kautta (rooms[]). */
 
-    /* Sanomalehti (v4.53/v4.54): sivujen selaus; liikenne EI pysähdy → auto voi ajaa yli (lehti putoaa, tainnutus). */
+    /* Sanomalehti: sivujen selaus; liikenne EI pysähdy → auto voi ajaa yli (lehti putoaa, tainnutus). */
     function updateNewsRoom(dt) {
-        // SANOMALEHTI (v4.53/v4.54) – sivuttain selattava ohjelehti
+        // SANOMALEHTI – sivuttain selattava ohjelehti
         //   ▲ / ▼ = edellinen / seuraava sivu (ei kierrä yli)
         //   Space (⚡) = seuraava sivu; viimeisellä sivulla poistuu kadulle
         //   (o) / Enter = poistu heti      ✕-nappi = sulje (closeRoom)
         //   Ilmainen eikä muuta taloutta; nälkä kuluu kuten huoneissa.
-        //   LIIKENNE EI PYSÄHDY (v4.54): auto voi ajaa yli kesken lukemisen
+        //   LIIKENNE EI PYSÄHDY: auto voi ajaa yli kesken lukemisen
         //   → lehti putoaa kädestä ja pelaaja kaatuu kadulle (tainnutus +
         //   −1 🍔 kuten muutenkin; 0 🍔 = kuolema). Turvassa ovat kaistojen
         //   välinen rako sekä aivan aidan juuri – samat rajat kuin ennen.
@@ -2769,11 +2769,11 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         return false;
     }
 
-    /* Tainnutus: liikenne pysähtyy vain auton kolarista (v11.10/v11.12), pudotus knockFallY-tasolle, maailma jäätyy mutta ajastimet/partikkelit/oviukko/meteoriitti pyörivät. */
+    /* Tainnutus: liikenne pysähtyy vain auton kolarista, pudotus knockFallY-tasolle, maailma jäätyy mutta ajastimet/partikkelit/oviukko/meteoriitti pyörivät. */
     function updateKnockedDown(dt) {
         // Tainnutus - kukkaruukku osui
         if (player.knockedDown) {
-            // LIIKENNE EI PYSÄHDY (v11.10): tainnutus jäädyttää kadun, mutta
+            // LIIKENNE EI PYSÄHDY: tainnutus jäädyttää kadun, mutta
             // liikenne jatkaa – paitsi jos kaataja oli auto. Vain auton osuma
             // on kolari, johon liikenne on osallisena (`player.knockFallY`
             // asetetaan ainoastaan updateTrafficin törmäyksessä) → silloin
@@ -2783,8 +2783,8 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             // ei tule uutta osumaa (ei toistuvaa 🍔-menetystä).
             if (player.knockFallY === undefined) StreetTraffic.update(dt, true);
             player.knockdownTimer -= dt;
-            // Putoamistaso: auton osuma kaataa 25 px ylös osumakohdasta (v4.78: 10,
-            // v11.12: 25 px – pysähtynyt auto ei osu heti uudelleen ylösnoustessa);
+            // Putoamistaso: auton osuma kaataa 25 px ylös osumakohdasta (: 10,
+            // 25 px – pysähtynyt auto ei osu heti uudelleen ylösnoustessa);
             // muilla tainnutuslähteillä oletus jalkakäytävän taso (GROUND_Y + 10).
             const fallY = (player.knockFallY !== undefined) ? player.knockFallY : (GROUND_Y + 10);
             player.vx = 0; player.vy += GRAVITY * dt; player.y += player.vy * dt;
@@ -2805,9 +2805,9 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         return false;
     }
 
-    /* Savukiekurat tuhoutuneista taloista (v11.33/v11.36): nousevat ja hiipuvat, vain BAD/FULL. */
+    /* Savukiekurat tuhoutuneista taloista: nousevat ja hiipuvat, vain BAD/FULL. */
     function updateBuildingSmoke(dt) {
-        // ── Savukiekurat tuhoutuneista taloista (v11.33, v11.36: siirretty tänne) ──
+        // ── Savukiekurat tuhoutuneista taloista (siirretty tänne) ──
         if (chaosFlags.ruin) {
             for (const key in buildingDmg) {
                 if (buildingDmg[key] !== 'gone') continue;
@@ -2851,10 +2851,10 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         }
     }
 
-    /* Päivä/yö: ensiauringonnousu (3 avainta), liuku kohti tavoitetta (pysähtyy huoneissa/iframessa), yön lamppushown viritys ja päivän lamppusammutus (v4.38/v4.42). */
+    /* Päivä/yö: ensiauringonnousu (3 avainta), liuku kohti tavoitetta (pysähtyy huoneissa/iframessa), yön lamppushown viritys ja päivän lamppusammutus. */
     function updateDayNight(dt) {
         // ── Päivä/yö: liuku kohti tallennettua tavoitetta ──
-        // Ensiauringonnousu (v4.32-käytös): kun kaikki 3 avainta on koossa eikä
+        // Ensiauringonnousu (käytös): kun kaikki 3 avainta on koossa eikä
         // tilaa ole vielä ratkaistu, kadulle nousee päivä kerran. Sen jälkeen
         // tila on tallennettu (state.isDay) ja makuuhuoneen Nuku-valinta
         // vaihtaa sitä vapaasti (päivä ⇄ yö).
@@ -2865,7 +2865,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         }
         // Liuku pysäytetään, kunnes pelaaja on taas kadulla: avain saadaan
         // alapelistä (iframe) ja huoneista → muutos näkyy kadulle palatessa
-        // eikä jää taustalla näkymättömiin (myös lehteä lukiessa, v4.53).
+        // eikä jää taustalla näkymättömiin (myös lehteä lukiessa).
         const dayWanted = dayTarget();
         if (dayNight.t !== dayWanted && !iframeOpen && !sleepRoom && !barRoom &&
             !jukeboxRoom && !newsRoom) {
@@ -2882,10 +2882,10 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         }
 
         // Päivänvalo on näkynyt tässä istunnossa → yön lamppushow saa laueta
-        // (v4.42). Näin efekti ei laukea pelkästä sivunlatauksesta yöllä.
+        // . Näin efekti ei laukea pelkästä sivunlatauksesta yöllä.
         if (dayNight.t > 0) dayNight.nightShowArmed = true;
 
-        // ── Päivä sammuttaa katuvalot kerran (v4.38) ──
+        // ── Päivä sammuttaa katuvalot kerran ──
         // Kynnys on täysi päivä (dayNight.t === 1): hehku on siihen mennessä jo
         // hiipunut LAMP_DAY_DIM:iin, joten sammutus ei poksahda silmään.
         // Lippu nollautuu vasta kun yö on palannut → kerran per auringonnousu.
@@ -2906,7 +2906,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         } else if (dayNight.t === 0) {
             dayNight.dayLampsOff = false;
             // Yö laskeutui täyteen → katuvalot syttyvät itsestään yksi
-            // kerrallaan (v4.42), mutta vain kun pelaaja on jo edennyt
+            // kerrallaan, mutta vain kun pelaaja on jo edennyt
             // (päivä/yö ratkaistu). Uudessa pelissä valot potkitaan yhä itse.
             if (dayNight.nightShowArmed && nightLampsAllowed()) {
                 dayNight.nightShowArmed = false;
@@ -2932,9 +2932,9 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         }
     }
 
-    /* Spawn-lamppushow (v4.90): pelin alussa/kuoleman jälkeen 4 s → lamput syttyvät yksi kerrallaan. */
+    /* Spawn-lamppushow: pelin alussa/kuoleman jälkeen 4 s → lamput syttyvät yksi kerrallaan. */
     function updateSpawnLampShow(dt) {
-        // ── Spawn-lamppushow (v4.90): pelin alussa/kuoleman jälkeen 4 s → lamput syttyvät ──
+        // ── Spawn-lamppushow: pelin alussa/kuoleman jälkeen 4 s → lamput syttyvät ──
         // Käyttää samaa startNightLampShow()-mekaniikkaa kuin yön tullessa.
         if (dayNight.spawnLampTimer > 0 && !dayNight.isDay && !playerDead && !iframeOpen && !sleepRoom && !barRoom && !jukeboxRoom) {
             dayNight.spawnLampTimer -= dt;
@@ -2944,9 +2944,9 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         }
     }
 
-    /* Jukebox-soiton tallennus (v4.92): seuraa positiota ja päivittää tilan F5:n yli. */
+    /* Jukebox-soiton tallennus: seuraa positiota ja päivittää tilan F5:n yli. */
     function updateJukeboxPersistence(dt) {
-        // ── Jukebox-soiton tallennus (v4.92): seuraa positiota ja päivitä state F5:n yli ──
+        // ── Jukebox-soiton tallennus: seuraa positiota ja päivitä state F5:n yli ──
         if (StreetAudio.isJukeboxPlaying()) {
             const qPos = StreetAudio.getJukeboxQueuePos();
             if (qPos !== jukeSavedPos && qPos >= 0) {
@@ -2964,9 +2964,9 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         }
     }
 
-    /* Yö/päivä-kierto (v4.89): kuu/aurinko liikkuu, CYCLE_CHANGE_DELAY_FRAMES odotus ja automaattinen vaihto; kellot tallennetaan ~2 s välein. */
+    /* Yö/päivä-kierto: kuu/aurinko liikkuu, CYCLE_CHANGE_DELAY_FRAMES odotus ja automaattinen vaihto; kellot tallennetaan ~2 s välein. */
     function updateDayCycle(dt) {
-        // ── Yö/päivä -kierto (v4.89): kuu liukuu yöllä, aurinko päivällä ──
+        // ── Yö/päivä -kierto: kuu liukuu yöllä, aurinko päivällä ──
         // Kun kuu/aurinko on kadonnut, odotetaan CYCLE_CHANGE_DELAY_FRAMES
         // (15 s) ja vaihdetaan automaattisesti seuraavaan vuorokaudenaikaan.
         // Kellot tallennetaan ~2 s välein, jotta F5 jatkaa samasta kohdasta.
@@ -3035,19 +3035,19 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         return false;
     }
 
-    /* Nälkä (1/60 s): kulutus jatkuu kaikkialla paitsi nukkuessa (v4.49); 0 🍔 → killPlayer + ulos piilosta (v4.50). true = nälkäkuolema vei vuoron. */
+    /* Nälkä (1/60 s): kulutus jatkuu kaikkialla paitsi nukkuessa; 0 🍔 → killPlayer + ulos piilosta. true = nälkäkuolema vei vuoron. */
     function updateHunger(dt) {
         // ── Nälkä (hampurilaisajastin, 1/60s) ────────────────────────
-        // Kulutus jatkuu kaikkialla kuten kadulla (v4.49): myös BAR:ssa,
+        // Kulutus jatkuu kaikkialla kuten kadulla: myös BAR:ssa,
         // jukeboxissa ja iframe-peleissä → pelaajan pitää aina huolehtia,
-        // että 🍔 riittää. Jäissä vain nukkuessa (hungerOnHold, v4.41)
+        // että 🍔 riittää. Jäissä vain nukkuessa (hungerOnHold)
         // ja kuolleena (yllä oleva return).
-        // Nälkäkuolema laukeaa myös huoneessa/pelissä (v4.50): huone tai
+        // Nälkäkuolema laukeaa myös huoneessa/pelissä: huone tai
         // alapeli suljetaan ensin, jotta pelaaja romahtaa näkyvästi kadulle
         // eikä peli näytä nollautuvan kesken pelaamisen.
         // Tahti (burgerInterval, kaaos K4) ja katto 10.
         if (!hungerOnHold()) {
-            /* FULL (v11.31): JOS olutta on, se kuluu ensin (humala haihtuu,
+            /* FULL: JOS olutta on, se kuluu ensin (humala haihtuu,
                🍔 säilyy). Vasta kun 🍺 = 0, klassinen 🍔-nälkä palaa. */
             let burgerHungerActive = true;
             if (chaosFlags.drunk && drunkLevel > 0) {
@@ -3056,7 +3056,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
                 if (drunkTimer <= 0) {
                     drunkLevel--;
                     drunkTimer = burgerInterval;
-                    saveChaosSession();   // v11.31e: F5 ei hukkaa humalaa
+                    saveChaosSession();   // F5 ei hukkaa humalaa
                     updateHUD();
                 }
             }
@@ -3081,14 +3081,14 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         return false;
     }
 
-    /* Paluu kadulle -vahti (v4.51): viemärinkannen tila voi muuttua huoneesta palatessa; rosvon ttl kuluu myös piilossa (v10.12). */
+    /* Paluu kadulle -vahti: viemärinkannen tila voi muuttua huoneesta palatessa; rosvon ttl kuluu myös piilossa. */
     function updateHiddenTracking(dt) {
-        // ── Paluu kadulle -vahti (v4.51): huone tai alapeli sulkeutui →
+        // ── Paluu kadulle -vahti: huone tai alapeli sulkeutui →
         //    1/10 mahdollisuus, että viemärinkannen tilanne muuttuu
         //    (kansi katoaa tai asennetaan takaisin paikalleen).
         trackHiddenStreet();
 
-        // v10.12: rosvon elinikä kuluu myös piilossa (huone/alapeli), jotta
+        // rosvon elinikä kuluu myös piilossa (huone/alapeli), jotta
         // "piiloudu ja odota" -pakoreitti toimii kaikilla kaaostasoilla.
         if (robber && (iframeOpen || sleepRoom || barRoom || jukeboxRoom || newsRoom)) {
             if (robber.ttl !== undefined) {
@@ -3098,12 +3098,12 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         }
     }
 
-    /* Kaivosarja käynnissä: katu on jäissä, liikenne jatkaa taustalla (v11.09), pelaaja ei ota osumia. true = sekvenssi vei vuoron. */
+    /* Kaivosarja käynnissä: katu on jäissä, liikenne jatkaa taustalla, pelaaja ei ota osumia. true = sekvenssi vei vuoron. */
     function updateManholeSequence(dt) {
-        // ── Avoin kaivo: pudotus / ylöskiipeäminen käynnissä (v4.51) ──
+        // ── Avoin kaivo: pudotus / ylöskiipeäminen käynnissä ──
         // Katu on jäissä sekvenssin ajan (kuten nukkumisen pimennys).
-        // LIIKENNE EI PYSÄHDY (v11.09): sama periaate kuin jukebox-huoneessa
-        // (v4.61) – autot ajavat taustalla, jotta yksikään ajoneuvo ei jää
+        // LIIKENNE EI PYSÄHDY: sama periaate kuin jukebox-huoneessa
+        // autot ajavat taustalla, jotta yksikään ajoneuvo ei jää
         // jyrräämään paikalleen (moottoriäänen panorointi seuraa v.x:ää).
         // Pelaaja on reiässä (kadun ulkopuolella) → playerSafe = true:
         // ei törmäystä, ei tainnutusta eikä 🍔-menetystä kesken sekvenssin.
@@ -3118,7 +3118,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
            (playerSpeedMult, K4): chaosAbility() = molemmat kerrointa. PLAYER_SPEED
            (1.225) on normitaso. NORMALissa playerSpeedMult = 1 → muutos on no-op. */
         const speedMult = chaosAbility();
-        StreetAudio.setHungerTempo(hungerSpeedMult());   // syntikkatempo pysyy 🍔-sidonnaisena (v4.94)
+        StreetAudio.setHungerTempo(hungerSpeedMult());   // syntikkatempo pysyy 🍔-sidonnaisena
         const moveSpeed = PLAYER_SPEED * speedMult;
         let moveX = 0;
         if (keys['ArrowLeft'] || keys['a'] || keys['A'])  moveX = -1;
@@ -3146,7 +3146,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             player.y += Math.sin(t * 1.5 + 0.8) * wobble * 0.45 * dt;
             player.y = Math.max(PLAYER_Y_MIN, Math.min(PLAYER_Y_MAX, player.y));
         }
-        /* v11.31c: humalainen (≥ DRUNK_IDLE_WOBBLE_MIN 🍺) ottaa PAIKALLAAN
+        /* humalainen (≥ DRUNK_IDLE_WOBBLE_MIN 🍺) ottaa PAIKALLAAN
            HALLITSEMATTOMIA askeleita suuntaan tai toiseen – myös ilman
            ohjausta. Pituus ja tahti kasvavat humalan mukana. Askel LIPUU
            pehmeästi DRUNK_STEP_FRAMES framen yli (ei nykäystä). */
@@ -3248,9 +3248,9 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         }
     }
 
-    /* Sädeaseen poiminta (v10.20): FULL-aseen nosto kadulta, kun jalkapiste osuu esineeseen. */
+    /* Sädeaseen poiminta: FULL-aseen nosto kadulta, kun jalkapiste osuu esineeseen. */
     function updateBeamPickup(dt) {
-        // ── Sädeaseen poiminta (v10.20) ──────────────
+        // ── Sädeaseen poiminta ──────────────
         if (beamPickup) {
             const dx = (player.x + player.w/2) - beamPickup.x;
             const dy = (player.y + player.h) - beamPickup.y;
@@ -3302,7 +3302,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
     /* Avoin kaivo: astuminen reiän päälle laukaisee putoamisen (reunaehtoinen). true = putoaminen alkoi. */
     function updateManholeStep(dt) {
-        // ── Avoin kaivo: astuminen reiän päälle (v4.51) ─────────────
+        // ── Avoin kaivo: astuminen reiän päälle ─────────────
         // Reunaehtoinen: putoaminen laukeaa vain kun jalkapiste siirtyy
         // ellipsin sisään. Jos kansi katoaa jalkojen alta (paluu huoneesta),
         // putoaminen ei laukea ennen kuin pelaaja astuu pois ja takaisin.
@@ -3317,9 +3317,9 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         return false;
     }
 
-    /* Sähkökaapit (v4.85): tilakello arpoo päälle/pois omalla tahdilla (?cabs jäädyttää) ja päällä oleva kaappi antaa sähköiskun (tainnutus + −1 🍔 / FULL −1 🪙). */
+    /* Sähkökaapit: tilakello arpoo päälle/pois omalla tahdilla (?cabs jäädyttää) ja päällä oleva kaappi antaa sähköiskun (tainnutus + −1 🍔 / FULL −1 🪙). */
     function updateElectricCabinets(dt) {
-        // ── Sähkökaapit: tilakello (v4.85) ────────────────
+        // ── Sähkökaapit: tilakello ────────────────
         // Kaappi voi sammua tai käynnistyä itsestään: jokaisella on oma
         // satunnainen väli (CAB_REROLL_MIN..MAX frameä), jonka jälkeen tila
         // arvotaan uudelleen (~50 % päällä). Vilkkuva valo kertoo tilan.
@@ -3335,7 +3335,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
         // ── Sähkökaapit: sähköisku ─────────────────
         for (const cab of electricCabinets) {
-            if (cab.bldgIdx !== undefined && buildingGone(cab.bldgIdx)) continue;   // v11.22: kaappi katosi talon mukana
+            if (cab.bldgIdx !== undefined && buildingGone(cab.bldgIdx)) continue;   // kaappi katosi talon mukana
             if (!cab.on) continue;           // sammuksissa oleva kaappi ei iske
             if (player.knockedDown) break;   // isku jo saatu – ei toista kaappia samalla kertaa
             // Vaakasuunnassa laatikon sisällä, pystysuunnassa pää kaapin
@@ -3352,7 +3352,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
                 player.x = Math.max(0, Math.min(WORLD_W - player.w, player.x + pushDir * 30));
                 spawnParticles(ccx, cab.y + cab.h / 2, '#ffe066', 16);
                 playZap();
-                collisionCost();   // v11.31: FULL → −1 🪙, muuten −1 🍔
+                collisionCost();   // FULL → −1 🪙, muuten −1 🍔
             }
         }
     }
@@ -3413,7 +3413,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             if (Math.sqrt((fpx-ppx)*(fpx-ppx)+(fpy-ppy)*(fpy-ppy)) < 20) {
                 if (!player.knockedDown) {
                     player.knockedDown = true; player.knockdownTimer = 600; player.kicking = false; player.kickFrame = 0;
-                    collisionCost();   // v11.31: FULL → −1 🪙, muuten −1 🍔
+                    collisionCost();   // FULL → −1 🪙, muuten −1 🍔
                 }
                 spawnParticles(ppx, ppy, '#ff6644', 15); flowerPot = null;
             } else if (flowerPot.y > GROUND_Y + 20 || flowerPot.x < -30 || flowerPot.x > WORLD_W + 30) {
@@ -3460,17 +3460,17 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         }
     }
 
-    /* Vastustajat: oviukon cooldown + liike, rosvon cooldown + jahtaus (v4.66) ja K7-korttipakan kesto. */
+    /* Vastustajat: oviukon cooldown + liike, rosvon cooldown + jahtaus ja K7-korttipakan kesto. */
     function updateEnemies(dt) {
         // ── Oviukko (Avenger) ────────────────────────
         if (avengerCooldown > 0) avengerCooldown -= dt;
         updateAvenger(dt);
 
-        // ── Rosvo: yllätys + kiinniotto (v4.66) ──
+        // ── Rosvo: yllätys + kiinniotto ──
         if (robberCooldown > 0) robberCooldown -= dt;
         updateRobber(dt);
 
-        // ── K7-korttipakka (v10.05): laukaisee/palauttaa visuaaliset kortit ──
+        // ── K7-korttipakka: laukaisee/palauttaa visuaaliset kortit ──
         StreetChaosCards.update(dt);
     }
 
@@ -3478,7 +3478,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     function updateAnimal(dt) {
         // ── Katueläin ────────────────────────────────
         if (!groundAnimal) {
-            if (!chaosAllGone()) {   // v11.36: BAD/FULL rauniot – ei eläimiä kadulla
+            if (!chaosAllGone()) {   // BAD/FULL rauniot – ei eläimiä kadulla
                 animalSpawnTimer -= dt;
                 if (animalSpawnTimer <= 0) {
                     const types = animalTypeWeights || ['mouse','mouse','rat','rat','rabbit']; const type = types[Math.floor(Math.random()*types.length)];
@@ -3515,7 +3515,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         // Päivällä (dayNight.t > 0) niitä ei enää spawnata; update() nollaa
         // kesken lennon olleet oliot päivän alkaessa.
         if (dayNight.t <= 0) {
-            updateBadDemo(dt);       // v11.24: BAD-avaus laukeaa vain kadulla ja yöllä
+            updateBadDemo(dt);       // BAD-avaus laukeaa vain kadulla ja yöllä
             updateShootingStar(dt);
             updateSatellite(dt);
 
@@ -3607,9 +3607,9 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         }
     }
 
-    /* Päivälinnut (v5.00): istuskelevat puissa, siirtyvät ajoittain uuteen paikkaan; yöllä poistetaan. */
+    /* Päivälinnut: istuskelevat puissa, siirtyvät ajoittain uuteen paikkaan; yöllä poistetaan. */
     function updateBirds(dt) {
-        // ── Päivälinnut (v5.00) ────────────
+        // ── Päivälinnut ────────────
         if (dayNight.isDay) {
             // Alusta tavoitemäärä jos ei ole asetettu tai kaikki linnut ovat kuolleet
             if (birdTargetCount === undefined || (birds.length === 0 && birdTargetCount > 0 && birdSpawnTimer === undefined)) {
@@ -3654,7 +3654,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
                         birds.splice(i, 1);
                         // Kun viimeinenkin lintu on poistunut, nollaa tavoite ja spawn-timer,
                         // jotta seuraavalla framella init ehto (birdTargetCount === undefined)
-                        // laukeaa ja uusi parvi alkaa spawnata (v5.02, bugikorjaus).
+                        // laukeaa ja uusi parvi alkaa spawnata (bugikorjaus).
                         if (birds.length === 0) { birdTargetCount = undefined; birdSpawnTimer = undefined; }
                     }
                     continue;
@@ -3704,10 +3704,10 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         // Ajoneuvon törmäyksen tärinä (vain visuaalinen – ei jäädytä pelilogiikkaa)
         if  (vehicleShakeTimer > 0) { vehicleShakeTimer -= dt; }
         if (meteorShakeTimer > 0) { meteorShakeTimer -= dt; }
-        updateBuildingDamage(dt);   // v11.22: tuhoutuvien talojen animaatio etenee
+        updateBuildingDamage(dt);   // tuhoutuvien talojen animaatio etenee
         updateBuildingSmoke(dt);
         if (beamFireTimer > 0) { beamFireTimer -= dt; }
-        if (beamCooldownTimer > 0) { beamCooldownTimer -= dt; }   // v11.14: laukaisuväli
+        if (beamCooldownTimer > 0) { beamCooldownTimer -= dt; }   // laukaisuväli
         if (meteorFlash) { meteorFlash.t -= dt; if (meteorFlash.t <= 0) meteorFlash = null; }
 
         // ── Hit pause: maailma jäätyy 2  frameä osumasta (render jatkaa) ──
@@ -3753,7 +3753,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
         updateElectricCabinets(dt);
 
-        // HUOM (v4.49): hampurilaisajastin siirrettiin update():n alkuun
+        // HUOM: hampurilaisajastin siirrettiin update():n alkuun
         // (kuolemasekvenssin jälkeen) → kulutus jatkuu myös BAR:ssa,
         // jukeboxissa ja iframe-peleissä eikä pysähdy huoneisiin.
 
@@ -3773,7 +3773,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         updateAnimal(dt);
 
         // ── Ajoneuvot: liike, spawnit ja törmäys ──────────
-        //    Siirretty omaan funktioonsa (v4.54), jotta sama liikenne
+        //    Siirretty omaan funktioonsa, jotta sama liikenne
         //    pyörii myös sanomalehteä lukiessa (ks. newsRoom-haara yllä).
         StreetTraffic.update(dt);
 
@@ -3783,27 +3783,27 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     }
 
 /* ── Toimintopainikkeen käsittely ──────────────── */
-    /* Sanomalehden poiminta (v4.53/v4.54): tainnutettuna ei voi poimia. */
+    /* Sanomalehden poiminta: tainnutettuna ei voi poimia. */
     function tryNewspaper() {
-        // 0. SANOMALEHTI (v4.53) – kadulla lojuva lehti: poimimalla aukeaa
+        // 0. SANOMALEHTI – kadulla lojuva lehti: poimimalla aukeaa
         //    peliohjeet. Ilmainen eikä vaikuta talouteen (sääntö 04).
         //    Lehti on sijoitettu kauas ovista ja lampuista, joten tämä
         //    tarkistus ei varasta minkään muun kohteen toimintoa.
-        //    Tainnutettuna lehteä ei voi poimia (v4.54).
+        //    Tainnutettuna lehteä ei voi poimia.
         if (!player.knockedDown && StreetNews.near()) { openNewspaper(); return true; }
         return false;
     }
 
-    /* Hedelmäpeli (talo 7): auki vain öisin, ei lamppua eikä avainta (v4.34). */
+    /* Hedelmäpeli (talo 7): auki vain öisin, ei lamppua eikä avainta. */
     function tryFruitDoor(px, py) {
         // 0. HEDELMÄPELI (talo 7, buildings[6], x 560–610) – ei lamppua eikä avainta,
-        //    mutta auki vain öisin (v4.34)
+        //    mutta auki vain öisin
         const fruitDoor = doorCenter(buildings[6]);
         const fdx = px - fruitDoor.x, fdy = py - fruitDoor.y;
         if (Math.sqrt(fdx * fdx + fdy * fdy) < DOOR_RADIUS) {
-            if (buildingGone(6)) return true;   // v11.22: tuhoutunut talo – musta ovi ei toimi
+            if (buildingGone(6)) return true;   // tuhoutunut talo – musta ovi ei toimi
             if (nightOnlyClosed()) { showNotification(CLOSED_SIGN); return true; }
-            if (doorLocked()) return true;                       // kaaos v10.18: ovi satunnaisesti lukossa (ei ilmoitusta)
+            if (doorLocked()) return true;                       // kaaos: ovi satunnaisesti lukossa (ei ilmoitusta)
             enterGame('fruitgame/game_main.html');
             return true;
         }
@@ -3812,17 +3812,17 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
     /* Jukebox (talo 5): 1. painallus sytyttää ikkunat, 2. painallus avaa huoneen; auki vain öisin. */
     function tryJukeboxDoor(px, py) {
-        // 0.5 JUKEBOX (talo 5, buildings[4], ovi x 410) – auki vain öisin (v4.34);
+        // 0.5 JUKEBOX (talo 5, buildings[4], ovi x 410) – auki vain öisin;
         //     yöllä ovi aukeaa vasta kun talon ikkunat palavat
         //     (1. painallus ovella = potku → valot syttyvät 20 s)
         const jkDoor = doorCenter(buildings[JUKEBOX_BLDG_IDX]);
         const jkLights = smallHouseLights[JUKEBOX_BLDG_IDX];
         const jkdx = px - jkDoor.x, jkdy = py - jkDoor.y;
         const jkInReach = Math.sqrt(jkdx * jkdx + jkdy * jkdy) < DOOR_RADIUS;
-        if (jkInReach && buildingGone(JUKEBOX_BLDG_IDX)) return true;   // v11.22: tuhoutunut talo
+        if (jkInReach && buildingGone(JUKEBOX_BLDG_IDX)) return true;   // tuhoutunut talo
         if (jkInReach && nightOnlyClosed()) { showNotification(CLOSED_SIGN); return true; }
         if (jkLights && jkLights.lit && jkInReach) {
-            if (doorLocked()) return true;                       // kaaos v10.18: ovi satunnaisesti lukossa (ei ilmoitusta)
+            if (doorLocked()) return true;                       // kaaos: ovi satunnaisesti lukossa (ei ilmoitusta)
             jukeboxRoom = true;
             jukeSel = 0;
             jukeHeldUp = false;
@@ -3847,7 +3847,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         const ssLights = smallHouseLights[SINKSHIP_BLDG_IDX];
         const ssdx = px - ssDoor.x, ssdy = py - ssDoor.y;
         const ssInReach = Math.sqrt(ssdx * ssdx + ssdy * ssdy) < DOOR_RADIUS;
-        if (ssInReach && buildingGone(SINKSHIP_BLDG_IDX)) return true;   // v11.22: tuhoutunut talo
+        if (ssInReach && buildingGone(SINKSHIP_BLDG_IDX)) return true;   // tuhoutunut talo
         if (ssLights && ssLights.lit && ssInReach) {
             enterGame('sinkship/game_main.html');
             return true;
@@ -3863,7 +3863,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             const dc = doorCenter(buildings[lamp.bldgIdx]);
             const dx = px - dc.x, dy = py - dc.y;
             if (Math.sqrt(dx*dx + dy*dy) < DOOR_RADIUS) {
-                if (buildingGone(lamp.bldgIdx)) return;   // v11.22: tuhoutunut talo – ovi ei toimi
+                if (buildingGone(lamp.bldgIdx)) return;   // tuhoutunut talo – ovi ei toimi
                 // BAR – aina auki (talo 8, lamp[4])
                 if (i === 4) {
                     barRoom = true;
@@ -3873,7 +3873,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
                     return;
                 }
                 // Makuuhuone (talo 7): ovi on aina auki – ei avaimia eikä
-                // lamppua, päivällä ja yöllä (v4.43, kuten BAR).
+                // lamppua, päivällä ja yöllä (kuten BAR).
                 if (lamp.bldgIdx === SLEEP_BLDG_IDX) {
                     sleepRoom = true;
                     sleepSel = 0;
@@ -3882,7 +3882,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
                     sleepPhase = 0;
                     return;
                 }
-                // Päivällä lamppua ei tarvita (v4.38): valoisa katu avaa oven
+                // Päivällä lamppua ei tarvita: valoisa katu avaa oven
                 if (lamp.lit || lampFreeOpen()) {
                     // Dig Däsh vaatii Dig Gamesta kerätyn avaimen
                     if (lamp.gameUrl && lamp.gameUrl.includes('digGame2') && !digKeyCollected) {
@@ -3906,7 +3906,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         const dc0 = doorCenter(buildings[0]);
         const dx0 = px - dc0.x, dy0 = py - dc0.y;
         if (Math.sqrt(dx0*dx0 + dy0*dy0) < DOOR_RADIUS) {
-            if (buildingGone(0)) return;   // v11.22: tuhoutunut talo – potku ei tee mitään
+            if (buildingGone(0)) return;   // tuhoutunut talo – potku ei tee mitään
             playKick();
             player.kicking = true;
             player.kickFrame = 0;
@@ -3934,7 +3934,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             if (Math.sqrt(dx*dx + dy*dy) < DOOR_RADIUS) {
                 playKick(); player.kicking = true; player.kickFrame = 0;
                 hitPauseTimer = HIT_PAUSE;   // tuntuva osuma
-                if (buildingGone(i)) return;   // v11.22: tuhoutunut talo – ovi ei toimi
+                if (buildingGone(i)) return;   // tuhoutunut talo – ovi ei toimi
                 const sh = smallHouseLights[i];
                 if (sh.lit && !flowerPot && !kickCoin && !avenger) { spawnKickDrop(buildings[i]); }
                 else { sh.lit = true; sh.timer = 1200; spawnParticles(dc.x, dc.y, '#ffdd88', 6); }
@@ -3963,7 +3963,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
                 lamps[i].kickCount = (lamps[i].kickCount || 0) + 1;
                 hitPauseTimer = HIT_PAUSE;   // tuntuva osuma (myös ylikuumeneminen)
 
-                // ── Salainen kolikkopalkkio (TESTITYÖKALU, v4.23) ──
+                // ── Salainen kolikkopalkkio (TESTITYÖKALU) ──
                 // Avain-cheatin jatko: vitoslamppu 20 potkua putkeen → +20 kolikkoa.
                 // Hiljainen: ei popuppia, ei ääntä, ei hiukkasia → vain saldo kasvaa.
                 if (i === COIN_CHEAT_LAMP) {
@@ -4079,7 +4079,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             if (e.data === 'BM_KEY_COLLECTED') {
                 bmKeyCollected = true;
                 state.bmKeyCollected = true;
-                /* Loppupalkinto (v11.30): Blue Mäxin avaimesta täydet 🍔 (10)
+                /* Loppupalkinto: Blue Mäxin avaimesta täydet 🍔 (10)
                    + 20 🪙. Toistuva – jokainen avaimen nappaus palkitsee
                    uudelleen. Sääntö 06: ei uutta tekstiä, pelaaja näkee
                    HUD:in lukemat kadulle palatessaan. */
@@ -4121,11 +4121,11 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         window.addEventListener('message', window._streetReturn);
     }
 
-    /* v11.44 (Vaihe 5 osa 8): jukeboxin valinnat ja poistuminen
+    /* Vaihe 5 osa 8: jukeboxin valinnat ja poistuminen
        (resetJukeboxRoom, jukePickedTracks, jukeboxExitAndPlay) ovat
        street/rooms.js-moduulissa; nimet tuodaan StreetRooms-destrukturoinnilla. */
 
-    /* ═══ NÄLKÄKUOLEMA HUONEESSA/ALAPELISSÄ (v4.50) ══════════════
+    /* ═══ NÄLKÄKUOLEMA HUONEESSA/ALAPELISSÄ ══════════════
        Jos 🍔 loppuu kesken huoneen tai alapelin, pelaaja kuolee heti – kuten
        kadullakin (vain nukkuminen on jäissä). Huone/alapeli suljetaan ensin,
        jotta kuolinsekvenssi näkyy kadulla eikä peli näytä nollautuvan kesken
@@ -4135,10 +4135,10 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         else closeRoom();              // BAR / makuuhuone / jukebox kiinni
     }
 
-    /* ═══ SANOMALEHTI (v4.53) ══════════════════════════════════════
+    /* ═══ SANOMALEHTI ══════════════════════════════════════
        Kadun lehti avataan toimintonapilla, kun pelaaja seisoo sen
        kohdalla. Lukutila on kuin canvas-huone: maailma jäätyy, nälkä
-       kuluu (v4.49/v4.50) ja ✕-nappi sulkee (closeRoom). */
+       kuluu ja ✕-nappi sulkee (closeRoom). */
     function openNewspaper() {
         newsRoom = true;
         StreetNews.reset();
@@ -4170,7 +4170,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         return false;
     }
 
-    /* v11.44 (Vaihe 5 osa 8): closeBarRoom / closeSleepRoom /
+    /* Vaihe 5 osa 8: closeBarRoom / closeSleepRoom /
        closeJukeboxRoom siirrettiin street/rooms.js-moduuliin. HUOM:
        closeNewsRoom ja closeRoom (rekisterisilmukka) jäävät tänne, koska
        rooms[] kokoaa kaikki neljä huonetta. */
@@ -4229,10 +4229,10 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         coin.respawnTimer = coin.collected ? 1 : 0;
         coin.despawnTimer = coin.collected ? 0 : 600;
         /* 0 🍔 pysyy 0:na (ei `|| 5`): nälkäkuolema ei saa "parantua" siitä,
-           että closeGame sulkee alapelin kesken kuolinsekvenssiä (v4.50). */
+           että closeGame sulkee alapelin kesken kuolinsekvenssiä. */
         hamburgerCount = (state.inventory.hamburgerCount != null)
             ? state.inventory.hamburgerCount : 5;
-        /* HUOM (v4.49): ajastinta EI enää nollata tässä – se jatkaa siitä
+        /* HUOM: ajastinta EI enää nollata tässä – se jatkaa siitä
            mihin jäi, kuten kadulla. Vanha `hamburgerTimer = 2400` antoi
            ilmaisen 40 s joka kerta, kun alapelistä poistui → hedeläpelin
            lyhyet sessiot eivät koskaan kuluttaneet mitään. */
@@ -4243,7 +4243,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         bmKeyCollected = state.bmKeyCollected || false;
         beamWeaponCollected = state.beamWeaponCollected || false;
         spawnBeamPickup();
-        beamCooldownTimer = 0;   // v11.14: resetti ei jätä lukkoa päälle
+        beamCooldownTimer = 0;   // resetti ei jätä lukkoa päälle
         sleepRoom = false;
         sleepSel = 0;
         sleepHeldUp = false;
@@ -4289,7 +4289,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     }
 
     function showSpawnHint() {
-    // Intentionally empty. was TIP: kick the doors to light the lamps! (v4.20)
+    // Intentionally empty. was TIP: kick the doors to light the lamps!
     }
 
     function spawnParticles(x, y, color, count) {
@@ -4316,9 +4316,9 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             status = ' 🔑 Keys: ' + keys + '/3';
         }
         status += ' | 💰 Coins: ' + coinCount;
-        if (beamWeaponCollected) status += ' 🔫';   // sädease ansaittu (v10.20)
+        if (beamWeaponCollected) status += ' 🔫';   // sädease ansaittu
         if (chaosFlags.beer) {
-            /* FULL (v11.31): 🍔 = peruskerros (kuluu vasta kun 🍺 loppu),
+            /* FULL: 🍔 = peruskerros (kuluu vasta kun 🍺 loppu),
                🍺 = ylin kerros. Näytetään todelliset määrät; 🍔 vilkkuu
                kuten ennenkin, kun ≤ HUNGER_WARN (3). */
             var fBurg = '';
@@ -4347,7 +4347,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         windDir = (Math.random() < 0.5 ? 1 : -1) * (windDirFlip ? -1 : 1);
         windSpeed = (2 + Math.random() * 3) * windSpeedMult; // px/s (2–5) × kaaoskerroin
 
-        // Pilvikaistale: cloudBandTop..cloudBandTop+cloudBandH (kaaos K1, v10.03)
+        // Pilvikaistale: cloudBandTop..cloudBandTop+cloudBandH (kaaos K1)
         const bandTop = cloudBandTop, bandH = cloudBandH;
         for (let i = 0; i < cloudCount; i++) {
             const typeRoll = Math.random();
@@ -4382,7 +4382,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
     function drawClouds() {
         /* Pilvien väri ja peittävyys liukuvat yön vaaleasta päivän tummaan
-           (v4.40). dayNight.t = 0 → arvot ovat täsmälleen yön ennallaan. */
+           . dayNight.t = 0 → arvot ovat täsmälleen yön ennallaan. */
         const dayMix = dayNight.t;
         const mix = (n, d) => Math.round(n + (d - n) * dayMix);
         const cirrusRGB = mix(CLOUD_NIGHT_CIRRUS[0], CLOUD_DAY_CIRRUS[0]) + ',' +
@@ -4461,7 +4461,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             }
             blockIdx++;
             backdrop.blocks.push(b);
-            backdrop.total = backdrop.blocks.length;   // v11.22: eskalaatiokynnys (BACKDROP_GONE_SHARE)
+            backdrop.total = backdrop.blocks.length;   // eskalaatiokynnys (BACKDROP_GONE_SHARE)
             x += w;   // talot kiinni toisissaan → yhtenäinen skyline
         }
     }
@@ -4561,7 +4561,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             steamParticles: []
         });
 
-        // Kuoriaiset (beetleCount kpl; kaaos K1, v10.03)
+        // Kuoriaiset (beetleCount kpl; kaaos K1)
         foreground.beetles = [];
         for (let i = 0; i < beetleCount; i++) {
             foreground.beetles.push({
@@ -4573,7 +4573,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             });
         }
 
-        /* Sanomalehti (v4.53: poimittavissa) – rauta-aidan aukkoon kauas
+        /* Sanomalehti (poimittavissa) – rauta-aidan aukkoon kauas
            kaikista ovista (lähin ovi x 410), jotta poiminta ei varasta
            oven toimintoa eikä lehti jää aidan taakse piiloon. */
         foreground.newspaper = {
@@ -4804,7 +4804,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 /* ═══════════════════════════════════════════════════
        PIIRTO – tausta, talot, maa
        ═══════════════════════════════════════════════════ */
-    /* Huoneet ovat modaalisia: koko näkymä on huone ja kamera keskittää (jukebox v4.22, BAR v4.25, lehti v4.53). true = huone piirrettiin. */
+    /* Huoneet ovat modaalisia: koko näkymä on huone ja kamera keskittää (jukebox, BAR, lehti). true = huone piirrettiin. */
     function drawRoomView() {
         for (const room of rooms) {
             if (!room.isOpen()) continue;
@@ -4830,14 +4830,14 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         if (vehicleShakeTimer > 0) {
             ctx.translate(Math.round(Math.sin(vehicleShakeTimer *0.9) *1.6), 0);
         }
-        // Meteoriitin törmäyksen tärinä (v10.15) – voimakkaampi, molemmissa suunnissa
+        // Meteoriitin törmäyksen tärinä – voimakkaampi, molemmissa suunnissa
         if (meteorShakeTimer > 0) {
             ctx.translate(
                 Math.round(Math.sin(meteorShakeTimer * 0.9) * 3),
                 Math.round(Math.cos(meteorShakeTimer * 0.7) * 2)
             );
         }
-        // Kaaos v10.18 – koko ajan hiukan tärisevä kuva (BAD/FULL): pieni jatkuva huojunta
+        // Kaaos – koko ajan hiukan tärisevä kuva (BAD/FULL): pieni jatkuva huojunta
         if (screenShakeAmount > 0) {
             const t = Date.now() * 0.001;
             ctx.translate(
@@ -4873,7 +4873,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
     /* Aurinko: hehku, hitaasti pyörivä sädekehä ja kiekko (kaaos voi vaihtaa värin ja koon). */
     function drawSun() {
-        // Aurinko (päivä) – liukuu vasemmalta oikealle päivän aikana (v4.89)
+        // Aurinko (päivä) – liukuu vasemmalta oikealle päivän aikana
         if (dayNight.t > 0) {
             ctx.save();
             ctx.globalAlpha = dayNight.t;
@@ -4883,7 +4883,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             const rayRGB = sunColor
                 ? sunColor.slice(1).match(/../g).map(h => parseInt(h, 16)).join(',')
                 : '255,238,160';
-            const SR = SUN_R * sunSizeMult;   // kaaos v10.18: auringon koko (NORMAL = 1)
+            const SR = SUN_R * sunSizeMult;   // kaaos: auringon koko (NORMAL = 1)
             const sunGlowGrad = ctx.createRadialGradient(dayNight.sunX, SUN_Y, SR * 0.4, dayNight.sunX, SUN_Y, SR * 3.4);
             sunGlowGrad.addColorStop(0, glowStops[0]);
             sunGlowGrad.addColorStop(0.4, glowStops[1]);
@@ -4932,10 +4932,10 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
     /* Sirppikuu: hehku, kuva tai proseduraalinen fallback, kraatterit, maavalo + terminaattori, limb darkening. */
     function drawMoon() {
-        /* ── Sirppikuu (v4.72) ──
+        /* ── Sirppikuu ──
            Piirretään tähtien jälkeen (kuu peittää tähdet) mutta ennen pilviä
            (pilvi kuun edessä on oikein). Kuu liukuu yön aikana vasemmalta
-           oikealle ja laskeutuu pois (v4.65, X päivittyy moonNightClockin
+           oikealle ja laskeutuu pois (, X päivittyy moonNightClockin
            mukaan). Rakenne: hehku → valoisa kiekko → kraatterit → maavalo
            (pehmeä terminaattori) → pallomaisuus. Varjokerrokset on klipattu
            kuun kiekkoon → mikään ei karkaa reunan ulkopuolelle. */
@@ -4958,7 +4958,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             ctx.fillStyle = moonGlow;
             ctx.beginPath(); ctx.arc(dayNight.moonX, moonY, moonR * 2.8, 0, Math.PI*2); ctx.fill();
 
-            // 2) Kuu-kuva (v4.79): assets/moon.png – sama koko kuin entinen
+            // 2) Kuu-kuva: assets/moon.png – sama koko kuin entinen
             //    kiekko (2 × MOON_R = 60 px). Käännös on tehty jo itse kuvaan
             //    → ei ctx.rotatea. globalAlpha = moonFade pätee myös kuvaan,
             //    joten päivänvaihdon häivytys säilyy. Jos kuva ei ole vielä
@@ -5021,15 +5021,15 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
     }
 
-    /* Tähdenlento ja meteoriitti (v11.24: kaikki meteoriitit tässä kerroksessa → talot peittävät ne). */
+    /* Tähdenlento ja meteoriitti (kaikki meteoriitit tässä kerroksessa → talot peittävät ne). */
     function drawShootingStars() {
         // Tähdenlento / meteoriitti (vain yöllä)
         if (dayNight.t <= 0 && shootingStar && shootingStar.active) {
             if (shootingStar.kind === 'meteorite') {
-                // v11.24: KAIKKI meteoriitit piirretään tässä kerroksessa (taustasiluetti ja
+                // KAIKKI meteoriitit piirretään tässä kerroksessa (taustasiluetti ja
                 // katuvarren talot piirretään päälle) → myös tähdätty meteoriitti katoaa
                 // talojen taakse juuri ennen osumaa. Pelaaja näkee vasta välähdyksen ja
-                // tuhon alun, ei itse iskua (v11.22 piirsi tähdätyn talojen EDELLÄ).
+                // tuhon alun, ei itse iskua (piirsi tähdätyn talojen EDELLÄ).
                 drawMeteorite();
             } else {
                 for (let t = 0; t < shootingStar.trail.length; t++) {
@@ -5062,7 +5062,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
     /* Meteoriitin törmäysvälähdys: koko taivas välähtää (piirretään talojen taakse). */
     function drawMeteorFlash() {
-        // Meteoriitin törmäysvälähdys (v10.16): koko taivas välähtää salaman lailla (talojen takana)
+        // Meteoriitin törmäysvälähdys: koko taivas välähtää salaman lailla (talojen takana)
         if (meteorFlash) {
             const k = meteorFlash.t / METEOR_FLASH_FRAMES;   // 1 → 0
             ctx.fillStyle = 'rgba(255,255,235,' + (0.8 * k) + ')';
@@ -5085,7 +5085,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             ctx.restore();
         }
 
-        // ── Kuu laskeutui → maisema pimenee hiukan (v4.65) ──
+        // ── Kuu laskeutui → maisema pimenee hiukan ──
         if (dayNight.moonDark > 0) {
             ctx.save();
             ctx.fillStyle = 'rgba(0,0,0,' + dayNight.moonDark.toFixed(3) + ')';
@@ -5093,7 +5093,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             ctx.restore();
         }
 
-        // ── Sumuverho (kaaos K1 / K7-kortti "Sumu nousee", v10.05) ──
+        // ── Sumuverho (kaaos K1 / K7-kortti "Sumu nousee") ──
         // Peittävyys ≤ 0.5 (luettavuus). Vaalea harmaasävy peittää koko
         // kadun mutta jättää hahmon ja ovet erottuviksi.
         if (fogAlpha > 0.001) {
@@ -5169,19 +5169,19 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         // Kaukainen kaupunkisiluetti (parallaksi 0.4×) – tähtien/taivaan päällä, talojen takana
         drawBackdrop(camX * (1 - BACKDROP_PARALLAX));
         drawBuildings();
-        // v11.24: meteoriitteja ei enää piirretä talojen edessä (ks. taivashaara yllä),
+        // meteoriitteja ei enää piirretä talojen edessä (ks. taivashaara yllä),
         // joten tähdätty meteoriitti jää talojen ja taustasiluetin taakse.
-        // Lepakot talojen EDELLÄ (v4.93)
+        // Lepakot talojen EDELLÄ
         if (bats.length) { drawBats(); }
         drawGround();
-        drawMoonBuildingShadows();   // kuunvarjot taloilta kadulle (v4.80)
+        drawMoonBuildingShadows();   // kuunvarjot taloilta kadulle
 
         // Sähkökaapit (talojen kyljissä)
         drawElectricCabinet();
 
         // Mustat lehdettömät puut (raoissa)
         drawTrees();
-        // Päivälinnut puiden ympärillä (v5.00)
+        // Päivälinnut puiden ympärillä
         if (birds.length) { drawBirds(); }
         // Pienet ruohotupsut puiden juurella
         if (foreground) { drawTreeGrassTufts(); }
@@ -5190,11 +5190,11 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         drawBarSign();
 
         // Lamput – valo AINA hahmojen alla (valo ei peitä ketään). Pylväs sen
-        // sijaan syvyysjärjestyksessä (v4.73): pylvään juuri seisoo syvyysviivalla
+        // sijaan syvyysjärjestyksessä: pylvään juuri seisoo syvyysviivalla
         // LAMP_BASE_Y, joten jalkapiste viivan yläpuolella = hahmo on pylvään
         // TAKANA → pylväs piirretään vasta hahmon jälkeen. Rosvon jalkapiste on
         // kiinteä (ROBBER_FOOT_Y 314 < LAMP_BASE_Y 325) → rosvo on AINA pylvään
-        // takana ja piirretään aina ennen kaikkia pylväitä (v4.76).
+        // takana ja piirretään aina ennen kaikkia pylväitä.
         const lampFeetY = Math.round(player.y) + player.h - 1;
         for (const lamp of lamps) drawLampGlow(lamp);
 
@@ -5204,7 +5204,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         // Kolikko
         if (!coin.collected) drawCoin();
 
-        // Sädease-esine kadulla (v10.20)
+        // Sädease-esine kadulla
         if (beamPickup) drawBeamPickup();
 
         // Kukkaruukku
@@ -5213,19 +5213,19 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         // Potkusta pudonnut kolikko
         if (kickCoin) drawKickCoin();
 
-        // Katueläin – syvyysjako lamppupylvään suhteen (v4.77): takana-juokseva
+        // Katueläin – syvyysjako lamppupylvään suhteen: takana-juokseva
         // (jalkapiste < LAMP_BASE_Y) piirretään kuten ennen pylväiden alle,
         // edellä-juokseva (jalkapiste >= LAMP_BASE_Y) vasta kaikkien pylväiden
-        // jälkeen (ks. alla) – sama periaate kuin pelaajalla (v4.73).
+        // jälkeen (ks. alla) – sama periaate kuin pelaajalla.
         const aFeetY = groundAnimal ? animalDepthFeet() : 0;
         if (groundAnimal && aFeetY < LAMP_BASE_Y) drawAnimal();
 
         // Oviukko (Avenger) – piirretään pelaajan alle
         if (avenger) drawAvenger();
 
-        // Rosvo – partioi jalkakäytävällä (v4.66). Jalat 314 < LAMP_BASE_Y 325
+        // Rosvo – partioi jalkakäytävällä. Jalat 314 < LAMP_BASE_Y 325
         // → aina pylvään TAKANA: piirretään ennen kaikkia pylväitä, jotta pylväs
-        // peittää rosvon riippumatta pelaajan syvyydestä (v4.76).
+        // peittää rosvon riippumatta pelaajan syvyydestä.
         if (robber) drawRobber();
 
         // Pelaajan EDESSÄ olevat pylväät (pelaajan jalkapiste >= LAMP_BASE_Y):
@@ -5234,32 +5234,32 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
         // Ajoneuvot, jotka ovat pelaajaa KAUEMPANA (ajoneuvon keskipiste Y <
         // pelaajan jalkapiste): piirretään ENNEN pelaajaa, jotta pelaaja
-        // piirtyy niiden PÄÄLLE (v4.84). Sama syvyysperiaate kuin lamppu-
-        // pylväillä (v4.73). Tässä kohtaa takapylväitä ei voi olla (ne
+        // piirtyy niiden PÄÄLLE. Sama syvyysperiaate kuin lamppu-
+        // pylväillä. Tässä kohtaa takapylväitä ei voi olla (ne
         // vaatisivat pelaajan jalkapisteen < LAMP_BASE_Y 325), joten autot
         // pysyvät yhä pylväiden edessä kuten ennenkin.
         if (vehicles[1] && vehicles[1].y + vehicles[1].h / 2 < lampFeetY) StreetTraffic.drawVehicle(vehicles[1]);
         if (vehicles[0] && vehicles[0].y + vehicles[0].h / 2 < lampFeetY) StreetTraffic.drawVehicle(vehicles[0]);
 
-        // Pelaaja – avoimessa kaivossa vajoaa/kiipeää (v4.51)
+        // Pelaaja – avoimessa kaivossa vajoaa/kiipeää
         if (manhole.action) { drawPlayerManhole(); } else { drawPlayer(); }
 
-        // Sädease: säde + tähtäysristikko (v10.20)
+        // Sädease: säde + tähtäysristikko
         drawBeam();
         // Avoin kaivo: musta aukko pelaajan PÄÄLLE pudotuksen aikana,
-        // jotta pelaaja näyttää katoavan reikään (v4.51)
+        // jotta pelaaja näyttää katoavan reikään
         drawManholeOverlay();
 
-        // Sanomalehden poimintavihje pelaajan yläpuolelle (v4.53)
+        // Sanomalehden poimintavihje pelaajan yläpuolelle
         StreetNews.drawHint();
 
         // Pelaajan TAKANA olevat lamppupylväät – piirretään vasta nyt, jotta
-        // pylväs peittää pelaajan (v4.73) ja rosvon (aina takana, v4.76).
+        // pylväs peittää pelaajan ja rosvon (aina takana).
         // Ennen ajoneuvoja, jotta autot pysyvät pylvään edessä kuten ennenkin.
         for (const lamp of lamps) if (lampFeetY < LAMP_BASE_Y) drawLampPost(lamp);
 
         // Katueläin pylvään edestä (jalkapiste >= LAMP_BASE_Y): piirretään
-        // kaikkien pylväiden päälle (v4.77).
+        // kaikkien pylväiden päälle.
         if (groundAnimal && aFeetY >= LAMP_BASE_Y) drawAnimal();
 
         // Ajoneuvot, jotka ovat pelaajaa LÄHEMPÄNÄ (keskipiste Y >= pelaajan
@@ -5311,7 +5311,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             const idx = w.bldgIdx;
             if (idx === 0 && firstHouseWindowsLit) return false;
             if (smallHouseLights[idx] && smallHouseLights[idx].lit) return false;
-            if (buildingGone(idx)) return false;   // v11.22: tuhoutuneessa talossa ei ole ikkunoita
+            if (buildingGone(idx)) return false;   // tuhoutuneessa talossa ei ole ikkunoita
             return true;
         });
     }
@@ -5338,7 +5338,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         );
         if (avail.length === 0) return;
         const w = avail[Math.floor(Math.random() * avail.length)];
-        // Kesto: windowDurMin..windowDurMax (kaaos K1, v10.03; NORMAL 10–30 s)
+        // Kesto: windowDurMin..windowDurMax (kaaos K1; NORMAL 10–30 s)
         const duration = windowDurMin + Math.random() * (windowDurMax - windowDurMin);
         litWindows.push({ wx: w.wx, wy: w.wy, bldgIdx: w.bldgIdx, offTime: Date.now() + duration, colorType: pickColorType() });
     }
@@ -5367,7 +5367,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
     // Apufunktio: vaalentaa hex-väriä lisäämällä offsetin RGB-kanaviin
     function lightenHex(hex, offset) {
-        /* v11.43 (bugikorjaus): vahti – jos tulo ei ole #rrggbb, palautetaan se
+        /* Bugikorjaus: vahti – jos tulo ei ole #rrggbb, palautetaan se
            sellaisenaan. Muuten parseInt tuottaisi NaN → '#NaNNaNxx', jonka selain
            hylkää hiljaa (canvas jäisi edelliseen väriin). NORMAL: hex sisään →
            bitti-identtinen ulos. */
@@ -5382,7 +5382,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     function mixHex(a, b, t) {
         if (t <= 0) return a;
         if (t >= 1) return b;
-        /* v11.43: vahti – ei-hex tai kelvoton t palauttaa a:n (ennen: '#NaNNaNxx'
+        /* vahti – ei-hex tai kelvoton t palauttaa a:n (ennen: '#NaNNaNxx'
            tai läpinäkyväksi tulkittu '#000000' → "musta maski" kesken siirtymän). */
         if (typeof a !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(a)) return a;
         if (typeof b !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(b)) return a;
@@ -5395,12 +5395,12 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         return '#' + ch(r) + ch(g) + ch(bl);
     }
     // Päivällä tumma ikkunalasi vaalenee taivaan heijastukseksi: tavalliset talot
-    // #151716, 3-riviset (kauempana) hiukan tummempaa syvyyden takia (v4.82).
-    let WIN_DAY_FILL      = '#151716';   // kaaos K1 (v10.03)
+    // #151716, 3-riviset (kauempana) hiukan tummempaa syvyyden takia.
+    let WIN_DAY_FILL      = '#151716';   // kaaos K1
     const WIN_DAY_FILL_FLAT = '#101110';
 
     // Siluetin todennäköisyys keltaisessa ikkunassa (0.50 = testaus, myöhemmin 0.05)
-    let SILHOUETTE_CHANCE = 0.50;   // kaaos K1 (v10.03)
+    let SILHOUETTE_CHANCE = 0.50;   // kaaos K1
 
     function shouldShowSilhouette(wx, wy, bldgIdx, colorType) {
         if (colorType !== 'yellow') return false;
@@ -5431,7 +5431,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
     /* Kylvä 0..windowTargetMax ikkunaa heti palamaan. Kutsutaan moduulin latauksessa
        (alla) ja aina kun talojärjestys vaihtuu – ks. shuffle/resetBuildingOrder,
-       v11.41 bugikorjaus. */
+       bugikorjaus. */
     function seedLitWindows() {
         for (let i = 0; i < Math.floor(Math.random() * (windowTargetMax + 1)); i++) addRandomLitWindow();
     }
@@ -5487,7 +5487,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     function drawBuildings() {
         for (const b of buildings) {
             const idx = buildings.indexOf(b);
-            // v11.24: tuhoutuneen talon paikalle jää musta romukasa (drawRubble),
+            // tuhoutuneen talon paikalle jää musta romukasa (drawRubble),
             // tuhoutuva piirretään omalla animaatiollaan (drawCollapsingBuilding).
             const dmgState = buildingDmg[idx];
             if (dmgState === 'gone') { drawRubble(b, idx); continue; }
@@ -5552,7 +5552,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
                         } else {
                             // 3 rivin talot (flatWindows): ei kehystä → ikkuna erottuu syvennyksenä.
                             // Tummempi täyttö + 1 px tumma ylävarjo + 1 px vaalea alaparre = upotus seinässä.
-                            // Päivällä täyttö vaalenee taivaan heijastukseksi (WIN_DAY_FILL*, v4.81);
+                            // Päivällä täyttö vaalenee taivaan heijastukseksi (WIN_DAY_FILL*);
                             // valaistut ikkunat ja kaikki toiminta ennallaan.
                             ctx.fillStyle = mixHex(flatWindows ? '#05050d' : '#0a0a15',
                                                    flatWindows ? WIN_DAY_FILL_FLAT : WIN_DAY_FILL, dayNight.t);
@@ -5576,7 +5576,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         }
     }
 
-    /* ── Taloja koskevat apurit (v11.22) ─────────────────────────────────── */
+    /* ── Taloja koskevat apurit ─────────────────────────────────── */
 
     /* Talon ikkunaruudukko (kopio drawBuildingsin silmukasta): kutsuu cb(wx, wy)
        jokaiselle ikkunalle, ohittaen oven taakse jäävät. Ehjä talo piirretään
@@ -5595,7 +5595,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         }
     }
 
-    /* Tuhoutuvan talon piirto (v11.22): vaiheet
+    /* Tuhoutuvan talon piirto: vaiheet
          0 flash   – runko ennallaan, KAIKKI ikkunat keltaisina
          1 shake   – sama, mutta talo tärisee (talokohtainen jitter)
          2 black   – seinät ja ikkunat mustiksi (hiiltyy)
@@ -5678,7 +5678,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         ctx.restore();
     }
 
-    /* v11.24: tuhoutuneen talon romukasa – randomi musta kasa tuhkaharmaalla
+    /* tuhoutuneen talon romukasa – randomi musta kasa tuhkaharmaalla
        ääriviivalla (erottuu kiveyksestä), korkeus enintään RUBBLE_H_MAX eli
        puoli ovenkorkeudesta. Piirretään talon omassa syvyysskaalassa, kuten
        muukin talopiirto. */
@@ -5707,7 +5707,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         ctx.strokeStyle = 'rgba(96,92,86,0.40)';   // tuhka: kasa luettavaksi
         ctx.lineWidth = 1;
         ctx.stroke();
-        /* v11.33: vaaleat savukiekurat tuhoutuneen talon päältä (vain BAD/FULL).
+        /* vaaleat savukiekurat tuhoutuneen talon päältä (vain BAD/FULL).
            Piirretään skaalatussa koordinaatistossa (ctx.save jo tehty). */
         if (r.smokeParticles && r.smokeParticles.length) {
             for (const p of r.smokeParticles) {
@@ -5739,7 +5739,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     }
 
     function drawBackdropBlock(b) {
-        // v11.24: meteoriitin osuma jättää raunion (ks. ruinBackdropBlock)
+        // meteoriitin osuma jättää raunion (ks. ruinBackdropBlock)
         if (b.ruin) { drawBackdropRuin(b); return; }
         const topY = BACKDROP_BASE_Y - b.h;
         // Runko – litteä haalea sävy (ei gradienttia: kaukainen kohde)
@@ -5815,7 +5815,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         }
     }
 
-    /* v11.24: taustarivin RAUNIO – iso kerrostalo ei katoa kokonaan. Seinät ovat
+    /* taustarivin RAUNIO – iso kerrostalo ei katoa kokonaan. Seinät ovat
        poissa, joten horisonttiin jää runko: pystypalkit + laattaviivat, ja
        pohjassa 1–3 seinäpalaa. Sama litteä, kaukainen tyyli kuin ehjässä
        lohkossa (ei ikkunaristikkoa, ei glowia, ei kattoa). */
@@ -5841,7 +5841,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     /* ── Sähkökaapit (talojen kyljissä, kerrostalon vas. seinä) ── */
     function drawElectricCabinet() {
         for (const c of electricCabinets) {
-            if (c.bldgIdx !== undefined && buildingGone(c.bldgIdx)) continue;   // v11.22: kaappi katosi talon mukana
+            if (c.bldgIdx !== undefined && buildingGone(c.bldgIdx)) continue;   // kaappi katosi talon mukana
             const cx = c.x, cy = c.y + 5, cw = c.w, ch = c.h;
             const centerX = cx + cw / 2;
 
@@ -5862,7 +5862,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             // Vilkkuva keltainen varoitusvalo yläosassa – vain jos kaappi on päällä;
             // jokaisella kaapilla oma vaihe ja tahti → valot vilkkuvat itsenäisesti.
             let on = c.on && Math.sin(Date.now() / c.period + c.phase) > 0;
-            // Kaaos v10.18: valo "rätisee" – nopea epäsäännöllinen välkyntä päälle/pois
+            // Kaaos: valo "rätisee" – nopea epäsäännöllinen välkyntä päälle/pois
             if (cabFlicker > 0 && c.on) {
                 const t = Date.now() * 0.001;
                 const crackle = Math.sin(t * 31.7 + c.phase * 5) * Math.sin(t * 17.3 + c.x);
@@ -6191,14 +6191,14 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         const legTop = cy + halfH;             // laudan alareuna
         const legH = GROUND_Y - legTop;        // maahan asti
 
-        // ── Neonpinkki hohde kyltistä maahan ja ympärille (v4.83) ──
+        // ── Neonpinkki hohde kyltistä maahan ja ympärille ──
         // Piirretään kyltirungon ALLE: tumma lauta ja terävä neonteksti
         // pysyvät päällimmäisinä. Keskus = neontekstin keskipiste, väri
         // sama kuin tekstissä ja BAR:n kynnysvalossa (#FF66A3 / 255,102,163).
         // Hidas "hengitys" (±25 %) tekee hohteen selkeämmin erottuvaksi.
         const gcx = sx + (tailW + shaftLen + headLen) / 2;
         const gpulse = 0.75 + 0.25 * Math.sin(Date.now() / 3800);
-        // Päivänvalo himmentää hohteen pois (v4.83): auringonnousun (~20 s)
+        // Päivänvalo himmentää hohteen pois: auringonnousun (~20 s)
         // aikana pinkki maa- ja ympäristöhehku hiipuu täyteen päivään mennessä
         // nollaan – mutta itse kyltti (neon + väri) jää, sillä BAR on auki
         // myös päivällä (vrt. Jukebox: sammuttaa myös tekstin).
@@ -6260,7 +6260,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         ctx.font = '9px "Press Start 2P", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        // Kaaos v10.18: yksi kirjain (B/A/R) voi olla "palanut" – piirretään tummana
+        // Kaaos: yksi kirjain (B/A/R) voi olla "palanut" – piirretään tummana
         // ilman hehkua. NORMALissa barBurntLetter = -1 → teksti piirtyy kuten ennen.
         if (barBurntLetter >= 0) {
             const sign = 'BAR>';
@@ -6331,7 +6331,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
     }
 
-    /* ── Talojen kuusta tulevat varjot (v4.80) ──
+    /* ── Talojen kuusta tulevat varjot ──
        Jokaisen 9 talon pohjan alle piirretään puolisuunnikas GROUND_Y:stä
        alaspäin; kauempi reuna siirtyy kuusta poispäin ((x − dayNight.moonX)·k). Kun
        kuu liikkuu vasemmalta oikealle, varjo kääntyy oikealta vasemmalle.
@@ -6342,7 +6342,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         if (dayNight.t >= 1 || MOON_BLD_SHADOW_ALPHA <= 0) return;
         const fade = 1 - dayNight.t;                            // kuun näkyvyys
         for (const b of buildings) {
-            if (buildingGone(buildings.indexOf(b))) continue;   // v11.22: tuhoutunut talo ei heitä varjoa
+            if (buildingGone(buildings.indexOf(b))) continue;   // tuhoutunut talo ei heitä varjoa
             const x0 = b.x, x1 = b.x + b.w;
             const L = b.h * MOON_BLD_SHADOW_LEN;          // varjon pituus
             const k = MOON_BLD_SHADOW_SKEW * (b.h / 100);
@@ -6419,11 +6419,11 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             const ownerLamp = lamps.find(l => l.bldgIdx === t.bldgIdx);
             const jukeboxLit = t.bldgIdx === JUKEBOX_BLDG_IDX &&
                                !!(smallHouseLights[t.bldgIdx] && smallHouseLights[t.bldgIdx].lit);
-            // Makuuhuone (talo 7): ovi aina auki (v4.43) → valo palaa kynnyksellä
+            // Makuuhuone (talo 7): ovi aina auki → valo palaa kynnyksellä
             const sleepOpen = (t.bldgIdx === SLEEP_BLDG_IDX);
             const sinkshipLit = t.bldgIdx === SINKSHIP_BLDG_IDX &&
                                 !!(smallHouseLights[t.bldgIdx] && smallHouseLights[t.bldgIdx].lit);
-            // v11.22: tuhoutuneen talon kynnysvalo sammuu (kiveys jää katutilaksi)
+            // tuhoutuneen talon kynnysvalo sammuu (kiveys jää katutilaksi)
             const active = !buildingGone(t.bldgIdx) && (isBar || jukeboxLit || sleepOpen || sinkshipLit ||
                            !!(ownerLamp && (ownerLamp.lit || lampFreeOpen())));
             if (THRESH_LIGHT && active) {
@@ -6434,7 +6434,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
                 ctx.closePath();
                 ctx.clip();
                 const r = t.depth + 12;
-                // Keltaisten (talojen) ovivalojen hidas syke yöllä (v4.83):
+                // Keltaisten (talojen) ovivalojen hidas syke yöllä:
                 // sama ~60 s jakso kuin BAR-kyltillä → koko katu hengittää
                 // samaan tahtiin. Päivällä (dayNight.t → 1) syke hiipuu pois ja
                 // valo palaa tasaisesti kuten ennenkin. BAR/jukebox-värit
@@ -6520,7 +6520,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             ctx.ellipse(mx + 1, my + 2, 15, 8, 0, 0, Math.PI * 2);
             ctx.fill();
             if (manhole.open === i) {
-                // Kansi puuttuu → musta aukko (v4.51)
+                // Kansi puuttuu → musta aukko
                 drawManholeHole(mx, my);
             } else {
                 ctx.fillStyle = '#2a2a2e';
@@ -6545,7 +6545,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         }
     }
 
-    /* ── Avoin viemäri: kohta on musta, ei kantta (v4.51) ──
+    /* ── Avoin viemäri: kohta on musta, ei kantta ──
        Sama piirto tehdään myös pelaajan PÄÄLLE pudotuksen aikana
        (drawManholeOverlay) → pelaaja näyttää vajoavan kaivoon. */
     function drawManholeHole(mx, my) {
@@ -6577,7 +6577,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     }
 
     /* Putoamisen aikana musta aukko piirretään vasta pelaajan jälkeen →
-       pelaaja vajoaa reikään ja katoaa (v4.51). */
+       pelaaja vajoaa reikään ja katoaa. */
     function drawManholeOverlay() {
         if (!manhole.action) return;
         const mh = (foreground && foreground.manholes) ? foreground.manholes[manhole.action.idx] : null;
@@ -6789,7 +6789,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         get sleepPhase() { return sleepPhase; }, set sleepPhase(v) { sleepPhase = v; },
         get sleepSel() { return sleepSel; }, set sleepSel(v) { sleepSel = v; },
         chaosFlags: chaosFlags,
-        /* Vaihe 5 osa 8 (v11.44) – huoneiden LOGIIKKA lukee ja mutatoi näitä.
+        /* Vaihe 5 osa 8 – huoneiden LOGIIKKA lukee ja mutatoi näitä.
            get+set kaikelle, mihin siirretty koodi kirjoittaa; muuttujat ovat
            edelleen street.js:n sulkeumassa, joten sama tila pysyy. */
         get keys() { return keys; },
@@ -6836,7 +6836,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         return { bx: bx, by: by, poleTop: poleTop, bulbY: bulbY };
     }
 
-    /* Kaaos v10.18 – lamppu napsahtaa satunnaisesti hetkeksi punaiseksi
+    /* Kaaos – lamppu napsahtaa satunnaisesti hetkeksi punaiseksi
        (vain chaos-tasot; NORMAL = lampRedFlicker 0 → ei koskaan). Sama
        "punainen välähdys" kuin ylikuumentuneella, mutta ilman savua. */
     function lampRedSnap(lamp) {
@@ -6848,16 +6848,16 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
     /* Valo: ylikuumentumisen hehku, savu ja valokeila. Piirretään AINA ennen
        pylvästä ja pelaajaa → valo ei koskaan peitä pelaajaa, vain pylväs peittää
-       (ks. render: pylväs piirretään joko ennen tai jälkeen pelaajan, v4.73). */
+       (ks. render: pylväs piirretään joko ennen tai jälkeen pelaajan). */
     function drawLampGlow(lamp) {
-        if (StreetChaosCards.lightsOut) return;   // K7-kortti "Valot sammuvat" (v10.05)
+        if (StreetChaosCards.lightsOut) return;   // K7-kortti "Valot sammuvat"
         const geom = lampGeom(lamp);
         const bx = geom.bx, bulbY = geom.bulbY;
         // Päivällä hehku himmenee (LAMP_DAY_DIM) ja moskiitot häipyvät
-        // (MOSQUITO_DAY_DIM, v4.38). HUOM: lamp.lit ei muutu mihinkään →
+        // (MOSQUITO_DAY_DIM). HUOM: lamp.lit ei muutu mihinkään →
         // yöllä ovet aukeavat potkaistusta lampusta täsmälleen kuten ennenkin.
         const dayDim = 1 - LAMP_DAY_DIM * dayNight.t;
-        const redSnap = lampRedSnap(lamp);   // kaaos v10.18: satunnainen punainen välähdys
+        const redSnap = lampRedSnap(lamp);   // kaaos: satunnainen punainen välähdys
 // Ylikuumentuneen lampun punainen hehku + savu
         if (lamp.overheat) {
             const flicker = Math.sin(Date.now() * 0.02) * 0.4 + 0.6;
@@ -6906,7 +6906,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         const geom = lampGeom(lamp);
         const bx = geom.bx, by = geom.by, poleTop = geom.poleTop, bulbY = geom.bulbY;
         const dayDim = 1 - LAMP_DAY_DIM * dayNight.t;   // hehkulampun piste + moskiitot
-        /* K7 "Valot sammuvat" (v11.39, bugikorjaus): lamppu ei pala – myöskään
+        /* K7 "Valot sammuvat" (bugikorjaus): lamppu ei pala – myöskään
            kupu eikä valopilkku. Vain PIIRTO: `lamp.lit` pysyy ennallaan, koska
            ovilogiikka (lampFreeOpen, omistajalamppu) lukee sitä. */
         const litNow = lamp.lit && !StreetChaosCards.lightsOut;
@@ -6962,7 +6962,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         if (lamp.overheat) {
             cupFill = 'rgba(255,' + Math.round(60 + (Math.sin(Date.now() * 0.025) * 0.3 + 0.7) * 40) + ',10,0.8)';
         } else if (litNow && lampRedSnap(lamp)) {
-            cupFill = '#ff5040';   // kaaos v10.18: hetkellinen punainen välähdys
+            cupFill = '#ff5040';   // kaaos: hetkellinen punainen välähdys
         } else if (litNow) {
             cupFill = '#ffffaa';
         } else {
@@ -7003,7 +7003,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             ctx.beginPath();
             ctx.arc(bx, bulbY + 4, 4, 0, Math.PI*2);
             ctx.fill();
-            // Moskiitot lampun valossa – häipyvät päivällä kokonaan (v4.38)
+            // Moskiitot lampun valossa – häipyvät päivällä kokonaan
             const mosquitoDim = 1 - MOSQUITO_DAY_DIM * dayNight.t;
             if (mosquitoDim > 0.01) {
                 ctx.globalAlpha = dayDim * mosquitoDim;
@@ -7012,7 +7012,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
                 const mAlphaRange = isTouchDevice ? 0.2 : 0.063;
                 const mRadius = isTouchDevice ? 2.0 : 1.3;
                 const mGlow = isTouchDevice;
-                /* v11.33: BAD/FULL – jokaisella moskiitolla oma satunnainen koko
+                /* BAD/FULL – jokaisella moskiitolla oma satunnainen koko
                    (100–300 % nykyisestä) ja väri (sävy 0–360°). Arvotaan KERRAN
                    per kierros (lamp._mosq; nollataan init()issä) → selkeä
                    vaihtelu, ei per-frame-vilkkumista. NORMAL/MILD/GOOD: ei
@@ -7034,7 +7034,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
                     const r = attr ? mRadius * attr.sizeMult : mRadius;
                     const dotCol  = attr ? ('hsla(' + attr.hue + ',95%,70%,') : 'rgba(255,240,170,';
                     const glowCol = attr ? ('hsla(' + attr.hue + ',90%,62%,') : 'rgba(255,220,140,';
-                    /* v11.33b: isoilla moskiitoilla kevyempi ulkoreuna (ei "isoja
+                    /* isoilla moskiitoilla kevyempi ulkoreuna (ei "isoja
                        palloja") ja tummempi keskuspiste (runko), joka kasvaa koon
                        mukana → kokoero näkyy ilman liioittelua. NORMAL (attr=null):
                        sizeF 0 → identtinen entisen kanssa (bitti-identtinen). */
@@ -7082,7 +7082,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         const dy = GROUND_Y - DOOR_H;
         const ownerLamp = lamps.find(l => l.bldgIdx === buildings.indexOf(bldg));
         const bldgIdx = buildings.indexOf(bldg);
-        /* v11.24: tuhoutuneen talon mustaa ovea EI enää piirretä (9 mustaa ovea
+        /* tuhoutuneen talon mustaa ovea EI enää piirretä (9 mustaa ovea
            näytti epäloogiselta). Vain YKSI satunnainen talo saa pitää ovensa
            pystyssä – ja siitäkin jää pelkät ulkokarmit: ei ovea, ei lehteä, ei
            kahvaa, ei kynnysvaloa. Arpa on heitetty tuhoutumishetkellä
@@ -7111,7 +7111,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         // Laivanupotus (talo 2): sama mekanismi, aina auki yöllä ja päivällä
         const isSinkship = (bldgIdx === SINKSHIP_BLDG_IDX);
         const sinkshipOpen = isSinkship && !!(smallHouseLights[bldgIdx] && smallHouseLights[bldgIdx].lit);
-        // Makuuhuone (talo 7): ovi on aina auki (v4.43, kuten BAR)
+        // Makuuhuone (talo 7): ovi on aina auki (kuten BAR)
         const sleepOpen = (bldgIdx === SLEEP_BLDG_IDX);
         const isActive = (isBar || jukeboxOpen || sinkshipOpen || sleepOpen) ? true
                        : (ownerLamp && (ownerLamp.lit || lampFreeOpen()));
@@ -7226,7 +7226,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
         // Merkkivalo oven yllä (kaikille yhteinen)
         if (ownerLamp) {
-            // v11.39: K7 "Valot sammuvat" pimentää myös ovivalon (vain piirto)
+            // K7 "Valot sammuvat" pimentää myös ovivalon (vain piirto)
             const doorLit = ownerLamp.lit && !StreetChaosCards.lightsOut;
             ctx.fillStyle = doorLit ? '#ffd700' : '#222';
             if (doorLit) { ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 6; }
@@ -7262,7 +7262,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             ctx.fillRect(dx - 12, dy - 19, DOOR_W + 24, 16);
             ctx.fillStyle = '#3d1846';
             ctx.fillRect(dx - 10, dy - 17, DOOR_W + 20, 12);
-            // Päivällä kyltti sammutettu (jukebox auki vain öisin, v4.34):
+            // Päivällä kyltti sammutettu (jukebox auki vain öisin):
             // neoni ei pala eikä hehku – laatta jää näkyviin sammuneena.
             const dayClosed = nightOnlyClosed();
             const jkBlink = Math.sin(Date.now() / 420);
@@ -7313,7 +7313,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     }
 
-    /* ── Sädease-esine kadulla (v10.20 / v11.13) ───────────── */
+    /* ── Sädease-esine kadulla ───────────── */
     function drawBeamPickup() {
         const bx = beamPickup.x, by = beamPickup.y;
         const glow = ctx.createRadialGradient(bx, by, 1, bx, by, 7);
@@ -7330,7 +7330,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         ctx.fillRect(-1, -14, 2, 6);         // piippu
         ctx.fillStyle = '#7fe0ff';           // hohtava kärki
         ctx.fillRect(-1, -15, 2, 2);
-        /* v11.13: pieni vilkkuva keltainen piste piipun yllä. Vain PISTE vilkkuu
+        /* pieni vilkkuva keltainen piste piipun yllä. Vain PISTE vilkkuu
            (ase pysyy paikallaan) – pelaaja hoksaa, että esine on poimittava.
            Jukeboxin neonin tapaan aika lasketaan Date.now():sta (ei uutta tilaa). */
         const blink = Math.sin(Date.now() / 200) * 0.5 + 0.5;       // 0…1, ~1,25 s sykli
@@ -7345,11 +7345,11 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         ctx.restore();
     }
 
-    /* ── Säde: pystyviiva pelaajasta tähtäyspisteeseen (v10.20) ── */
+    /* ── Säde: pystyviiva pelaajasta tähtäyspisteeseen ── */
     function drawBeam() {
         // Tähtäysristikko vain PC:llä (hiiri), kun tähtäys aktiivinen
         if (beamCanFire() && !isTouchDevice && aimActive) {
-            const sh = drunkAimShift();      // v11.31d: ristikko horjuu humalassa
+            const sh = drunkAimShift();      // ristikko horjuu humalassa
             const cx = aimX + sh.x, cy = aimY + sh.y;
             ctx.strokeStyle = 'rgba(150,210,255,0.9)';
             ctx.lineWidth = 1;
@@ -7362,7 +7362,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             ctx.strokeStyle = 'rgba(150,210,255,0.4)';
             ctx.stroke();
         }
-        // Laser-valoraita: kirkas ydin + hehku, häipyy ~1 s ajan (v10.21)
+        // Laser-valoraita: kirkas ydin + hehku, häipyy ~1 s ajan
         if (beamFireTimer > 0) {
             const life = beamFireTimer / BEAM_FIRE_FRAMES;   // 1 → 0
             const fade = Math.min(1, life * 1.6);            // kirkkaana alussa, häipyy lopussa
@@ -7420,7 +7420,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     /* ── Katueläin ───────────────────────────────── */
     /* Jalkapiste (syvyys) samalla logiikalla kuin drawAnimal laskee sprite-y:n:
        ay = a.y + a.hopY + (rabbit-lisä) → jalat ≈ ay + a.h. Verrataan
-       LAMP_BASE_Y:hin, jotta eläin piirtyy pylvään eteen tai taakse (v4.77). */
+       LAMP_BASE_Y:hin, jotta eläin piirtyy pylvään eteen tai taakse. */
     function animalDepthFeet() {
         const a = groundAnimal; if (!a) return 0;
         return Math.round(a.y + a.hopY + (a.type === 'rabbit' ? 25 : 0)) + a.h;
@@ -7552,7 +7552,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         ctx.restore();
     }
 
-    /* ── Rosvo (v4.66) – pelaajan kaksonen mustissa vaatteissa (Spy vs Spy),
+    /* ── Rosvo – pelaajan kaksonen mustissa vaatteissa (Spy vs Spy),
        puukko kädessä. Partioi jalkakäytävällä. Sama blokkityyli kuin
        drawAvenger, mutta tunnistevärit: musta asu + teräs puukko. */
     function drawRobber() {
@@ -7628,7 +7628,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         ctx.restore();
     }
 
-    /* ── Pelaaja avoimessa kaivossa (v4.51) ─────────
+    /* ── Pelaaja avoimessa kaivossa ─────────
        Pudotus: hahmo kutistuu nopeasti reiän keskipisteeseen → vajoaa alas ja
        katoaa (musta aukko piirretään päälle: drawManholeOverlay).
        Ylöskiipeäminen: nousee hitaasti (~3,5 s) reiän keskeltä, askel reunan
@@ -7782,7 +7782,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         // Dynaaminen valo: lähin palava lamppu antaa ohuen lämpimän reunavalon
         // (lasketaan lokaalikoordinaateissa → kääntyy peilauksen mukana)
         let rimA = 0, rimSide = 0;
-        // v11.39: blackoutissa yksikään lamppu ei valaise (K7 "Valot sammuvat")
+        // blackoutissa yksikään lamppu ei valaise (K7 "Valot sammuvat")
         const rimLightsOut = StreetChaosCards.lightsOut;
         for (const lamp of lamps) {
             if (!lamp.lit || rimLightsOut) continue;
@@ -7800,8 +7800,8 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             ctx.fillRect(torsoX, py + 10 + bobY, 1, ph - 19);
             ctx.fillRect(headX, py + 7 + bobY, 1, 3);
         }
-        /* Sädease kädessä (v10.21): harmaa kepakko 45° kulmassa etukädessä, osoittaa eteen-ylös.
-           v11.21: ase näkyy vain yöllä (dayNight.t <= 0). Päivällä se on piilossa, koska aseella ei
+        /* Sädease kädessä: harmaa kepakko 45° kulmassa etukädessä, osoittaa eteen-ylös.
+           ase näkyy vain yöllä (dayNight.t <= 0). Päivällä se on piilossa, koska aseella ei
            voi muutenkaan ampua (beamCanFire() vaatii dayNight.t <= 0) eikä meteoriitteja synny.
            Tallennettu tila (beamWeaponCollected) EI muutu → kerran napattu ase ilmestyy
            itsestään takaisin käteen, kun yö ja meteoriitit palaavat. */
@@ -7888,7 +7888,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         // Mobiili: vaakakamera. Vaakamoodissa koko katu mahtuu (ei scrollausta);
         // pystymoodissa zoomataan täyttämään korkeus ja kamera seuraa pelaajaa.
         const isLandscape = window.innerWidth > window.innerHeight;
-        // v11.19: tablettihaarassa ohjaimet voivat olla 2× (110 px napit) →
+        // tablettihaarassa ohjaimet voivat olla 2× (110 px napit) →
         // varaus mitataan rivin todellisesta korkeudesta. Puhelimella rivi on
         // 3 × 55 + 2 × 4 = 173 px → 173 + 12 = 185 eli täsmälleen entinen
         // vakio, joten puhelin/vaakamoodi eivät muutu lainkaan.
@@ -7934,35 +7934,35 @@ window.addEventListener('DOMContentLoaded', () => {
         Street.init(canvas);
         return;
     }
-    /* ═══ Automaattinen hover-kierros (v11.03–v11.05b, mobiili + nopeutus v11.17) ═══
+    /* ═══ Automaattinen hover-kierros (mobiili + nopeutus) ═══
        Kun pelaaja avaa näkymän ("CLICK / PRESS ANY KEY"), hover-efekti liukuu
        kerran kaikkien viiden kaaosnapin yli ylhäältä alas: 5 s NAPAUTUKSESTA
-       (v11.28: kello käy jo gaten 2 s viiveen aikana, joten efekti ehtii näkyä
+       (: kello käy jo gaten 2 s viiveen aikana, joten efekti ehtii näkyä
        heti kun valikko on auennut), sen jälkeen 10 s välein (kierroksen alusta
        alkuun) niin kauan kuin valikko on auki. Jos kierros jää väliin (valikko
        ei vielä näy / välilehti piilossa / ohjeikkuna), uusi yritys tehdään
        AUTO_HOVER_RETRY_MS (0,5 s) päästä – ei vasta 10 s päästä.
        Yksi nappi kerrallaan 173 ms
-       (v11.17: 450 → 346 ms eli +30 %, sen jälkeen vielä puolet pois
+       (: 450 → 346 ms eli +30 %, sen jälkeen vielä puolet pois
        346 → 173 ms), ja viimeinen (FULL CHAOS)
        jää päälle 2 s – samalla koko näyttö tärisee. Pito ja tärinä ovat
        ennallaan: ne tulevat ikään kuin siitä, että valikko tippuu.
        Efekti on pelkkä luokka .auto-hover (style.css = täsmälleen sama ulkoasu
        kuin :hover), joten oikea hiiri ja täppäys toimivat koko ajan
        normaalisti – oikea osoitin myös keskeyttää käynnissä olevan liu'un.
-       Esteettömyys (v11.17/v11.27): liikkeen vähentäminen (reduce-motion) ei
+       Esteettömyys: liikkeen vähentäminen (reduce-motion) ei
        enää sammuta koko kierrosta eikä näytön tärinää – nappi välähtää ja
        näyttö tärisee kaikilla laitteilla. Sama linjaus kuin INSTRUCTIONS-
-       vilkunnassa (v10.31), ja lisäksi pelin oma canvas-tärinä (BAD/FULL,
+       vilkunnassa, ja lisäksi pelin oma canvas-tärinä (BAD/FULL,
        meteoriitti, kolari: ctx.translate) on aina toiminut jokaisella
        laitteella → valikko oli ainoa reduce-motionilla lukittu efekti.
        Moni Android raportoi reduce-motionin ollessa poista animaatiot
-       -tilassa, joten tärinä katosi puhelimilta kokonaan; v11.27 poisti
+       tilassa, joten tärinä katosi puhelimilta kokonaan; poisti
        portin myös style.css:stä. Muoto ennallaan: yksi kierros / 10 s,
        pito + tärinä 2 s (AUTO_HOVER_HOLD_MS), värinä 2–4 px.
-       Peruutus (v11.17/v11.29): kosketuslaitteella nappialueen touchstart
+       Peruutus: kosketuslaitteella nappialueen touchstart
        keskeyttää käynnissä olevan liu'un. PC:n mouseenter-peruutus POISTETTIIN
-       v11.29:ssä: selain laukaisee mouseenterin uudelleen, kun gate katoaa
+       ssä: selain laukaisee mouseenterin uudelleen, kun gate katoaa
        osoittimen alta tai hover-ketju päivittyy, ja se pyyhkäisi koko
        automaattikierroksen → seuraava tuli vasta 10 s päästä (pelaaja näki
        ensimmäisen efektin ~17 s kohdalla, kun hiiri lepäsi valikon päällä).
@@ -7971,10 +7971,10 @@ window.addEventListener('DOMContentLoaded', () => {
        Testikytkin: ?autohover=0 (ei tallennu). */
     const AUTO_HOVER_ON        = urlParams.get('autohover') !== '0';
     const AUTO_HOVER_START_MS  = 5000;    // viive näkymän avaavasta napautuksesta ("CLICK / PRESS")
-    const AUTO_HOVER_RETRY_MS  = 500;     // v11.28: väliin jäänyt kierros yritetään pian uudelleen
+    const AUTO_HOVER_RETRY_MS  = 500;     // väliin jäänyt kierros yritetään pian uudelleen
     const AUTO_HOVER_REPEAT_MS = 10000;   // kierroksen alusta seuraavan alkuun = 10 s
     const AUTO_HOVER_STEP_MS   = 173;     // yksi nappi kerrallaan (4 × 173 ms ennen FULL CHAOSia)
-    /* v11.05: viimeinen nappi (FULL CHAOS) jää päälle ja koko näyttö tärisee
+    /* viimeinen nappi (FULL CHAOS) jää päälle ja koko näyttö tärisee
        saman ajan (style.css: @keyframes chaos-shake – kesto pidettävä samana). */
     const AUTO_HOVER_HOLD_MS   = 2000;    // FULL CHAOS -pidon + tärinän kesto
     const AUTO_HOVER_SHAKE_CLASS = 'shaking';
@@ -7989,7 +7989,7 @@ window.addEventListener('DOMContentLoaded', () => {
         autoHoverTimers.forEach((t) => clearTimeout(t));
         autoHoverTimers = [];
         autoHoverBtns().forEach((b) => b.classList.remove('auto-hover'));
-        // v11.05: tärinä katkeaa aina samalla (oikea hiiri, valinta, stopAutoHover)
+        // tärinä katkeaa aina samalla (oikea hiiri, valinta, stopAutoHover)
         if (autoHoverShakeEl) autoHoverShakeEl.classList.remove(AUTO_HOVER_SHAKE_CLASS);
     }
     function stopAutoHover() {
@@ -8001,8 +8001,8 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!AUTO_HOVER_ON || started || document.hidden) return false;       // peli käynnistynyt / välilehti piilossa
         if (menu.classList.contains('hidden') || menu.classList.contains('faded')) return false;
         if (insOpen || insClosing) return false;                              // ohjeikkuna päällä
-        /* v11.27: reduce-motion ei enää estä kumpaakaan osaa – väri-
-           välähdys (v11.17) ja näytön tärinä (v11.05) ajetaan kaikilla
+        /* reduce-motion ei enää estä kumpaakaan osaa – väri-
+           välähdys ja näytön tärinä ajetaan kaikilla
            laitteilla, kuten pelin canvas-tärinä (BAD/FULL, meteoriitti,
            kolari: ctx.translate) on aina tehnyt. */
         clearAutoHover();
@@ -8012,8 +8012,8 @@ window.addEventListener('DOMContentLoaded', () => {
         const last = btns.length - 1;
         btns.forEach((btn, i) => {
             const hovered = (btn === under);
-            const hold = (i === last) ? AUTO_HOVER_HOLD_MS : 0;   // vain FULL CHAOS jää päälle (v11.05)
-            /* v11.29: osoittimen alla olevaa nappia ei väritetä (ulkoasu olisi
+            const hold = (i === last) ? AUTO_HOVER_HOLD_MS : 0;   // vain FULL CHAOS jää päälle
+            /* osoittimen alla olevaa nappia ei väritetä (ulkoasu olisi
                :hoverin kanssa identtinen), mutta pito + tärinä ajetaan AINA –
                muuten valikon päällä lepäävä hiiri vei efektin kohokohdan. */
             if (!hovered) {
@@ -8021,7 +8021,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 autoHoverTimers.push(setTimeout(() => btn.classList.remove('auto-hover'),
                                                 i * AUTO_HOVER_STEP_MS + (hold || AUTO_HOVER_STEP_MS)));
             }
-            if (hold && autoHoverShakeEl) {             // v11.05: näytön tärinä pidon ajaksi (v11.27: kaikilla laitteilla)
+            if (hold && autoHoverShakeEl) {             // näytön tärinä pidon ajaksi (kaikilla laitteilla)
                 autoHoverTimers.push(setTimeout(() => autoHoverShakeEl.classList.add(AUTO_HOVER_SHAKE_CLASS), i * AUTO_HOVER_STEP_MS));
                 autoHoverTimers.push(setTimeout(() => autoHoverShakeEl.classList.remove(AUTO_HOVER_SHAKE_CLASS), i * AUTO_HOVER_STEP_MS + hold));
             }
@@ -8030,7 +8030,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     /* Kierros ajastetaan aina edellisen kierroksen alusta (ketjutettu setTimeout):
        setInterval ehtisi vanheta hitaalla laitteella ja 1. väli menisi 9 sekuntiin.
-       v11.28: jos kierros jäi väliin (ran = false), uusi yritys tehdään pian –
+       jos kierros jäi väliin (ran = false), uusi yritys tehdään pian –
        muuten yksi ohitettu kierros siirtäisi efektin koko 10 s:n päähän. */
     function scheduleAutoHover(delay) {
         autoHoverNext = setTimeout(() => {
@@ -8040,15 +8040,15 @@ window.addEventListener('DOMContentLoaded', () => {
         }, delay);
     }
     function startAutoHover() {
-        /* v11.17: reduce-motion ei enää estä kierrosta – efekti käynnistyy myös
-           puhelimilla. v11.28: kutsutaan jo gaten napautuksessa (kello käy
+        /* reduce-motion ei enää estä kierrosta – efekti käynnistyy myös
+           puhelimilla.: kutsutaan jo gaten napautuksessa (kello käy
            napautuksesta) ja varaksi uudelleen, kun valikko on auennut; jälkimmäinen
            kutsu on no-op, koska autoHoverNext on jo asetettu. */
         if (!AUTO_HOVER_ON || autoHoverNext) return;
         scheduleAutoHover(AUTO_HOVER_START_MS);
     }
     /* Kosketuslaite: täppäys nappialueelle keskeyttää käynnissä olevan liu'un
-       (pelaajan oma täppäys voittaa aina). v11.29: PC:n mouseenter-peruutus
+       (pelaajan oma täppäys voittaa aina).: PC:n mouseenter-peruutus
        POISTETTU – selain laukaisee mouseenterin uudelleen, kun gate katoaa
        osoittimen alta tai hover-ketju päivittyy, jolloin se pyyhkäisi käynnissä
        olevan automaattikierroksen (seuraava tuli vasta 10 s päästä ≈ 17 s).
@@ -8057,15 +8057,15 @@ window.addEventListener('DOMContentLoaded', () => {
     if (autoHoverZone) autoHoverZone.addEventListener('touchstart', clearAutoHover, { passive: true });
 
     menu.classList.remove('hidden');
-    // Aloitusgate (v10.08): ensimmäinen ele avaa äänilukon ja näyttää chaos-valikon.
+    // Aloitusgate: ensimmäinen ele avaa äänilukon ja näyttää chaos-valikon.
     const gate = document.getElementById('start-gate');
     const showMenu = () => {
         if (gate) gate.classList.add('hidden');
         menu.classList.remove('hidden');
-        startAutoHover();   // v11.03: hover-kierto käyntiin, kun valikko on auennut
+        startAutoHover();   // hover-kierto käyntiin, kun valikko on auennut
     };
     if (gate) {
-        // v11.20: Click/Press-näytölle palattaessa sädease poistetaan inventorysta.
+        // Click/Press-näytölle palattaessa sädease poistetaan inventorysta.
         Street.clearBeamWeapon();
         gate.classList.remove('hidden');
         StreetAudio.setMenuActive(true);   // valikko aktiiviseksi jo gatessa → onGesture avaa musiikin
@@ -8077,8 +8077,8 @@ window.addEventListener('DOMContentLoaded', () => {
             window.removeEventListener('keydown', unlock);
             window.removeEventListener('mousedown', unlock);
             window.removeEventListener('touchstart', unlock);
-            gate.classList.add('faded');   // v10.13: tekstit haihtuvat pois 2 s viiveen aikana
-            /* v11.28: hover-kierroksen kello käy jo tästä napautuksesta, joten
+            gate.classList.add('faded');   // tekstit haihtuvat pois 2 s viiveen aikana
+            /* hover-kierroksen kello käy jo tästä napautuksesta, joten
                efekti ehtii näkyä heti kun valikko on auennut (5 s napautuksesta
                eikä 5 s valikon avautumisesta). showMenu()in oma
                startAutoHover() on tämän jälkeen no-op (autoHoverNext asetettu). */
@@ -8093,22 +8093,22 @@ window.addEventListener('DOMContentLoaded', () => {
         StreetAudio.setMenuActive(true);   // fallback: ei gate-elementtiä
     }
     const CHAOS_INTRO_TRACK = 'jukebox/8_nickpanek-coffee-first-heavy-grunge-metal-instrumental-391308.mp3';
-    /* Siirtymä (v11.02): kaaostason valinnasta näyttö mustenee 2 s
+    /* Siirtymä: kaaostason valinnasta näyttö mustenee 2 s
        (CHAOS_BLACKOUT_MS) ja valikkobiisi vaimenee samaan aikaan; peli
        käynnistyy mustan alla, minkä jälkeen katu paljastuu 1 s häivytyksellä
        (CHAOS_REVEAL_MS) → koko siirtymä on 3 s. Nupit: alla.
-       v11.25: BAD CHAOS saa lisävarotuksen – mustaan ruutuun kirjoitetaan
+       BAD CHAOS saa lisävarotuksen – mustaan ruutuun kirjoitetaan
        keltainen teksti merkki merkiltä (sama klik-ääni kuin ohjeikkunassa),
        minkä jälkeen musta häivytetään kuten muillakin tasoilla → BAD-siirtymä
-       on n. 3,5 s pidempi (kirjoitus ~1,1 s + lukuaika; v11.27b: hold
+       on n. 3,5 s pidempi (kirjoitus ~1,1 s + lukuaika;: hold
        0,8 → 2,3 s, jotta tekstin ehtii lukea). Intro soi sen aikana
        kuten ennenkin; muut tasot kulkevat täsmälleen entistä polkua. */
     const CHAOS_BLACKOUT_MS = 2000;   // mustuminen + valikkobiisin häivytys
     const CHAOS_REVEAL_MS = 1000;     // mustan häivytys pois → katu näkyy
-    /* BAD CHAOS -varoitus (v11.25): ajoitusnupit (vain BAD CHAOS). */
+    /* BAD CHAOS -varoitus: ajoitusnupit (vain BAD CHAOS). */
     const BAD_WARN_LEVEL   = 'bad';
     const BAD_WARN_TYPE_MS = 50;      // perusväli per merkki (ohjeissa 18 ms)
-    const BAD_WARN_HOLD_MS = 2300;    // teksti valmis → lukuaika ennen häivytystä (v11.27b: 0,8 → 2,3 s)
+    const BAD_WARN_HOLD_MS = 2300;    // teksti valmis → lukuaika ennen häivytystä (0, 8 → 2, 3 s)
     const blackout = document.getElementById('chaos-blackout');
     const warnEl   = document.getElementById('chaos-warning');
     /* Varoitusteksti luetaan kerran HTML:stä (kuten ohjeet
@@ -8150,14 +8150,14 @@ window.addEventListener('DOMContentLoaded', () => {
     const start = (level) => {
         if (started) return;
         started = true;
-        stopAutoHover();                    // v11.03: hover-kierto pois (valikko himmenee)
-        menu.classList.add('faded');        // v10.14: tekstit haihtuvat pois ennen pelin alkua
-        if (blackout) blackout.classList.add('on');   // v11.02: näyttö mustenee
-        const warn = level === BAD_WARN_LEVEL && !!warnText;   // v11.25: vain BAD CHAOS
-        // v11.25: varoitusteksti tyhjennetään heti, ettei se ehdi näkyä mustan
+        stopAutoHover();                    // hover-kierto pois (valikko himmenee)
+        menu.classList.add('faded');        // tekstit haihtuvat pois ennen pelin alkua
+        if (blackout) blackout.classList.add('on');   // näyttö mustenee
+        const warn = level === BAD_WARN_LEVEL && !!warnText;   // vain BAD CHAOS
+        // varoitusteksti tyhjennetään heti, ettei se ehdi näkyä mustan
         // 2 s häivytyksen aikana – se kirjoitetaan vasta kun ruutu on musta.
         if (warnEl) warnEl.textContent = '';
-        // v11.02: valikkobiisi vaimenee mustumisen aikana. Funktio on aina
+        // valikkobiisi vaimenee mustumisen aikana. Funktio on aina
         // samassa versiossa – varmistus, ettei vanha välimuistiin jäänyt
         // audio.js kaada koko käynnistystä.
         if (StreetAudio.fadeOutMenuMusic) StreetAudio.fadeOutMenuMusic(CHAOS_BLACKOUT_MS);
@@ -8168,8 +8168,8 @@ window.addEventListener('DOMContentLoaded', () => {
             Street.saveChaosSession();
             Street.init(canvas);
             StreetAudio.playChaosIntro(CHAOS_INTRO_TRACK);   // kaaos-intro: yksi kappale kerran, sitten wave-musiikki
-            // v11.02: paljastus – musta häivytetään pois, sitten elementti pois tieltä.
-            // v11.25: BAD CHAOS odottaa varoituksen valmiiksi; intro soi sen
+            // paljastus – musta häivytetään pois, sitten elementti pois tieltä.
+            // BAD CHAOS odottaa varoituksen valmiiksi; intro soi sen
             // aikana kuten muillakin tasoilla, joten vain paljastus viivästyy.
             const reveal = () => {
                 if (!blackout) return;
@@ -8191,7 +8191,7 @@ window.addEventListener('DOMContentLoaded', () => {
             start(btn.getAttribute('data-level'));
         }, { passive: false });
     });
-    /* ═══ Ohjeikkuna (v10.27) ═══════════════════════════════════════════
+    /* ═══ Ohjeikkuna ═══════════════════════════════════════════
        INSTRUCTIONS-valinta: avaus 1 s (CRT power-on) → ohjeteksti
        kirjoitetaan merkki merkiltä (kesto = tekstin pituus) → sulku 2 s
        (rivit alas + CRT power-off). Ikkuna EI mene itsestään kiinni:
@@ -8240,7 +8240,7 @@ window.addEventListener('DOMContentLoaded', () => {
         let li = 0, ci = 0, clicks = 0, lineEl = null, node = null, caret = null;
 
         function finishTyping() {
-            blinkFinalWords();                   // "HAVE FUN!" vilkahtaa kerran (v10.30)
+            blinkFinalWords();                   // "HAVE FUN!" vilkahtaa kerran
             insBody.classList.add('ins-done');   // paljastaa "TAP SCREEN OR PRESS ESC TO CLOSE"
         }
 
@@ -8293,7 +8293,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const m = /(HAVE\s+FUN!?)\s*$/i.exec(node.textContent);  // loppuhuuto rivin lopussa
         if (!m) return;
         const span = document.createElement('span');
-        span.className = 'ins-fun ins-blink';                   // .ins-blink = 1 vilkahdus (v10.30)
+        span.className = 'ins-fun ins-blink';                   // .ins-blink = 1 vilkahdus
         span.textContent = m[1];
         node.textContent = node.textContent.slice(0, m.index);
         last.appendChild(span);

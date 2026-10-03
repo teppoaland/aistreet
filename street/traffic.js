@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    street/traffic.js – ajoneuvojen piirto (liikenne-domainin piirtopuoli)
-   (Vaihe 5 osa 4, v11.38 – siirretty street.js:stä, PELKKÄ SIIRTO.)
+   (Vaihe 5 osa 4, siirretty street.js:stä, PELKKÄ SIIRTO.)
 
    Sisältö: `drawVehicle(v)` – auto, mopo+kuski, ambulanssi ja
    panssarivaunu (telaketjut, tykki, torni) sekä ajovalokiila.
@@ -22,7 +22,7 @@ var StreetTraffic = (function () {
     function drawVehicle(v) {
         if (!v) return;
         const vx = Math.round(v.x), vy = Math.round(v.y), dir = v.direction;
-        // Ajovalot himmenevät päivällä (v4.35) – sama liuku kuin katuvaloissa.
+        // Ajovalot himmenevät päivällä – sama liuku kuin katuvaloissa.
         // Takavalot ja ambulanssin kattovilkku eivät muutu (eivät ole ajovaloja).
         const headlightDim = 1 - H.VEHICLE_HEADLIGHT_DIM * H.dayT;
         const headlightOn  = v.hasHeadlight !== false && headlightDim > 0.01;
@@ -39,7 +39,7 @@ var StreetTraffic = (function () {
             H.ctx.fillStyle = '#558899'; H.ctx.fillRect(cx + 26, cy + 3, 12, v.h - 18);
             H.ctx.fillStyle = '#cccccc'; H.ctx.fillRect(cx + v.w - 6, cy + v.h - 18, 6, 8);
             H.ctx.fillStyle = '#aaaaaa'; H.ctx.fillRect(cx, cy + v.h - 18, 5, 8);
-            if (headlightDim > 0.01) {               // ajovalo + hehku (pois päivällä, v4.35)
+            if (headlightDim > 0.01) {               // ajovalo + hehku (pois päivällä)
                 H.ctx.globalAlpha = headlightDim;
                 H.ctx.fillStyle = '#ffee88'; H.ctx.fillRect(cx + v.w - 4, cy + 6, 5, 4);
                 H.ctx.fillStyle = 'rgba(255,240,150,0.4)'; H.ctx.fillRect(cx + v.w + 1, cy + 5, 3, 6);
@@ -149,7 +149,7 @@ var StreetTraffic = (function () {
             // 6. Valot
             H.ctx.fillStyle = '#cc3333';                       // takavalo (jää palamaan)
             H.ctx.fillRect(cx + 1, cy + 8, 2, 4);
-            if (headlightDim > 0.01) {                       // etuvalo pois päivällä (v4.35)
+            if (headlightDim > 0.01) {                       // etuvalo pois päivällä
                 H.ctx.globalAlpha = headlightDim;
                 H.ctx.fillStyle = '#ffee88';                   // etuvalo
                 H.ctx.fillRect(cx + 34, cy + 3, 3, 4);
@@ -242,7 +242,7 @@ var StreetTraffic = (function () {
         }
 
         // ── Ajovalot eteenpäin (kaikille ajoneuvotyypeille) ──
-        //    Himmenevät päivällä (v4.35); kun kartio on kokonaan himmennyt,
+        //    Himmenevät päivällä; kun kartio on kokonaan himmennyt,
         //    sitä ei piirretä lainkaan.
         if (headlightOn) {
             H.ctx.globalAlpha = headlightDim;
@@ -269,23 +269,23 @@ var StreetTraffic = (function () {
 
     /* ── Liikenne: ajoneuvojen liike, spawnit ja törmäys ──────────
        Kaksi ajorataa (H.LANE_DEFS). Päivällä liikennevirta tuplataan
-       (v4.37): spawn-laskuri kuluu H.TRAFFIC_DAY_MULT-kertaista vauhtia ja
+       : spawn-laskuri kuluu H.TRAFFIC_DAY_MULT-kertaista vauhtia ja
        kerroin liukuu H.dayT:n mukana (1 = yö, H.TRAFFIC_DAY_MULT = täysi päivä).
        Sama 1 ajoneuvo per kaista ja samat nopeudet/törmäykset kuin ennen.
        Palauttaa true, jos ajoneuvo osui pelaajaan tällä framella.
-       HUOM (v4.54): liikenne pyörii myös sanomalehteä lukiessa → kadulla
+       HUOM: liikenne pyörii myös sanomalehteä lukiessa → kadulla
        voi jäädä auton alle kesken lukemisen (lehti putoaa kädestä).
-       HUOM (v4.61): liikenne pyörii myös jukebox-huoneessa. Siellä pelaaja
+       HUOM: liikenne pyörii myös jukebox-huoneessa. Siellä pelaaja
        on sisällä talossa → `playerSafe = true` ohittaa pelaajan
        törmäystestin, joten auto ei voi tainnuttaa kesken musiikin valinnan
        (muuten liike, spawnit ja äänet toimivat täsmälleen kuten kadulla).
-       HUOM (v11.09): sama periaate BARissa, makuuhuoneessa (myös nukkumisen
+       HUOM: sama periaate BARissa, makuuhuoneessa (myös nukkumisen
        pimennyksen aikana) ja kaivoon putoamisen/kiipeämisen aikana
        (`manhole.action`) → liike, spawnit ja moottoriäänet eivät enää jäädy
        näiden tilojen ajaksi. Ennen korjausta `v.x` seisoi, jolloin moottorin
        panorointi (lasketaan v.x:stä) jäi jumiin ja ajoneuvo palasi kadulle
        täsmälleen samasta kohdasta.
-       HUOM (v11.10): sama periaate myös tainnutuksessa (`update()`in
+       HUOM: sama periaate myös tainnutuksessa (`update()`in
        knockedDown-haara) – mutta VAIN jos kaataja ei ollut auto. Auton osuma
        on kolari, johon liikenne on osallisena → silloin liikenne seisoo koko
        tainnutuksen ajan (`H.player.knockFallY` asetetaan vain tässä funktiossa,
@@ -304,7 +304,7 @@ var StreetTraffic = (function () {
                     const dir = lane.direction;
                     let vehRnd = Math.random();
                     let type, w, h, speed;
-                    if (H.chaosAllGone()) vehRnd = 0.74;   // v11.36: BAD/FULL rauniot – vain ambulanssit
+                    if (H.chaosAllGone()) vehRnd = 0.74;   // BAD/FULL rauniot – vain ambulanssit
                     if (vehRnd < 0.37) {
                         type = 'car'; w = 80; h = 30; speed = (1.0 + Math.random() * 0.5) * H.trafficSpeedMult;
                     } else if (vehRnd < 0.74) {
@@ -374,7 +374,7 @@ var StreetTraffic = (function () {
                     H.player.knockdownTimer = 600;
                     H.player.kicking = false;
                     H.player.kickFrame = 0;
-                    // Kaadutaan 25 px ylös osumakohdasta (v4.78: 10 px, v11.12: 25 px,
+                    // Kaadutaan 25 px ylös osumakohdasta (: 10 px: 25 px,
                     // jotta pysähtynyt auto ei osu heti uudelleen ylösnoustessa) – muuten
                     // pelaaja jää makaamaan keskelle tietä ja autot kolarijatkuvat
                     // katkeamatta päältä
@@ -382,7 +382,7 @@ var StreetTraffic = (function () {
                     H.spawnParticles(H.player.x + H.player.w / 2, H.player.y + H.player.h / 2, '#ffaa44', 15);
                     H.sfx.playKnock();   // "Smack"-tömähdys
                     H.vehicleShakeTimer = 90;  // ~1.5s tärinä
-                    H.collisionCost();   // v11.31: FULL → −1 🪙, muuten −1 🍔
+                    H.collisionCost();   // FULL → −1 🪙, muuten −1 🍔
                     playerHit = true;
                     break;
                 }

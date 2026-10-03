@@ -22,13 +22,13 @@ const GameState = (() => {
         digKeyCollected: false,
         boulderKeyCollected: false,
         bmKeyCollected: false,
-        // Onko sädease poimittu kadulta (v10.20; vain FULL CHAOS).
+        // Onko sädease poimittu kadulta (; vain FULL CHAOS).
         beamWeaponCollected: false,
-        // Onko jukeboxista soitettu vähintään yksi kappale (v10.11).
+        // Onko jukeboxista soitettu vähintään yksi kappale.
         // Syntikkatausta pysyy piilossa, kunnes tämä on true.
         jukeboxPlayedOnce: false,
-        // Päivä/yö-tila (v4.33). Kadun makuuhuoneen Nuku-valinta vaihtaa tämän.
-        //   null  = ei vielä ratkaistu → 3 avainta nostaa päivän kerran (v4.32-käytös)
+        // Päivä/yö-tila. Kadun makuuhuoneen Nuku-valinta vaihtaa tämän.
+        //   null = ei vielä ratkaistu → 3 avainta nostaa päivän kerran (käytös)
         //   true  = päivä
         //   false = yö
         // Testityökalut ?day=0 / ?day=1 eivät tallenna tätä.

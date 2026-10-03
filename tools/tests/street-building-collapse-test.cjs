@@ -281,7 +281,7 @@ ok('tähtäys vain meteoriittiportin sisällä', us.indexOf('Math.random() < met
 ok('osuma käynnistää tuhoutumisen', us.includes('startBuildingCollapse(shootingStar.targetBldgIdx)'));
 ok('tavallinen meteoriitti ennallaan (40–60°)', us.includes('const mAng = (40 + Math.random() * 20) * Math.PI / 180;'));
 ok('v11.24: meteoriitti piirretään aina taivashaarassa (talojen takana)', (src.match(/drawMeteorite\(\);/g) || []).length === 1);
-ok('init() palauttaa talot', src.includes('resetBuildingDamage();      // v11.22: talot ehjinä uudessa pelissä'));
+ok('init() palauttaa talot', src.includes('resetBuildingDamage();'));
 ok('taustarivin kokonaismäärä muistetaan', src.includes('backdrop.total = backdrop.blocks.length;'));
 ok('testikytkimet ?bldg / ?bldgtarget', src.includes("get('bldg')") && src.includes("get('bldgtarget')"));
 

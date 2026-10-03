@@ -1,13 +1,15 @@
 # 🎯 Aktiivinen konteksti
 
 > **Kevyt:** Vain tämä tiedosto luetaan session alussa.
-> **🚧 KESKEN: refaktorointi v11.38–v11.45 + 4 bugikorjausta (Vaiheet 0–5 osat 1–8 + Vaihe 4 VALMIS; jäljellä Vaihe 6) → ks. "JATKOPISTE" alempana.**
-> Sääntö 03: **versio `v11.45`** (`index.html`). **Työ on COMMITTOITU PAIKALLISESTI** (kaikki
-> refaktoroinnin vaiheet omilla commiteillaan; ääriluku: `git rev-list --count origin/main..main`).
+> **✅ REFAKTOROINTI VALMIS (Vaiheet 0–6, v11.38–v11.45).** Kaikki vaiheet on tehty ja validoitu;
+> portti **26 penkkiä / 26 puhdasta / 0 löydöstä**. Jäljellä on vain **julkaisupäätös** (push).
+> Sääntö 03: **versio `v11.45`** (`index.html`) – Vaihe 6 (kommenttisiivous) **ei nostanut versiota**,
+> koska mikään ajettava koodi ei muuttunut (kommentit eivät ole koodia).
+> **Työ on committoitu paikallisesti** (ääriluku: `git rev-list --count origin/main..main`).
 > **Pushia EI ole tehty** → julkinen tuotanto on edelleen **v11.37** (`origin/main`).
 > **🔴 UUSI SESSIO – KYSY ENSIN:** *"Testasitko v11.45:n (`docs/testilista.md`)? Löytyikö ongelmia?"*
-> Ongelmat → **toista vika mekaanisesti (A/B + penkki) ennen korjausta**; ei ongelmia → jatka alla olevasta
-> **C) Vaihe 6:sta** (kommenttien versiosiivous) – muut vaiheet on tehty.
+> Ongelmat → **toista vika mekaanisesti (A/B + penkki) ennen korjausta**; ei ongelmia →
+> **julkaistaanko** (push) vai jatketaanko muita töitä (Blue Mäx -testimode, pääsiäismunat, RTP-presetit).
 > **Kompaktoitu 28.9.2026 (v11.00):** tiivistettiin vain v10.x/uusi aines (kaaos K0–K7 → `docs/chaos.md`) ja
 > korjattiin rakenteelliset viat. **Esiforkin v4.x-historia säilyy alla sellaisenaan.**
 > **Rajat (päivitetty 3.10.2026 – `progress.md` 45 → 65 kt ja pankki 135 → 155 kt, pysyvä):** tämä tiedosto **≤ 65 kt** · `progress.md` ≤ 65 kt ·
@@ -29,7 +31,7 @@
 
 ## 📍 Nyt (AI CHAOS STREET – fork 27.9.2026)
 
-- **Projekti:** **AI CHAOS STREET** – itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages `teppoaland.github.io/aistreet/` ONLINE 27.9.2026), forkattu Pimeä Katu v5.02:sta; alkuperäinen `D:\AI\Main` jäädytetty. **Versio `v11.45`** – `index.html` `#version-tag`: **v11.45 = Vaihe 4 loppuun: päivä/yö-tila `dayNight`-olioksi** (15 irtamuuttujaa / ~178 viittausta; toiminta bitti-identtinen) · **v11.44 = Vaihe 5 osa 8: huoneiden LOGIIKKA `street/rooms.js`:ään** (345 rv, get+set-host; uusi penkki `street-rooms-logic-test` 41/0) · **v11.43 = kaksi FULLin canvas-bugia:** `#NaNNaN`-väri (hsl-paletti + hex-apuri) ja `translate(NaN)` (puuttuva `WORLD_W`-sidonta) · **v11.42 = Vaihe 5 osa 7: liikennologiikka `street/traffic.js`:ään** · **v11.41 = BAD/FULL: ikkunavalot syttyvät taas**
+- **Projekti:** **AI CHAOS STREET** – itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages `teppoaland.github.io/aistreet/` ONLINE 27.9.2026), forkattu Pimeä Katu v5.02:sta; alkuperäinen `D:\AI\Main` jäädytetty. **Versio `v11.45`** – `index.html` `#version-tag`: **v11.45 = Vaihe 4 loppuun (päivä/yö → `dayNight`-olio) + Vaihe 6 (kommenttien versiosiivous, 565 riviä – ei ajettavaa koodimuutosta, siksi sama versionumero)** · **v11.44 = Vaihe 5 osa 8: huoneiden LOGIIKKA `street/rooms.js`:ään** (345 rv, get+set-host; uusi penkki `street-rooms-logic-test` 41/0) · **v11.43 = kaksi FULLin canvas-bugia:** `#NaNNaN`-väri (hsl-paletti + hex-apuri) ja `translate(NaN)` (puuttuva `WORLD_W`-sidonta) · **v11.42 = Vaihe 5 osa 7: liikennologiikka `street/traffic.js`:ään** · **v11.41 = BAD/FULL: ikkunavalot syttyvät taas**
 (`seedLitWindows()`; ennen koko runi ilman ikkunavaloja) · **v11.40 = Vaihe 5 osa 6: huoneiden piirto `street/rooms.js`:ään** · **v11.39 = K7 "Valot sammuvat" -kortin bugikorjaus** (lamppujen kuvut, kuvun valopilkku, ovivalo ja pelaajan reunavalo sammuvat nyt myös, ks. `progress.md`; `?v=`-leimat samassa numerossa – pelkkä arvon/parametrin säätö ei nosta versionumeroa, sääntö 03; **Versiohistoria v11.06–v11.37: ks. `progress.md`** (mm. jukebox-intro, liikenne huoneissa, kolarin putoamistaso, sädease, tablet-ohjaimet, hover-kierto, meteoriitti + eskalaatio + BAD-avaus, rauniot, savukorjaus).
 - 🔓 **Sääntö 04 (talousbalanssi-lukko) EI PÄDE enää forkissa** (27.9.2026): se kirjoitettiin **alkuperäistä Pimeä Katu -peliä** varten → talousarvot (aloituskolikot/🍔, 🍔-tahti, RTP, hinnat, syntymäpaketti) ovat **vapaita myös NORMALissa**. `.clinerules/04` + `docs/economy-balance-memo.md` = historiallisia viitteitä, **eivät sitovia**.
 - 🧱 **Koodirakenne (Vaihe 1 VALMIS, v11.38 – ei toimintamuutoksia):** `street.js` pilkottiin
@@ -319,7 +321,21 @@ vasta sitten korjaus + versionosto + paikallinen commit. Ei ongelmia → jatka a
   `'BEDROOM'`-merkki + 2/3-vauhdin kävely, manhole-budjetti 1500 kierrosta, meteor-coinin
   kiinteä siemen) → **run-all 26 penkkiä / 26 puhdasta / 0 löydöstä**. **Ei koodimuutosta**
   → versionumero pysyi v11.44:ssä.
-- **C) Vaihe 6 (itsenäinen, kevyt):** 479 `vNN.NN`-kommenttimerkintää → `CHANGELOG.md`:hen, kommenteihin vain "miksi".
+- **C) ✅ TEHTY 3.10.2026 – Vaihe 6: kommenttien versiosiivous.** `tools/refactor/clean-version-comments.cjs`
+  poisti **565 riviä / 10 tiedostoa** (koko skoopin 637 merkinnästä; `street.js` 433 riviä) –
+  kommenteissa on nyt vain "miksi", historia on **`CHANGELOG.md`**:ssä, git-logissa ja
+  `progress.md`:ssä. `index.html` jätettiin rajojen ulkopuolelle (sääntö 01).
+  **Kytkennät, jotka piti päivittää:** LIIKENNE-regexistä poistui `(v11.09)` (2 penkkiä) ja
+  `resetBuildingDamage();` ilman kommenttia (2 penkkiä). **Ei versionnostoa** (kommentit eivät ole
+  ajettavaa koodia) → versio pysyy v11.45:ssä. Portti: NORMAL 78/0 · render-smoke 30/30 · **26/26**.
+
+> ### 🎉 Refaktorointi on VALMIS (Vaiheet 0–6)
+> **Vaiheet 1–3** (pilkonta: `update()` 85 rv, `render()` 143 rv, `handleAction()` 14 rv +
+> `chaosFlags` + `rooms[]`) · **Vaihe 4** (kaivo, kolikko, päivä/yö → `dayNight`) ·
+> **Vaihe 5** (osat 1–8: `street/chaos-config`, `sfx`, `news`, `traffic`, `chaos-cards`, `rooms`) ·
+> **Vaihe 6** (kommentit). `street.js` 11 169 → **8 357 rv**.
+> **Portti:** NORMAL 78 avainta / 0 eroa · render-smoke 30/30 · **26 penkkiä / 26 puhdasta / 0 löydöstä**.
+> **Avoinna:** vain **julkaisupäätös** (push) + ei-refaktorointityöt ("🔜 Seuraavaksi").
 - **D) Muut avoimet työt** (eivät liity refaktorointiin): ks. "Seuraavaksi"-osio – Blue Mäx -testimode,
   pääsiäismunat Dig Däshiin, hedelmäpelin RTP-presetit, jukebox-testien päivitys.
 

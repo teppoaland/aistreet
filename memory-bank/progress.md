@@ -8,14 +8,15 @@
 > vain nykyajan (v10+/v11+) rivit ja refaktoroinnin kirjaukset.
 > **Rajat (päivitetty 3.10.2026 – `progress.md` 45 → 65 kt, pysyvä):** tämä tiedosto **≤ 65 kt** · `activeContext.md` ≤ 65 kt · `systemPatterns.md` ≤ 25 kt · koko pankki **≤ 155 kt** – kokoa ei raportoida joka istunnossa; raja mainitaan vain, jos se ylittyy. Tämä tiedosto on **historia** (versiot, mittaustulokset, testipenkit): uusi rivi per versio, ei nykytilan kuvausta (se on `activeContext.md`:ssä).
 >
-> **🚧 Jatkopiste (3.10.2026, v11.45):** koodirefaktorointi **Vaiheet 0–5 osat 1–8 ja Vaihe 4 (päivä/yö)
-> on tehty ja validoitu** (penkit repoon, `update()` 85 rv, `render()` 143 rv, `handleAction()` 14 rv,
-> `chaosFlags`, `rooms[]`, `dayNight`-olio, `street/chaos-config.js` + `street/sfx.js` + `street/news.js` +
-> `street/traffic.js` + `street/chaos-cards.js` + `street/rooms.js`). **Jäljellä vain Vaihe 6**
-> (kommenttien versiosiivous). **Bugikorjaukset v11.39** (K7 "Valot sammuvat" -kortti), **v11.41**
-> (BAD/FULLin ikkunavalot), **v11.43** (FULLin canvas-arvot: `#NaNNaN`-väri + `translate(NaN)`),
-> **v11.44** (huoneiden logiikka moduuliin + penkki 41/0) ja **v11.45** (päivä/yö-ryhmittely).
-> Työ on committoitu paikallisesti (pushia ei ole tehty). Jatko-ohjeet ja seuraavat askeleet:
+> **🚧 Jatkopiste (3.10.2026, v11.45):** **koodirefaktorointi on VALMIS (Vaiheet 0–6) ja validoitu**
+> (penkit repoon, `update()` 85 rv, `render()` 143 rv, `handleAction()` 14 rv, `chaosFlags`,
+> `rooms[]`, `dayNight`-olio, `street/chaos-config.js` + `street/sfx.js` + `street/news.js` +
+> `street/traffic.js` + `street/chaos-cards.js` + `street/rooms.js`, kommenttien versiosiivous).
+> **Jäljellä vain julkaisupäätös** (push = tuotanto) ja ei-refaktorointityöt.
+> **Bugikorjaukset v11.39** (K7 "Valot sammuvat" -kortti), **v11.41** (BAD/FULLin ikkunavalot),
+> **v11.43** (FULLin canvas-arvot: `#NaNNaN`-väri + `translate(NaN)`), **v11.44** (huoneiden logiikka
+> moduuliin + penkki 41/0) ja **v11.45** (päivä/yö-ryhmittely + kommenttisiivous).
+> Työ on committoitu paikallisesti (pushia ei ole tehty). Jatko-ohjeet:
 > **`activeContext.md` § "🚧 JATKOPISTE"**.
 
 ## 🏮 Pääportaali – AI CHAOS STREET
@@ -409,5 +410,26 @@ tarkoituksella ennalleen** (149 viittausta, sääntö 04) ja huoneiden tila hoid
 get+set-pareina → **Vaihe 4 on valmis.** Työkalu `tools/refactor/group-day-night.cjs`.
 **Tulos:** NORMAL 78 avainta / 0 eroa · render-smoke 30/30 · `street-rooms-logic` 41/0 ·
 **26 penkkiä 26 puhdasta / 0 löydöstä**. `#version-tag` + 10 leimaa → **v11.45**.
+
+**Vaihe 6 – kommenttien versiosiivous (3.10.2026, v11.45 – ei versionnostoa):**
+`tools/refactor/clean-version-comments.cjs` poisti koodista **565 riviä `vNN.NN`-merkintöjä**
+(koko skoopin 637 merkinnästä; `street.js` 433 riviä, `street/rooms.js` 37, `chaos-config` 25,
+`style.css` 18, loput pienempiä). **Kommenteissa on nyt vain "miksi"** – historia on
+**`CHANGELOG.md`**:ssä (uusi historian arkisto), git-logissa ja tässä tiedostossa.
+Säännöt: `// v11.14: laukaisuväli …` → `// laukaisuväli …`; `// v11.41 (bugikorjaus): X` →
+`// Bugikorjaus: X`; `(X, vNN.NN)` → `(X)`; pelkkä historia → kommentti pois.
+**Ei versionnostoa** (kommentit eivät ole ajettavaa koodia → käyttäjän testaama koodi on sama).
+**Turvarajat:** muokataan vain kommenttiosuutta (koodi/merkkijonot koskemattomia; skoopissa ei ole
+yhtään versiomerkintää merkkijonossa) ja `index.html` jätettiin rajojen ulkopuolelle (sääntö 01).
+**Penkkikytkennät, jotka piti päivittää (4 penkkiä):** `street-traffic-rooms` +
+`street-knockdown-traffic` (LIIKENNE-regexistä poistui `(v11.09)`) sekä `street-building-collapse`
++ `street-meteor-aftermath` (`resetBuildingDamage();` ilman kommenttia). **Sääntö jatkossa:**
+penkkiä ei kytketä kommentin versiomerkintään, vaan koodiin. **Tulos:** NORMAL 78 avainta / 0 eroa ·
+render-smoke 30/30 · **26 penkkiä 26 puhdasta / 0 löydöstä**.
+
+> ### 🎉 Refaktorointi valmis (Vaiheet 0–6, v11.38–v11.45)
+> Vaiheet 1–3 (pilkonta + `chaosFlags` + `rooms[]`) · 4 (kaivo, kolikko, `dayNight`) ·
+> 5 osat 1–8 (`chaos-config`, `sfx`, `news`, `traffic`, `chaos-cards`, `rooms`) · 6 (kommentit).
+> `street.js` 11 169 → **8 357 rv**. Portti: **26 penkkiä / 26 puhdasta / 0 löydöstä**.
 
 Vanhat penkkimuistiinpanot (v11.24–v11.27) ja vanhentunut penkkilista: `docs/pimea-katu-historia.md`.

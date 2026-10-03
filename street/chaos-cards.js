@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    street/chaos-cards.js – K7-tapahtumakortit (vain visuaalisia)
-   (Vaihe 5 osa 5, v11.38 – siirretty street.js:stä, PELKKÄ SIIRTO.)
+   (Vaihe 5 osa 5, siirretty street.js:stä, PELKKÄ SIIRTO.)
 
    Sisältö: korttipakan tila (`cardState`) + ajastin (`updateCards`),
    reset (`chaosCardsReset`) ja 10 korttidefiä (`chaosCardDefs`:
@@ -52,7 +52,7 @@ var StreetChaosCards = (function () {
     }
 
     /* ═══════════════════════════════════════════════════════════
-       KAAOS K7 – tapahtumakortit (v10.05)
+       KAAOS K7 – tapahtumakortit
        v1 = vain visuaalisia. Kortit laukeavat itsestään kesken
        session ja palautuvat itsestään. Ei vahinkoa, ei taloutta,
        ei uutta tekstiä. NORMALissa pois päältä (bitti-identtinen).

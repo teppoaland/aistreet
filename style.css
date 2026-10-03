@@ -377,7 +377,7 @@ body::after {
     }
 }
 
-/* ── Tabletti (kosketus + pysty + leveä näyttö): kadun ohjaimet 2× (v11.19) ──
+/* ── Tabletti (kosketus + pysty + leveä näyttö): kadun ohjaimet 2× ──
    pointer: coarse = sormi → PC ja kosketusnäyttöläppäri (pointer: fine),
    puhelin (<769 px) ja vaakamoodi pysyvät täsmälleen ennallaan. Tabletilta
    puuttuu myös mobiili-overlay, joten #touch-row on normaalissa asettelussa
@@ -448,7 +448,7 @@ body::after {
     transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 
-/* v11.03: .auto-hover = ohjelmallinen "hover" (automaattinen hover-kierros,
+/* .auto-hover = ohjelmallinen "hover" (automaattinen hover-kierros,
    street.js AUTO_HOVER_*) – sama ulkoasu kuin oikea :hover, joten efekti
    näyttää täsmälleen samalta kuin käyttäjän oma hiiri. */
 #chaos-menu .chaos-buttons button:hover,
@@ -459,14 +459,14 @@ body::after {
     color: #ffe066;
 }
 
-/* ═══ v11.05: FULL CHAOS -TÄRINÄ ══════════════════════════════════════
+/* ═══: FULL CHAOS -TÄRINÄ ══════════════════════════════════════
    Auto-hoverin viimeinen askel: FULL CHAOS jää päälle 2 s (street.js
    AUTO_HOVER_HOLD_MS) ja koko valikkonäyttö tärisee saman ajan. Voimakkuus
    2–4 px vaakavärinä + pieni pystysuunta. Tahti on tasaisen nopea koko
    pidon ajan: 2,5 % askel = 50 ms ≈ 20 värähdystä sekunnissa (aiempi 4–8 %
    eli 80–160 ms tuntui laiskalta, koska askeleet harvenivat loppua kohti).
    Kesto pidettävä samana kuin AUTO_HOVER_HOLD_MS.
-   v11.27: ajetaan kaikilla laitteilla – reduce-motion ei enää estä tärinää.
+   ajetaan kaikilla laitteilla – reduce-motion ei enää estä tärinää.
 
    Tärinä kohdistuu #chaos-menu:hun (koko ruudun musta kerros) eikä bodyyn:
    transform tekee elementistä fixed-lastensa containing blockin, joten
@@ -520,12 +520,12 @@ body::after {
     100%  { transform: translate(0, 0); }
 }
 
-/* v11.27: tärinä ajetaan kaikilla laitteilla myös reduce-motionissa –
+/* tärinä ajetaan kaikilla laitteilla myös reduce-motionissa –
    sama linjaus kuin pelin canvas-tärinässä (BAD/FULL, meteoriitti, kolari)
-   ja INSTRUCTIONS-vilkuissa (v10.31/v11.17). HUOM: ohjeikkunan oma
+   ja INSTRUCTIONS-vilkuissa. HUOM: ohjeikkunan oma
    reduce-motion-lohko on edelleen alempana. */
 
-/* v10.14: kaaostason valinnan jälkeen tekstit haihtuvat pois ennen pelin alkua */
+/* kaaostason valinnan jälkeen tekstit haihtuvat pois ennen pelin alkua */
 #chaos-menu.faded h1,
 #chaos-menu.faded .chaos-sub,
 #chaos-menu.faded .chaos-buttons,
@@ -533,7 +533,7 @@ body::after {
     opacity: 0;
 }
 
-/* ═══ SIIRTYMÄMUSTA (v11.02) ═══════════════════════════════════════════
+/* ═══ SIIRTYMÄMUSTA ═══════════════════════════════════════════
    Kaaostason valinnan jälkeen: näyttö mustenee 2 s (ease-in) samalla kun
    valikkobiisi vaimenee (audio.js fadeOutMenuMusic), sitten peli käynnistyy
    mustan alla ja katu paljastuu 1 s häivytyksellä (ease-out) → yht. 3 s.
@@ -557,7 +557,7 @@ body::after {
     transition: opacity 1s ease-out;
 }
 
-/* ═══ BAD CHAOS -VAROITUS (v11.25) ═════════════════════════════════════
+/* ═══ BAD CHAOS -VAROITUS ═════════════════════════════════════
    Vain BAD CHAOS: mustan ruudun keskelle kirjoitetaan keltainen teksti
    merkki merkiltä (street.js typeChaosWarning, sama klik-ääni kuin
    INSTRUCTIONS-ikkunassa). Elementti on #chaos-blackoutin lapsi, joten se
@@ -591,7 +591,7 @@ body::after {
     #chaos-warning { font-size: clamp(0.6rem, 3.4vw, 1.1rem); }
 }
 
-/* v10.15: mobiilin vaakakuva – napit riviin, jotta koko valikko mahtuu matalaan näyttöön */
+/* mobiilin vaakakuva – napit riviin, jotta koko valikko mahtuu matalaan näyttöön */
 @media (orientation: landscape) and (max-height: 500px) {
     #chaos-menu { gap: 12px; }
     #chaos-menu h1 { font-size: 1.1rem; }
@@ -643,7 +643,7 @@ body::after {
     transition: opacity 1.6s ease-out;
 }
 
-/* v10.13: napautuksen jälkeen tekstit haihtuvat pois 2 s viiveen aikana */
+/* napautuksen jälkeen tekstit haihtuvat pois 2 s viiveen aikana */
 #start-gate.faded h1,
 #start-gate.faded .press-start {
     opacity: 0;
@@ -658,7 +658,7 @@ body::after {
 }
 
 
-/* ═══ OHJEIKKUNA (v10.27) ═══════════════════════════════════════════════
+/* ═══ OHJEIKKUNA ═══════════════════════════════════════════════
    Valikon lopussa pieni punainen INSTRUCTIONS-teksti → avaa CRT-ikkunan.
    Ikkuna on #chaos-menu:n sisällä (perii valikon "hidden"in, ei vuoda
    kadulle). Avaus 1 s, teksti kirjoitetaan merkki merkiltä, sulku 2 s.
@@ -672,13 +672,13 @@ body::after {
     color: #e03a3a;
     cursor: pointer;
     margin-top: -6px;
-    /* HUOM (v10.31): opacity EI ole tässä transitionissa. Aktiivinen transitio
+    /* HUOM: opacity EI ole tässä transitionissa. Aktiivinen transitio
        voittaa animaation CSS-kaskadissa → sama property saattoi jäädyttää
        vilkunnan mobiiliselaimissa. Häivytys hoidetaan .faded-säännössä. */
     transition: color 0.15s, text-shadow 0.15s;
-    /* Rauhallinen vilkkuminen (v10.28): hidas, pehmeä hengitys */
+    /* Rauhallinen vilkkuminen: hidas, pehmeä hengitys */
     animation: ins-link-blink 2.4s ease-in-out infinite;
-    /* Oma compositing-taso: mobiili ei jätä vilkuntaa kesken (v10.31) */
+    /* Oma compositing-taso: mobiili ei jätä vilkuntaa kesken */
     will-change: opacity;
 }
 #chaos-menu .chaos-instructions:hover,
@@ -856,7 +856,7 @@ body::after {
 }
 
 /* Esteettömyys: liikkeen vähentäminen → teksti näkyy heti, ei efektejä.
-   HUOM (v10.31): rauhallinen opacity-"hengitys" JÄÄ päälle myös tässä tilassa
+   HUOM: rauhallinen opacity-"hengitys" JÄÄ päälle myös tässä tilassa
    sekä INSTRUCTIONS-linkissä että "HAVE FUN!" -tekstissä (ei siis listalla) –
    pelkkä kirkkauden vaihtelu ei aiheuta liikeherkkyyttä, ja moni Android
    raportoi reduce-motionin ollessa "poista animaatiot" -tilassa → vilkunta
@@ -878,7 +878,7 @@ body::after {
 }
 
 
-/* ═══ v10.28: INSTRUCTIONS-vilkunta, rivivälit ja mobiiliviilaus ═══════ */
+/* ═══: INSTRUCTIONS-vilkunta, rivivälit ja mobiiliviilaus ═══════ */
 
 /* Rauhallinen vilkunta valikon INSTRUCTIONS-tekstille */
 @keyframes ins-link-blink {
@@ -943,7 +943,7 @@ body::after {
 }
 
 
-/* ═══ v10.29/v10.30: "HAVE FUN!" vilkahtaa kerran kirjoituksen jälkeen ═ */
+/* ═══: "HAVE FUN!" vilkahtaa kerran kirjoituksen jälkeen ═ */
 
 /* "HAVE FUN!" vilkahtaa kerran heti kun kirjoitus on valmis –
    sama rauhallinen tahti kuin INSTRUCTIONS-tekstillä

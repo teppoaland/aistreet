@@ -225,6 +225,36 @@ ryhmittelyn (Vaihe 4). Suositeltu järjestys ja miksi:
 **Nyrkkisääntö:** jokainen uusi tiedosto vaatii (1) `PARTS`-listan päivityksen,
 (2) `<script>`-rivin `index.html`:hin samalla `?v=`-leimalla ja (3) täyden penkkiajon.
 
+## Vaihe 6 – kommenttien versiosiivous (VALMIS, v11.45)
+
+**Tavoite:** koodin kommentit kertovat *miksi*, eivät *milloin*. Historia elää
+`CHANGELOG.md`:ssä, git-logissa ja `memory-bank/progress.md`:ssä.
+
+**Työkalu:** `tools/refactor/clean-version-comments.cjs` (`--dry` = esikatselu).
+Se poistaa `vNN.NN`-merkinnät **vain kommenttiosuudesta** ja jättää merkityksen:
+
+| Ennen | Jälkeen |
+|---|---|
+| `// v11.14: laukaisuväli 1,0 s – huti maksaa saman` | `// laukaisuväli 1,0 s – huti maksaa saman` |
+| `/* v11.41 (bugikorjaus): kylvä ikkunavalot HETI` | `/* Bugikorjaus: kylvä ikkunavalot HETI` |
+| `(osumakohta −25 px, v11.12); muutoin GROUND_Y+10 (v4.78)` | `(osumakohta −25 px); muutoin GROUND_Y+10` |
+| `Ovi on aina auki (v4.43, sama käytös kuin BAR:lla)` | `Ovi on aina auki (sama käytös kuin BAR:lla)` |
+| `// v4.46 – monivalinta` (pelkkä historia) | *(kommentti poistuu)* |
+
+**Tulos:** 565 riviä / 10 tiedostoa siivottiin (koko skoopin 637 merkinnästä – `street.js`
+yksin 433 riviä), jäljelle jäi **0** merkintää. `index.html` jätettiin rajojen ulkopuolelle
+(sääntö 01, suojattu pääsivutiedosto; sen kommentit kertovat versioleimakäytännöstä).
+Portti: NORMAL 78/0 · render-smoke 30/30 · `run-all` **26/26**.
+
+**Kytkennät, jotka piti päivittää** (penkki greipasi kommenttia, jossa oli versio):
+
+- `street-traffic-rooms` + `street-knockdown-traffic`: LIIKENNE-regexistä poistui `(v11\.09)`
+- `street-building-collapse` + `street-meteor-aftermath`: `resetBuildingDamage();` ilman kommenttia
+
+> **Sääntö penkeille jatkossa:** älä kytke tarkistusta kommentin versiomerkintään – kytke
+> koodiin (funktio, vakio tai merkkijono). Työkalun turvaraja on, ettei yhtään `vNN.NN`-merkintää
+> ole merkkijonossa (tarkistettu erikseen) eikä koodissa.
+
 ## Seuraavat vaiheet
 
 
@@ -234,6 +264,11 @@ ryhmittelyn (Vaihe 4). Suositeltu järjestys ja miksi:
 5. ✅ **Valmis (osat 1–8, v11.38–v11.44)** – tiedostojako `street/`-kansioon (klassiset
    `<script>`it + `var StreetXxx`-moduulit, kuten `digGame1`); `street-src.cjs`:n `PARTS`-lista
    pitää penkit samassa järjestyksessä.
-6. ⏭️ **SEURAAVA – Kommenttien versiosiivous** (479 `vNN.NN`-merkintää) → historia `CHANGELOG.md`:hen,
-   kommentteihin vain "miksi".
+6. ✅ **Valmis (v11.45)** – Kommenttien versiosiivous: 565 riviä / 10 tiedostoa,
+   historia `CHANGELOG.md`:hen (kommenteissa enää "miksi"). Työkalu
+   `tools/refactor/clean-version-comments.cjs`.
+
+> **Refaktorointi on valmis:** Vaiheet 0–6 tehty (penkit, pilkonta, rekisterit, tilan
+> ryhmittely, tiedostojako `street/`-kansioon ja kommenttisiivous). Portti: NORMAL 78/0 ·
+> render-smoke 30/30 · `run-all` 26/26.
 

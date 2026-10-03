@@ -35,14 +35,14 @@ const StreetAudio = (() => {
 
     const MUSIC_VOLUME = 0.05; // kappaleen perusvoimakkuus (vastaa masterGain 0.05025)
 
-    /* ── Valikkomusiikki (v10.07): soi VAIN alkuvalikossa (Choose your chaos
+    /* ── Valikkomusiikki: soi VAIN alkuvalikossa (Choose your chaos
        level). Itsenäinen soitin – ei koske pelin syntikkaa eikä jukeboxia.
        Autoplay-lukon takia ensimmäinen ele käynnistää, jos soitto oli estetty. */
     const MENU_MUSIC_FILE = 'jukebox/alec_koff-heavy-doom-dark-metal-493397.mp3';
     let menuEl = null;            // <audio>-elementti (loop)
     let menuActive = false;       // onko alkuvalikko auki
     let menuMusicBlocked = false; // autoplay estetty – yritetään uudelleen eleessä
-    let menuFadeTimer = null;     // valikkobiisin häivytyksen interval-tunniste (v11.02)
+    let menuFadeTimer = null;     // valikkobiisin häivytyksen interval-tunniste
 
     function startMenuMusic() {
         init();
@@ -74,7 +74,7 @@ const StreetAudio = (() => {
     }
 
     function stopMenuMusic() {
-        // Kesken oleva häivytys ei saa jäädä päälle (v11.02)
+        // Kesken oleva häivytys ei saa jäädä päälle
         if (menuFadeTimer) { clearInterval(menuFadeTimer); menuFadeTimer = null; }
         if (menuEl) {
             try { menuEl.pause(); } catch (e) {}
@@ -83,7 +83,7 @@ const StreetAudio = (() => {
         }
     }
 
-    /* Valikkobiisin häivytys (v11.02): kaaostason valinnan jälkeen kappale
+    /* Valikkobiisin häivytys: kaaostason valinnan jälkeen kappale
        vaimenee ms-ajan kuluessa ja pysähtyy lopuksi (ei kovaa katkaisua).
        Volume palautetaan loppuun, jotta seuraava valikko soi taas täysillä. */
     function fadeOutMenuMusic(ms) {
@@ -118,7 +118,7 @@ const StreetAudio = (() => {
     let jukeEl = null;                   // <audio> jukebox-kappaleelle (koko kappale)
     let jukePlaying = false;              // soiko jukebox-kappale parhaillaan
     let pendingJukeQueue = null;          // autoplay-esto: soitetaan seuraavassa eleessä
-    /* Jono (v4.46): jukeboxista voi valita useamman kappaleen, jotka soitetaan
+    /* Jono: jukeboxista voi valita useamman kappaleen, jotka soitetaan
        yksi kerrallaan (1 → 3). Jono on url-lista, jukePos = monesko soi. */
     let jukeQueue = [];
     let jukePos = -1;
@@ -330,7 +330,7 @@ const StreetAudio = (() => {
         return true;
     }
 
-    /* Liittää uudet kappaleet nykyisen jonon perään (v4.99): soivan kappaleen
+    /* Liittää uudet kappaleet nykyisen jonon perään: soivan kappaleen
        jälkeen. Palauttaa false jos ääntä ei saada lainkaan. */
     function appendJukeboxQueue(urls) {
         if (!urls || !urls.length) return false;
@@ -365,7 +365,7 @@ const StreetAudio = (() => {
         return true;
     }
 
-    /* Soittaa koko jonon alusta loppuun (v4.46): valitut kappaleet yksi
+    /* Soittaa koko jonon alusta loppuun: valitut kappaleet yksi
        kerrallaan (1 → 3). Palauttaa false jos ääntä ei saada lainkaan
        (kadun puoli voi silloin palauttaa kolikot). */
     function playJukeboxQueue(urls, startPos = 0) {
@@ -687,7 +687,7 @@ const StreetAudio = (() => {
     const SONG_PLAY_LIMIT = 30000;     // kappaleesta soitetaan vain alku (ms)
     const SONG_FADE_OUT = 600;         // häivytyksen kesto lopussa (ms, 0 = kova katkaisu)
     const SYNTH_PLAY_DURATION = 30000; // syntikka-fallbackin soittoaika (ms)
-    const SYNTH_FADE_IN = 800;         // syntikan sisäänhäivytys gracen jälkeen (ms, v10.09)
+    const SYNTH_FADE_IN = 800;         // syntikan sisäänhäivytys gracen jälkeen (ms)
     let musicGraceMs = 0;              // kertaluontoinen hiljaisuus ennen ensimmäistä syntikkaa (ms; 0 = ei)
     let fadeInNextSynth = false;       // gracen jälkeinen syntikka häivyttyy sisään
 
@@ -780,7 +780,7 @@ const StreetAudio = (() => {
             }
         }
         melodyReverse = Math.random() < 0.5;
-        // Tempo 🍔-vauhtiin (v4.93): hidas → minimi, normaali → keskiväli, nopea → maksimi
+        // Tempo 🍔-vauhtiin: hidas → minimi, normaali → keskiväli, nopea → maksimi
         if (hungerTempo <= 0.7) {
             BPM = BPM_MIN;
         } else if (hungerTempo >= 1.5) {
@@ -801,7 +801,7 @@ const StreetAudio = (() => {
         if (!ctx) return;
         if (cycleTimer) { clearTimeout(cycleTimer); cycleTimer = null; }
         phase = 'playing';
-        // Grace-jakso (v10.09): menun jälkeen syntikka hiljaa, sitten häivyttyy sisään.
+        // Grace-jakso: menun jälkeen syntikka hiljaa, sitten häivyttyy sisään.
         if (musicGraceMs > 0) {
             const grace = musicGraceMs;
             musicGraceMs = 0;
@@ -915,7 +915,7 @@ const StreetAudio = (() => {
         } catch(e) {}
     }
 
-    /* ── Valikon ohjeikkunan SFX (v10.27) ────────────────
+    /* ── Valikon ohjeikkunan SFX ────────────────
        Kolme pientä retro-ääntä "Choose your chaos level" -valikon
        INSTRUCTIONS-ikkunalle: CRT päälle, kirjoitusklik ja CRT pois.
        Oma hiljainen taso (INS_SFX_GAIN); ei kosketa valikkobiisiä,
@@ -980,7 +980,7 @@ const StreetAudio = (() => {
     }
 
 
-    /* ── Kaaos-intro (v11.01): pelin alkaessa soitetaan yksi kappale kerran,
+    /* ── Kaaos-intro: pelin alkaessa soitetaan yksi kappale kerran,
        sitten palataan normaaliin wave/syntikka-musiikkiin. ── */
     const INTRO_GAP = 2000;              // tauko ennen kuin wave-musiikki palaa (ms)
     let introEl = null;                  // <audio> intro-kappaleelle (loop = false)
@@ -1046,7 +1046,7 @@ const StreetAudio = (() => {
         }
         // Jukebox soi → ei käynnistetä taustamusiikkia sen päälle
         if (jukePlaying || phase === 'jukebox' || introPlaying) return;
-        // Grace-jakso (v10.09): valikosta aloitettaessa syntikka hiljaa ensin
+        // Grace-jakso: valikosta aloitettaessa syntikka hiljaa ensin
         if (delayMs) musicGraceMs = delayMs;
         // Käynnistä vain jos mikään sykli ei ole käynnissä
         if (!cycleTimer && !started) playPhase();

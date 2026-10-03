@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    street/sfx.js – kadun äänet (Web Audio, ei tiedostoja)
-   (Vaihe 5, v11.38 – siirretty street.js:stä, PELKKÄ SIIRTO.)
+   (Vaihe 5, siirretty street.js:stä, PELKKÄ SIIRTO.)
 
    Sisältö: initAudio + ääniapuri sfxTone + kaikki kadun SFX:it
    (potku, askel, kolikko, tömähdys, sähköisku, laser, meteoriitti,
@@ -80,7 +80,7 @@ function playWalk() {
         src.start(now); src.stop(now + 0.05);
     } catch(e) {}
 }
-/* ── SFX-apuri (Vaihe 2, v11.38) ─────────────────────────────
+/* ── SFX-apuri (Vaihe 2) ─────────────────────────────
    Yksi oskillaattori + gain-envelope ja yhteinen initAudio-vahti.
    opts: { freq, freqTo?, dur, type?, vol?, delay? }
      freqTo = liuku (exponentialRamp), jos annettu
@@ -163,14 +163,14 @@ function playZap() {
     } catch(e) {}
 }
 
-/* ── Sädeaseen laserääni (v10.21) – "pew" kuin Star Wars ── */
+/* ── Sädeaseen laserääni – "pew" kuin Star Wars ── */
 function playLaser() {
-    // Vingahdus: korkea → matala sweep (sahatonni) + kirkas neliökerros → "pew" (v10.22)
+    // Vingahdus: korkea → matala sweep (sahatonni) + kirkas neliökerros → "pew"
     sfxTone({ freq: 1900, freqTo: 160, dur: 1.0, type: 'sawtooth', vol: 0.16 });
     sfxTone({ freq: 2800, freqTo: 320, dur: 0.8, type: 'square', vol: 0.09 });
 }
 
-/* ── Meteoriitin osumaääni (v11.14): kivi halkeaa – matala kolahtava
+/* ── Meteoriitin osumaääni: kivi halkeaa – matala kolahtava
    "klonk" + lyhyt murskautuvan kuoren kohina. Erottuu selvästi laserin
    pew-äänestä, jotta pelaaja tietää osuneensa (1. osuma ei vielä tuhoa). */
 function playMeteorHit() {
@@ -197,7 +197,7 @@ function playMeteorHit() {
     } catch(e) {}
 }
 
-/* ── Talon romahdusääni (v11.22, v11.24 ilman soivaa jyrinää): pelkkä
+/* ── Talon romahdusääni (ilman soivaa jyrinää): pelkkä
    murskautuva massa. Kuuluu meteoriitin osuessa katuvarren taloon
    (tuhoutumisen alkaessa). Ei uutta tekstiä (sääntö 06) – tuho kerrotaan
    äänellä ja kuvalla. */
@@ -206,7 +206,7 @@ function playBuildingCollapse() {
         initAudio();
         if (!audioCtx || audioCtx.state !== 'running') return;
         const now = audioCtx.currentTime;
-        /* v11.24: soiva matala jyrinä (triangle 90 → 34 Hz) POISTETTU – se kuulosti
+        /* soiva matala jyrinä (triangle 90 → 34 Hz) POISTETTU – se kuulosti
            kongin/patarummun kumahdukselta juuri osumahetkellä. Jäljellä on vain
            murskautuva massa: matala suodatettu kohina, hiukan pidempi ja vahvempi,
            jotta isku ei tunnu tyhjältä. */
@@ -227,15 +227,15 @@ function playBuildingCollapse() {
     } catch(e) {}
 }
 
-/* ── Tyhjä laukaus (v11.14): kuiva klikki, kun ase on vielä lukossa.
+/* ── Tyhjä laukaus: kuiva klikki, kun ase on vielä lukossa.
    Kertoo, että klikkaus meni perille mutta laukaus ei lähde – ei uutta
    tekstiä (sääntö 06), vain ääni. */
 function playBeamEmpty() {
-    // Kuiva klikki: lyhyt neliö-sweep alas – lukko päällä, ei laukausta (v11.14)
+    // Kuiva klikki: lyhyt neliö-sweep alas – lukko päällä, ei laukausta
     sfxTone({ freq: 340, freqTo: 150, dur: 0.06, type: 'square', vol: 0.045 });
 }
 
-/* ── Katuvalon syttyminen (yön lamppushow, v4.42) ──
+/* ── Katuvalon syttyminen (yön lamppushow) ──
    Pehmeä naksahdus: lyhyt korkea kohinapiikki + lämmin humahdus.
    Sama tyyli kuin muilla kadun SFX:illä (Web Audio, ei tiedostoja). */
 function playLampOn() {

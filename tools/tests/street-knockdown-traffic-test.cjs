@@ -458,11 +458,11 @@ function expectKnockMoving(label, r) {
     if (s.indexOf('if (manhole.action) { StreetTraffic.update(dt, true); updateManholeAction(dt); return true; }') < 0)
         fail('Lähde: kaivon haarassa ei päivitetä liikennettä');
     /* Vaihe 5 osa 8 (v11.44): huoneiden logiikka siirtyi street/rooms.js:ään,
-       jossa tila sidotaan ENV.-etuliitteellä → sallitaan molemmat muodot
-       (sama periaate kuin v11.42 `H.player`-etuliitteen kanssa). */
-    if (!/if \((?:ENV\.)?sleepRoom\) \{\s*\n\s*\/\* LIIKENNE EI PYSÄHDY \(v11\.09\)/.test(s))
+       jossa tila sidotaan ENV.-etuliitteellä → sallitaan molemmat muodot.
+       Vaihe 6: versiomerkintä poistui kommentista, joten sitä ei enää vaadita. */
+    if (!/if \((?:ENV\.)?sleepRoom\) \{\s*\n\s*\/\* LIIKENNE EI PYSÄHDY/.test(s))
         fail('Lähde: makuuhuoneen liikennekutsu puuttuu');
-    if (!/if \((?:ENV\.)?barRoom\) \{\s*\n\s*\/\* LIIKENNE EI PYSÄHDY \(v11\.09\)/.test(s))
+    if (!/if \((?:ENV\.)?barRoom\) \{\s*\n\s*\/\* LIIKENNE EI PYSÄHDY/.test(s))
         fail('Lähde: BARin liikennekutsu puuttuu');
     const notif = srcCount(/showNotification/g, s);
     /* 15 (v11.37) → 18 (v11.44): kutsut ennallaan (13), mutta laskuri laskee
