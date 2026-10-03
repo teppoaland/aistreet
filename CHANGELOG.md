@@ -17,7 +17,7 @@
 
 | Versio | Mitä | Lisätieto |
 |---|---|---|
-| **v11.45** | **Vaihe 4 loppuun:** päivä/yö-tila (15 irtamuuttujaa / ~178 viittausta) → `dayNight`-olio, toiminta bitti-identtinen · **Vaihe 6:** kommenttien versiosiivous (565 riviä, `tools/refactor/clean-version-comments.cjs`) | `progress.md`, `tools/refactor/README.md` |
+| **🟢 v11.45 – TUOTANNOSSA** | **Vaihe 4 loppuun:** päivä/yö-tila (15 irtamuuttujaa / ~178 viittausta) → `dayNight`-olio, toiminta bitti-identtinen · **Vaihe 6:** kommenttien versiosiivous (565 riviä, `tools/refactor/clean-version-comments.cjs`) | `progress.md`, `tools/refactor/README.md` |
 | **v11.44** | **Vaihe 5 osa 8:** huoneiden logiikka (`updateSleepRoom`/`BarRoom`/`JukeboxRoom`, jukeboxin valinnat, `closeXxxRoom`) → `street/rooms.js` get+set-hostilla; uusi penkki `street-rooms-logic-test` (41/0) | `progress.md` |
 | **v11.43** | **Bugikorjaus:** kaksi FULLin canvas-bugia – `#NaNNaN`-väri (`hslToHex`) ja `translate(NaN)` (puuttuva `WORLD_W`-sidonta); uusi penkki `street-canvas-invariants-test` | `progress.md` |
 | **v11.42** | **Vaihe 5 osa 7:** liikennologiikka (`updateTraffic`) `street/traffic.js`:ään | `progress.md` |
@@ -27,7 +27,7 @@
 | **v11.38** | **Vaiheet 0–5 osat 1–5:** refaktoroinnin runko – penkit repoon, `update()` 1119 → 85 rv, `render()` → 143 rv, `handleAction()` → 14 rv, `chaosFlags`, `rooms[]`, `street/chaos-config.js` + `sfx.js` + `news.js` + `traffic.js` + `chaos-cards.js` | `tools/refactor/README.md` |
 | v11.06–v11.37 | kaaosjärjestelmän viimeistely, jukebox-intro, tablet-ohjaimet, sädease, meteoriitti + eskalaatio + BAD-avaus, rauniot, liikenne huoneissa, kolarin putoamistaso | `progress.md` |
 | v10.01–v10.20 | kaaosportti K0 + kategoriat K1–K7, hub-valikko, F5-soft reset, `?chaos=` / `?seed=` | `docs/chaos.md` |
-| **🔴 v11.37 – viimeisin JULKAISTU** | GitHub Pages: `https://teppoaland.github.io/aistreet/` (= `origin/main`) | — |
+| ~~🔴 v11.37 – edellinen julkaisu~~ | GitHub Pages: `https://teppoaland.github.io/aistreet/` (Pages tarjoilee nyt **v11.45**) | — |
 | v5.02 | viimeinen esifork-versio (Pimeä Katu, `D:\AI\Main` jäädytetty) | `docs/pimea-katu-historia.md` |
 
 ## Miksi kommenteista siivottiin versiot (Vaihe 6)

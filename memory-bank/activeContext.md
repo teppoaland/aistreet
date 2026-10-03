@@ -1,15 +1,15 @@
 # 🎯 Aktiivinen konteksti
 
 > **Kevyt:** Vain tämä tiedosto luetaan session alussa.
-> **✅ REFAKTOROINTI VALMIS (Vaiheet 0–6, v11.38–v11.45).** Kaikki vaiheet on tehty ja validoitu;
-> portti **26 penkkiä / 26 puhdasta / 0 löydöstä**. Jäljellä on vain **julkaisupäätös** (push).
-> Sääntö 03: **versio `v11.45`** (`index.html`) – Vaihe 6 (kommenttisiivous) **ei nostanut versiota**,
-> koska mikään ajettava koodi ei muuttunut (kommentit eivät ole koodia).
-> **Työ on committoitu paikallisesti** (ääriluku: `git rev-list --count origin/main..main`).
-> **Pushia EI ole tehty** → julkinen tuotanto on edelleen **v11.37** (`origin/main`).
-> **🔴 UUSI SESSIO – KYSY ENSIN:** *"Testasitko v11.45:n (`docs/testilista.md`)? Löytyikö ongelmia?"*
-> Ongelmat → **toista vika mekaanisesti (A/B + penkki) ennen korjausta**; ei ongelmia →
-> **julkaistaanko** (push) vai jatketaanko muita töitä (Blue Mäx -testimode, pääsiäismunat, RTP-presetit).
+> **✅ REFAKTOROINTI VALMIS (Vaiheet 0–6, v11.38–v11.45) JA JULKAISTU 3.10.2026.**
+> Tuotanto = `origin/main` = **v11.45** → `https://teppoaland.github.io/aistreet/` (Pages tarjoilee
+> v11.45:n; käyttäjä testasi sen ja totesi toimivaksi). Portti **26 penkkiä / 26 puhdasta / 0 löydöstä**.
+> Sääntö 03: Vaihe 6 (kommenttisiivous) **ei nostanut versiota** – `verify-comments-only.cjs` todisti,
+> että koodi on kommentit poistettuna identtinen (kommentit eivät ole ajettavaa koodia).
+> **🔴 UUSI SESSIO – KYSY ENSIN:** *"Mitä tehdään seuraavaksi?"* – refaktorointi on valmis ja julkaistu,
+> joten jäljellä ovat ei-refaktorointityöt: ks. **§ "🔜 Seuraavaksi"** (Blue Mäx -testimode,
+> pääsiäismunat Dig Däshiin, hedelmäpelin RTP-presetit + panosvalitsin, jukebox-testien siivous).
+> Jos käyttäjä raportoi v11.45:stä vian → **toista vika mekaanisesti (A/B + penkki) ennen korjausta**.
 > **Kompaktoitu 28.9.2026 (v11.00):** tiivistettiin vain v10.x/uusi aines (kaaos K0–K7 → `docs/chaos.md`) ja
 > korjattiin rakenteelliset viat. **Esiforkin v4.x-historia säilyy alla sellaisenaan.**
 > **Rajat (päivitetty 3.10.2026 – `progress.md` 45 → 65 kt ja pankki 135 → 155 kt, pysyvä):** tämä tiedosto **≤ 65 kt** · `progress.md` ≤ 65 kt ·
@@ -263,7 +263,7 @@ mopo, puut, kolikko, mobiilikamera, potkukolikko).
 > `4827f34` penkit+työkalut · `064f2d8` koodi (7 moduulia + bugikorjaukset) · `6d1c240` docs+säännöt ·
 > `14767f3`+`a10f373` pankin kevennys · `5c34519`+`d2a8fb7` testilista · `c0a54cf` julkaisukielto ·
 > `6474beb` penkkivelka 0 · **`4b886f0` = v11.45 (Vaihe 4 loppuun)**.
-> **`git status` puhdas · origin/main = v11.37 → tuotanto koskematon.**
+> **Tila:** `git status` puhdas · `origin/main` = `720a649` = **v11.45** (= HEAD) → tuotanto julkaistu.
 > Versio `v11.44` on `index.html`:ssä (#version-tag + 10 `?v=`-leimaa). Seuraava istunto jatkaa tästä.
 
 **Mitä on tehty (kaikki ilman toimintamuutoksia):**

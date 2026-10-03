@@ -1,4 +1,4 @@
-# 📊 BASELINE – pöytäpenkkien tila 2.10.2026 (v11.37 → v11.44 · **kaikki 26 puhdasta 3.10.2026**)
+# 📊 BASELINE – pöytäpenkkien tila 2.10.2026 (v11.37 → v11.45 · **kaikki 26 puhdasta 3.10.2026**)
 
 > Tämä tiedosto on **vertailukohta refaktoroinnille**. Penkit siirrettiin `%TEMP%`:ista
 > repoon 2.10.2026 (Vaihe 0). Aja aina: `node tools/tests/run-all.cjs`.
