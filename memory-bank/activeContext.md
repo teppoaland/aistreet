@@ -2,8 +2,8 @@
 
 > **Kevyt:** Vain tämä tiedosto luetaan session alussa.
 > **🚧 KESKEN: refaktorointi v11.38–v11.45 + 4 bugikorjausta (Vaiheet 0–5 osat 1–8 + Vaihe 4 VALMIS; jäljellä Vaihe 6) → ks. "JATKOPISTE" alempana.**
-> Sääntö 03: **versio `v11.45`** (`index.html`). **Työ on COMMITTOITU PAIKALLISESTI** (10 committia,
-> `main` = `origin/main` + 10; **pushia EI ole tehty** → julkinen tuotanto on edelleen **v11.37**).
+> Sääntö 03: **versio `v11.45`** (`index.html`). **Työ on COMMITTOITU PAIKALLISESTI** (12 committia,
+> `main` = `origin/main` + 12; **pushia EI ole tehty** → julkinen tuotanto on edelleen **v11.37**).
 > **🔴 UUSI SESSIO – KYSY ENSIN:** *"Testasitko v11.45:n (`docs/testilista.md`)? Löytyikö ongelmia?"*
 > Ongelmat → **toista vika mekaanisesti (A/B + penkki) ennen korjausta**; ei ongelmia → jatka alla olevasta
 > **C) Vaihe 6:sta** (kommenttien versiosiivous) – muut vaiheet on tehty.
@@ -255,10 +255,11 @@ mopo, puut, kolikko, mobiilikamera, potkukolikko).
 
 ## 🚧 JATKOPISTE – refaktorointi kesken (päivitetty 3.10.2026, v11.44)
 
-> **Tila:** Vaiheet 0–5 (osat 1–8) **tehty ja validoitu** ja **committoitu paikallisesti** (8 committia,
-> `main` = `origin/main` + 8: `4827f34` penkit+työkalut · `064f2d8` koodi (7 moduulia + bugikorjaukset) ·
-> `6d1c240` docs+säännöt · `14767f3`+`a10f373` pankin kevennys · `5c34519`+`d2a8fb7` testilista ·
-> **`ffffdc1` = v11.44 osa 8**).
+> **Tila:** Vaiheet 0–5 (osat 1–8) **ja Vaihe 4 (päivä/yö) tehty ja validoitu** ja **committoitu
+> paikallisesti** — `main` = `origin/main` + **12 committia**: `4827f34` penkit+työkalut ·
+> `064f2d8` koodi (7 moduulia + bugikorjaukset) · `6d1c240` docs+säännöt · `14767f3`+`a10f373`
+> pankin kevennys · `5c34519`+`d2a8fb7` testilista · `c0a54cf` julkaisukielto · `6474beb`
+> penkkivelka 0 · **`4b886f0` = v11.45 (Vaihe 4 loppuun)**.
 > **`git status` puhdas · origin/main = v11.37 → tuotanto koskematon.**
 > Versio `v11.44` on `index.html`:ssä (#version-tag + 10 `?v=`-leimaa). Seuraava istunto jatkaa tästä.
 
