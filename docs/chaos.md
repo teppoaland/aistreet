@@ -396,7 +396,7 @@ armoton mutta **aina voitettavissa**. Tämä on ainoa kohta, jossa vanhaa FULL-a
 | 2 | **Tähtisade** | 30–60 tähdenlentoa lyhyessä ajassa | 6–10 s |
 | 3 | **Sumu nousee** | sumuverho α 0.25–0.45 (≤ 0.5, luettavuus) | 30–60 s |
 | 4 | **Tuulenpuuska** | `windSpeed ×2–3` + puut nojaavat rajusti | 15–30 s |
-| 5 | **Valot sammuvat** | kaikki lamput + ikkunat sammuvat, sitten takaisin | 4–8 s |
+| 5 | **Valot sammuvat** | kaikki lamput + ikkunat sammuvat, sitten takaisin – **myös kuvut, kuvun valopilkku, ovivalo ja pelaajan reunavalo** (v11.39 korjasi: ennen vain hehku + ikkunat) | 4–8 s |
 | 6 | **Kaikki ikkunat syttyvät** | 8–12 ikkunaa kerralla (raja 12) | 20–30 s |
 | 7 | **Eläinparaati** | 3–5 eläintä kerralla | 10–20 s |
 | 8 | **Värien vaihto** | talojen paletti sekoittuu uudelleen (pehmeä siirtymä 2 s) | pysyvä |
@@ -406,6 +406,48 @@ armoton mutta **aina voitettavissa**. Tämä on ainoa kohta, jossa vanhaa FULL-a
 > **v2 (ei nyt):** pelaajaan vaikuttavat kortit (sade → liukkaus, sähkökatko → valot pois +
 > uhkat nopeammin). Ne koskevat K3/K4:ää → vaativat invariantin uudelleen tarkistuksen.
 > **v3:** kortit voivat ketjuuntua (2 aktiivista). **v1 pidetään puhtaana.**
+
+> **v11.43 (bugikorjaus, kaksi erillistä):** (1) `randomHuePalette()` palautti `hsl(...)`-merkkijonoja,
+> mutta `lightenHex()`/`mixHex()` olettavat `#rrggbb`-muotoa → FULLissa talot/tausta piirtyivät
+> **edellisellä** värillä (selain hylkää `#NaNNaNxx`-värin hiljaa). Korjattu: `hslToHex()` +
+> vahtilauseet apureihin. (2) `updateTraffic`in siirrossa (v11.42) `WORLD_W` jäi pois
+> `StreetTraffic.bind()`ista → ajoneuvon spawn x = `undefined + w` = NaN → ajoneuvo katosi eikä
+> poistunut koskaan. Korjattu. Molemmat valvoo nyt penkki
+> `tools/tests/street-canvas-invariants-test.cjs` (NaN/undefined-argumentit + kelvottomat värit).
+
+> **Testikytkin (v11.38):** `?card=<id>` pitää yhden kortin päällä loputtomiin, joten jokaisen
+> kortin voi katsoa yksi kerrallaan (ks. 8.2). Kortit siirrettiin omaan moduuliin
+> `street/chaos-cards.js` (Vaihe 5 osa 5) ja polku on validoitu penkillä
+> `tools/tests/street-chaos-cards-test.cjs`.
+>
+> **Ikkunavalot ovat oma kaaosakseli** (`windowTargetMax`: BAD 0–2 · FULL 0–12 · NORMAL 5 ·
+> MILD 3–6 · GOOD 5–8) → BAD/FULLissa ikkunoita syttyy *tarkoituksella* vähemmän.
+> ⚠️ **v11.41 (bugikorjaus):** ennen korjausta BAD/FULLissa ei syttynyt ikkunoita **lainkaan**,
+> koska `shuffleBuildingOrder()` nollasi `litWindows`-listan eikä sitä koskaan kylvetty uudelleen
+> (`updateLitWindows()` arpoo tavoitteen vain kun jokin ikkuna sammuu → tyhjä lista ei täyty).
+> Nyt `seedLitWindows()` kylvää valot heti talojärjestyksen vaihdossa. Validoitu penkillä
+> `tools/tests/street-window-lights-test.cjs`.
+
+> **Testilista (mitä kustakin kortista pitää näkyä ja palautua):** avaa
+> `file:///D:/AI/AI_street/index.html?card=<id>` – ilman `&chaos=` kortti näkyy **NORMALissa**,
+> jolloin tiedät varmasti, että kyseessä on kortti eikä kaaosakseli. Muista **Ctrl+Shift+R**.
+
+| `card=` | Mitä pitää näkyä | Palautuuko itse |
+|---|---|---|
+| `green` | aurinko + taivas vihreäksi / violetiksi / verenpunaiseksi | kyllä |
+| `meteor` | tähdenlentoja 5–20 framen välein (ei meteoriitteja) | kyllä |
+| `fog` | sumuverho α 0.25–0.45 | kyllä |
+| `gust` | tuuli ×2–3, puut nojaavat rajusti | kyllä |
+| `blackout` | **lamput ja ikkunat** pimeinä | kyllä (4–8 s) |
+| `windows` | 8–12 ikkunaa syttyy kerralla – **katso NORMALissa** (BAD/FULLissa `windowTargetMax` on 0–2/0–12) | kyllä |
+| `parade` | 3–5 eläintä **1 s välein** (normaali 15 s) – kadulla silti yksi kerrallaan | kyllä |
+| `palette` | talojen värit sekoittuvat | **ei – pysyvä** (reload palauttaa) |
+| `sky` | päivätaivas myrskyiseksi | kyllä |
+| `stars` | tähtiä 80 → 140 | kyllä |
+
+> **Yleisimmät kytkimet:** `?chaos=normal\|mild\|good\|bad\|full` · `?seed=N` · `?debug` ·
+> `?day=0/1` · `?hole=0/1/2` · `?cabs=0/1` · `?burgers=N` · `?bldg=N` · `?bldgtarget=N` ·
+> `?baddemo=1` · `?card=<id>`. Mikään ei tallenna mitään.
 
 ---
 
@@ -522,6 +564,7 @@ function rnd(a, b) { return a + chaosRng() * (b - a); }   // korvaa vanha rnd (1
 | `?chaos=normal\|mild\|good\|bad\|full` | valitsee tason valmiiksi ja **ohittaa alkuhubin** (testikäyttö) |
 | `?seed=12345` | kiinnittää arvan → sama kaaos joka latauksella (reproduktio) |
 | `?debug` | konsoliin `console.table(chaosCfg)` + `validateChaosCfg()`-tulokset + `C`, `burgerIntervalMin` |
+| `?card=<id>` | **(v11.38)** pitää yhden K7-kortin päällä loputtomiin → kortit on helppo katsoa yksi kerrallaan ilman 60 s odotusta ja ilman että arvaa, mikä ruudulla on kortti. Id:t: `green · meteor · fog · gust · blackout · windows · parade · palette · sky · stars` |
 
 **Säännöt:** kytkimet eivät tallenna mitään (`gameState.js` ei muutu), eivätkä ne näy pelaajalle.
 Kaaosarvot lisätään `chaosProfile()`-lohkojen **loppuun**, jotta vanhojen tasojen arvontajärjestys

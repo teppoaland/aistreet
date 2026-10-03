@@ -1,9 +1,17 @@
 # 📊 Projektin edistyminen
 
-> **v11.27 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026.
+> **v11.38 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026.
 > **Kompaktoitu 28.9.2026 (v11.00, 29,5 → 20,7 kt):** tiivistettiin vain v10.x/uusi aines (v10.01–v11.00 -taulukko) + rakenteelliset viat (orvot taulukkorivit, tyhjät rivit, pitkät rivit).
 > **Esiforkin v3.8x–v5.02 -historia säilyy alla sellaisenaan** (koko historia: `D:\AI\Main`, 196 committia; ffb1dd9 · cc7046b · 44db9e7) – tämän repon historia alkaa `b854771`.
-> **Rajat (päivitetty 29.9.2026, v11.23):** tämä tiedosto **≤ 45 kt** · `activeContext.md` ≤ 65 kt · `systemPatterns.md` ≤ 25 kt · koko pankki **≤ 135 kt** – kokoa ei raportoida joka istunnossa; raja mainitaan vain, jos se ylittyy. Tämä tiedosto on **historia** (versiot, mittaustulokset, testipenkit): uusi rivi per versio, ei nykytilan kuvausta (se on `activeContext.md`:ssä).
+> **Rajat (päivitetty 3.10.2026 – `progress.md` 45 → 65 kt, pysyvä):** tämä tiedosto **≤ 65 kt** · `activeContext.md` ≤ 65 kt · `systemPatterns.md` ≤ 25 kt · koko pankki **≤ 155 kt** – kokoa ei raportoida joka istunnossa; raja mainitaan vain, jos se ylittyy. Tämä tiedosto on **historia** (versiot, mittaustulokset, testipenkit): uusi rivi per versio, ei nykytilan kuvausta (se on `activeContext.md`:ssä).
+>
+> **🚧 Jatkopiste (3.10.2026):** koodirefaktorointi **Vaiheet 0–5 osat 1–7 on tehty ja validoitu**
+> (penkit repoon, `update()` 85 rv, `render()` 143 rv, `handleAction()` 14 rv, `chaosFlags`,
+> `rooms[]`, `street/chaos-config.js` + `street/sfx.js` + `street/news.js` + `street/traffic.js` + `street/chaos-cards.js` + `street/rooms.js`).
+> **Bugikorjaukset v11.39** (K7 "Valot sammuvat" -kortti), **v11.41** (BAD/FULLin ikkunavalot) **ja
+> v11.43** (FULLin canvas-arvot: `#NaNNaN`-väri + `translate(NaN)`). **Työ on työpuussa – ei committia**
+> (versio `v11.38` `index.html`:ssä). Jatko-ohjeet ja seuraavat askeleet:
+> **`activeContext.md` § "🚧 JATKOPISTE"**.
 
 ## 🏮 Pääportaali – AI CHAOS STREET
 
@@ -172,6 +180,237 @@ NORMAL/MILD/GOOD 0 meteoriittia, FULL ennallaan). Regressiot päivitetty uusiin 
 **v11.36 – BAD/FULL rauniot – liikenne ja eläimet pysähtyvät:** `buildingsAllGone()`/`chaosAllGone()`-apufunktiot lisätty. Kun kaikki 9 taloa tuhoutuneet BAD/FULLissa, katueläinten spawnaus ohitetaan ja liikenteen spawnauksessa vain ambulansseja sallitaan (`vehRnd = 0.74` pakottaa ambulance-haaran). Olemassa olevat autot/eläimet ajavat/juoksevat loppuun normaalisti. Ei uusia dialogeja (sääntö 06), ei talousmuutoksia. `index.html` v11.36.
 
 **v11.37 – BAD/FULL savukoodin korjaus (bugikorjaus):** v11.33 savukoodi (savukiekurat tuhoutuneista taloista BAD/FULL) oli vahingossa `updateBuildingDamage`-funktion ulkopuolella IIFE:n top levelillä → suoritettiin vain moduulin latautuessa (`chaosLevel === 'normal'` → skip, `dt` undefined) → ei koskaan ajon aikana. Siirretty `update(dt)`:n sisään `updateBuildingDamage(dt)`-kutsun jälkeen. Nyt vaaleat savupallot nousevat tuhoutuneista taloista BAD/FULLissa (spawn 1–3/3–7 s, nousevat max 1/3 talon korkeudesta, hiipuvat pehmeästi). `index.html` v11.37.
+
+**v11.38 – koodirakenne / Vaihe 1 osa 1 (ei toimintamuutoksia):** `street.js` pilkottiin
+tiedoston SISÄLLÄ mekaanisella työkalulla `tools/refactor/extract.cjs` (pelkkä siirto,
+`expectFirst`-varmistukset; kaikki `return;`-portit muunnettiin `return true`-porteiksi
+kutsujan `if (fn(dt)) return;`):
+- `render()` **428 → 143 rv**: `drawRoomView`, `pushWorldTransform`, `drawSkyGradient`,
+  `drawSun`, `drawStars`, `drawMoon`, `drawShootingStars`, `drawSatellite`,
+  `drawMeteorFlash`, `drawScreenEffects` (syvyysjärjestysosuus jäi ennalleen).
+- `handleAction()` **226 → 14 rv**: `tryNewspaper`, `tryFruitDoor(px,py)`,
+  `tryJukeboxDoor(px,py)`, `trySinkshipDoor(px,py)`, `tryDoorsAndKicks(px,py)`.
+- `update()` **1119 → 861 rv** (huoneosuus): `updateSleepRoom`, `updateBarRoom`,
+  `updateJukeboxRoom`, `updateNewsRoom`, `updateKnockedDown` – kutsutaan porteilla
+  `if (updateX(dt)) return;` (alkuperäinen varhaisten `return`ien järjestys säilyi).
+- `update()` **861 → 85 rv** (katuosuus, 23 funktiota): `updateBuildingSmoke`, `updateDayNight`,
+  `updateSpawnLampShow`, `updateJukeboxPersistence`, `updateDayCycle`, `updateDeathSequence`,
+  `updateHunger`, `updateHiddenTracking`, `updateManholeSequence`, `updateMovement`,
+  `updateCoinPickup`, `updateBeamPickup`, `updateCoinTimers`, `updateManholeStep`,
+  `updateElectricCabinets`, `updateParticles`, `updateStreetTimers`, `updatePot`,
+  `updateKickCoin`, `updateEnemies`, `updateAnimal`, `updateSky`, `updateBirds` – loput
+  `return`-portit (kuolema/nälkä/kaivo) samalla `if (fn(dt)) return;` -periaatteella.
+  Yhteensä **1 576 riviä / 38 funktiota**; mikään funktio ei ole enää >150 rv.
+**Testipenkit versioitiin repoon** (`tools/tests/`, 21 penkkiä): lähdeloader `street-src.cjs`,
+dynaaminen versiotarkistus `ver.cjs` (versio ei enää riko penkkejä), ajaja `run-all.cjs`,
+tila ja tunnetut vanhentuneet odotukset `BASELINE.md`. Mekaaniset korjaukset: export-rivi
+(k2k6k7/avenger), `StreetAudio`-stubit (fruit/jukebox/avenger), `showNotification`-laskurit
+(16→15, 15→14; bf54693 poisti yhden popupin), puuttuvat preludi-tunnisteet
+(`lamps`, `drunkAimShift`), vanhentuneet odotukset (mm. `AVENGER_SPEED`, BAD startCoins 100,
+meteoriitin osumäväri, `HUNGER_WAKE_GRACE` `let`, backdrop-rapistuminen v11.26-logiikalla),
+`headchk-normal-check` poistettu (vanhentunut kopio). Kolme rakennevahtia päivitettiin
+siirtoa vastaaviksi (building-collapse, hunger-scope T7, knockdown-traffic).
+**Tulos:** `chaos-normal-check` 78 avainta / 0 eroa; 21 penkkiä **15 puhdasta / 6 löydöstä
+= sama kuin baseline** (per-penkki-löydösmäärät identtiset). `index.html` v11.38.
+
+**v11.38 – Vaihe 2: kaaosliput + `sfxTone` (ei toimintamuutoksia):** 27 hajallaan ollutta
+`chaosLevel === '…'` -tarkistusta korvattiin `chaosFlags`-objektilla (11 lippua: `beer`, `drunk`,
+`beamWeapon`, `meteorAlways`, `meteorKill`, `meteorHalf`, `badDemo`, `badFinale`, `ruin`,
+`mosquitoes`, `anyChaos`); liput johdetaan `chaosLevel`istä yhdessä paikassa `applyChaosFlags()`
+(`applyChaosProfile`in alussa → F5-palautus ja `?chaos=` pysyvät synkassa). Uusi `sfxTone({freq,
+freqTo?, dur, type?, vol?, delay?})`-apuri (yksi oskillaattori + gain-envelope + yhteinen
+`initAudio`-vahti) lyhensi äänikoodia: `createOscillator`-kohtia 11 → 4 (muunnetut: `playCoin`,
+`playBeamEmpty`, `playLaser`, `playKnock`/`playZap`/`playMeteorHit` oskillaattoriosat, `playLampOn`
+humahdus; kohina- ja moottoriäänet ennallaan). Penkit: 5 preludiin `chaosFlags`-Proxy,
+`street-meteor-aftermath`:n `playMeteorHit`-tarkistus uuteen muotoon. **Tulos:** 22 penkkiä
+**16 puhdasta / 6 = sama kuin baseline**; NORMAL 78 avainta / 0 eroa; render-smoke 25/25.
+
+**v11.38 – Vaihe 3: huonerekisteri (ei toimintamuutoksia):** neljä canvas-huonetta (makuuhuone,
+BAR, jukebox, sanomalehti) koottiin **`rooms[]`**-rekisteriin rajapinnalla
+`{ name, isOpen(), update(dt), draw(), close() }`. Kutsu­paikat ovat nyt silmukoita:
+`update()` (`for (const room of rooms) if (room.update(dt)) return;`), `drawRoomView()`
+(`isOpen()` + kamera + `room.draw()`) ja `closeRoom()` (`if (room.isOpen() && room.close())`).
+`closeRoom()`:n neljä haaraa siirrettiin omiksi `closeSleepRoom/closeBarRoom/closeJukeboxRoom/
+closeNewsRoom()`-funktioiksi (24 rv). Uuden huoneen lisäys ei enää koske `update()`ia, `render()`iä
+eikä `handleAction()`ia; oven avaaminen pysyy ovikohtaisissa `tryXxxDoor()`-funktioissa.
+Penkit: `street-hunger-scope` T7 → rekisterisilmukka; `street-render-smoke-test` sai osion 4b
+(`closeRoom()` kaikille huoneille + false kun mikään ei auki) → **30/30**. **Tulos:** 22 penkkiä
+**16 puhdasta / 6 = sama kuin baseline**; NORMAL 78 avainta / 0 eroa.
+
+**v11.38 – Vaihe 4: tilan ryhmittely olioiksi (osittain, ei toimintamuutoksia):** kaksi domainia
+ryhmiteltiin: **kaivo** (`manholeOpen`/`mhInside`/`mhAction` → `manhole = { open, inside, action,
+reset() }`, 22 viittausta; `rollManholeState()` käyttää `manhole.reset()`) ja **kolikko**
+(`coinRespawnTimer` → `coin.respawnTimer`; `coinCheatStreak/GapTimer/Cooldown` →
+`coinCheat = { streak, gapTimer, cooldown, reset() }`). Penkkien hookit päivitettiin kolmeen
+penkkiin (kaivo), kolikkodomainissa ei ollut yhtään kytkentää. **Loput domainit mitattiin ja
+perusteltiin jätettäväksi:** päivä/yö 141 viittausta + 6 deklaraatiokohtaa (lomittuu
+`state.isDay`:hin; 4 penkkiä injektoi `dayT`-hookit), huoneet 469 viittausta (kannattaa tehdä
+samassa yhteydessä kuin Vaihe 5 siirtää huoneet omiin tiedostoihin), talous 149 (eniten
+penkkikytkentöjä, ei toiminnallista hyötyä, osuu sääntö 04:n ytimeen), rosvo (jo olio –
+jäljellä `robberCooldown`, ei voi asua samassa oliossa koska `robber` on `null` cooldownin
+aikana). **Tulos:** 22 penkkiä **16 puhdasta / 6 = sama kuin baseline**; NORMAL 78 avainta /
+0 eroa; render-smoke 30/30.
+
+**v11.38 – Vaihe 5 osa 1: tiedostojako (street/, ei toimintamuutoksia):** kaaoskonfiguraatio ja
+-matematiikka (399 rv) siirrettiin **`street/chaos-config.js`**-tiedostoon
+(`var StreetChaos = (function () { … })();`): `CHAOS_DEFAULTS`/`CHAOS_DEFAULTS2`, `makeRng` +
+`?seed=`-arvonta, `rnd`/`rndInt`, K1-paletit ja -arvonnat (`randomHuePalette`/`randomDarkSky`/
+`randomAnimalTypes`/`randomSunColor`), `generateFullChaosSeed`, `chaosProfile`, kaavat
+(`clamp`/`chaosAbilityFor`/`stunMaxOf`/`burgerIntervalMin`/`threatSpeedMax`/
+`threatTelegraphMin`/`threatBudget`) sekä portti (`clampChaosCfg`/`validateChaosCfg`) ja
+`drawChaosCfg`. `street.js` ottaa nimet `const { … } = StreetChaos;`-destrukturoinnilla ja sitoo
+kaksi street.js:ssä asuvaa asiaa (`WORLD_W`, `hungerMultFor`) `StreetChaos.bind()`illa → **muu
+koodi ei muuttunut**. `index.html` lataa osan omalla
+`<script src="street/chaos-config.js?v=11.38">`-rivillä ja `tools/tests/street-src.cjs`:n
+`PARTS`-lista liittää penkeille saman kokonaisuuden.
+
+**v11.38 – Vaihe 5 osa 2: äänet omaan tiedostoon (street/sfx.js):** kadun kaikki SFX-äänet
+(`initAudio`, `sfxTone`, potku, askel, kolikko, tömähdys, sähköisku, laser, meteoriitti,
+rakennuksen romahdus, tyhjä laukaus, katuvalo) ja ajoneuvon moottoriääni (start/update/stop)
+siirrettiin **`street/sfx.js`**-tiedostoon (344 rv, `var StreetSfx = …`). Moduuli omistaa
+`audioCtx`:n ja **SFX-tason (K6)**; street.js sitoo `WORLD_W`:n (`StreetSfx.bind`) ja asettaa tason
+kaaosprofiilin sovelluksessa (`StreetSfx.setVolume(chaosCfg.sfxVolumeMult)` entisen
+`sfxVolumeMult = …` -sijoituksen tilalla). `PARTS`-lista ja `index.html` päivitettiin; **penkkejä
+ei tarvinnut muuttaa**. **Tulos:** `street.js` 10 786 → **10 453 rv**; NORMAL 78 avainta / 0 eroa;
+render-smoke 30/30; 22 penkkiä 16 puhdasta / 6 = sama kuin baseline.
+Penkit: 4 `?v=`-laskuria löysennettiin (`=== 4` → `>= 4`), koska uusi skriptitagi tuo viidennen
+leiman. **Tulos:** `street.js` 11 169 → 10 786 rv; NORMAL 78 avainta / 0 eroa; render-smoke
+30/30; 22 penkkiä 16 puhdasta / 6 = sama kuin baseline.
+
+**v11.38 – Vaihe 5 osa 3: sanomalehti omaan tiedostoon (street/news.js):** lehden
+**asettelu + piirto** (438 rv) siirrettiin **`street/news.js`**-tiedostoon
+(`var StreetNews = …`): sisältödata (`NEWSPAPER_PAGES`, `NEWS_MANUAL_WIDE/-NARROW`),
+`wrapNewsText`, `fitNewsFont`, `newsLayout` (+ välimuisti), kadun lehti (`drawNewspaper`),
+poimintavihje (`drawNewspaperHint`) ja koko ruudun näkymä (`drawNewspaperView`).
+Moduulin oma tila = `screen` (entinen `newsScreen`) + `cache` (entinen `newsCache`);
+julkinen API `layout/index/next/prev/reset/near/drawOnStreet/drawHint/drawView`.
+**Uusi mekanismi:** host sidotaan **live-gettereillä** (`StreetNews.bind({ get ctx() { return ctx; } … })`)
+→ canvas-arvo (`ctx`, `canvas`, `viewW`, `foreground`, `player`, `vehicles`, `newsRoom`,
+`iframeOpen`) pysyy ajan tasalla ilman synkronointia. Syöttölogiikka (`updateNewsRoom`,
+`openNewspaper`, `closeNewspaper`) ja `newsRoom`/`newsHeld*` jäivät street.js:ään kuten
+huoneiden ovilogiikka. `PARTS`-lista ja `index.html` (uusi `<script>` ennen street.js:iä)
+päivitettiin; **penkkejä ei tarvinnut muuttaa**. **Tulos:** `street.js` 10 453 → **10 030 rv**
+(11 169 → 10 030 osissa 1–3); NORMAL 78 avainta / 0 eroa; render-smoke 30/30; 22 penkkiä
+**16 puhdasta / 6 = sama kuin baseline** (penkkikohtaiset löydökset identtiset).
+Siirtotyökalu **`tools/refactor/split-news.cjs`** (repoon, `expectFirst`-varmistukset).
+
+**v11.38 – Vaihe 5 osa 4: ajoneuvon piirto omaan tiedostoon (street/traffic.js):** `drawVehicle(v)`
+(248 rv: auto, mopo+kuski, ambulanssi, panssarivaunu telaketjuineen + ajovalokiila) siirrettiin
+**`street/traffic.js`**-tiedostoon (`var StreetTraffic = …`). **Valintaperuste:** tunnistinhaulla
+todennettiin, että koko funktio käyttää vain kolmea ulkoista nimeä (`ctx`, `dayT`,
+`VEHICLE_HEADLIGHT_DIM`) → **liikenne-domainia ei tarvinnut ryhmitellä** (Vaihe 4) ensin.
+Sidonta live-gettereillä (`get ctx`, `get dayT`); liikennologiikka (spawn, liike, törmäys,
+`vehicles`-tila) jäi street.js:ään. 4 kutsukohtaa `render()`issa → `StreetTraffic.drawVehicle(...)`.
+`PARTS`-lista ja `index.html` (uusi `<script>` ennen street.js:iä) päivitettiin; **penkkejä ei
+tarvinnut muuttaa**. **Tulos:** `street.js` 10 030 → **9 792 rv** (11 169 → 9 792 osissa 1–4);
+NORMAL 78 avainta / 0 eroa; render-smoke 30/30; 22 penkkiä 16 puhdasta / 6 = sama kuin baseline.
+Siirtotyökalu **`tools/refactor/split-vehicle.cjs`**.
+
+**v11.38 – Vaihe 5 osa 5: K7-kaaoskortit omaan tiedostoon (street/chaos-cards.js):** koko
+K7-korttipakka (134 rv) siirrettiin **`street/chaos-cards.js`**-tiedostoon (`var StreetChaosCards = …`):
+`cardState` + `CARD_FIRST_DELAY`/`CARD_GAP_MIN/MAX`, `chaosCardsReset`, `chaosCardDefs` (10 korttia),
+`cardFlashWindows` ja `updateCards`. **Korttidefien `save/apply/restore` MUTATOI 12 street.js:n
+tilamuuttujaa** (`sunColor`, `sunGlow`, `DAY_SKY_TOP/MID/HORIZON`, `fogAlpha`, `windSpeed`, `stars`, `litWindows`, `starCount`,
+`starSizeMult`, `buildingPalette`, `animalSpawnTimer`) → sidonta tehtiin **get+set -hostilla** (`get sunColor() { return sunColor; },
+set sunColor(v) { sunColor = v; }` …), joten muutokset näkyvät samoihin olioihin kuin ennen
+(`applyChaosProfile`, `render`, `updateAnimal`). Moduulin API: `reset/update/meteorBurst/lightsOut/
+animalParade/consumeAnimalParade/defs`. `street.js`: 7 kohtaa päivitetty (`StreetChaosCards.reset()`,
+`.update(dt)`, `.meteorBurst`, `.lightsOut` ×3, `.animalParade` + `.consumeAnimalParade()`).
+**Uusi penkki** `tools/tests/street-chaos-cards-test.cjs` (katso `BASELINE.md`).
+**Uusi testikytkin `?card=<id>`** (ei tallenna, kuten `?day`/`?hole`/`?cabs`): pitää yhden
+K7-kortin päällä loputtomiin → jokaisen kortin voi katsoa yksi kerrallaan ilman 60 s odotusta
+(id:t `green · meteor · fog · gust · blackout · windows · parade · palette · sky · stars`).
+**Tulos:** `street.js` 9 792 → **9 689 rv** (11 169 → 9 689 osissa 1–5); NORMAL 78 avainta /
+0 eroa; render-smoke 30/30; **23 penkkiä 17 puhdasta / 6 = sama baseline**. Työkalu
+**`tools/refactor/split-cards.cjs`**.
+
+**v11.39 – K7 "Valot sammuvat" -kortin bugikorjaus (bugikorjaus, sääntö 03):** uuden
+`?card=blackout`-testikytkimen avulla käyttäjä havaitsi (3.10.2026): *"Yksikään valo taloissa EI
+pala. Katulamput kyllä."* Vika oli **ennestään ollut** (todennettu `git show HEAD:street.js`:stä –
+`lightsOut`-tarkistus oli tasan samoissa kolmessa paikassa ennen ja jälkeen refaktoroinnin), ei
+refaktoroinnin aiheuttama. Blackout pimensi vain **hehkun** (`drawLampGlow`) + **ikkunat**
+(`houseLit`/`litWin`), mutta **lampun kupu** (`drawLampPost`: `cupFill = '#ffffaa'`), kuvun
+**valopilkku + hyttyset**, **ovivalo** (`drawDoor`: `ownerLamp.lit ? '#ffd700'`) ja pelaajan
+**reunavalo** lähimmästä palavasta lampusta (`drawPlayer`) jäivät päälle. Korjattu **vain
+piirrossa** (`litNow = lamp.lit && !StreetChaosCards.lightsOut`, `doorLit`, `rimLightsOut`) →
+`lamp.lit` pysyy ennallaan, joten ovilogiikka (`lampFreeOpen`, omistajalamppu) ei muutu ja
+**NORMAL on bitti-identtinen** (`lightsOut` on siellä aina `false`). Huom: `lamp.overheat`-haara
+jätettiin ennalleen (ylikuumentuminen on eri ilmiö). `#version-tag` + 10 leimaa → **v11.39**.
+Penkki `street-chaos-cards-test`: uusi **osio 5 = rakennevahti** (5 lähdetarkistusta).
+**Tulos:** NORMAL 78 avainta / 0 eroa · render-smoke 30/30 · 23 penkkiä 17 puhdasta / 6 = baseline.
+
+**v11.40 – Vaihe 5 osa 6: huoneiden piirto omaan tiedostoon (street/rooms.js):** makuuhuone +
+jukebox + BAR (1013 rv) siirrettiin **`street/rooms.js`**-tiedostoon (`var StreetRooms = …`):
+`drawSleepRoom`, `drawJukeboxRoom` + `drawJukeboxCabinet`, `drawBarRoom` + `drawBarBeer` sekä
+**BAR-taulun kuva-tila** (`BAR_PIC_SRC`/`barPic`/`barPicReady` – ei käytetä muualla → siirtyivät
+mukana). Huoneiden **tila ja syöttölogiikka** (`updateSleepRoom`/`updateBarRoom`/
+`updateJukeboxRoom`, `closeXxxRoom`, `openNewspaper`-tyylinen oven avaus) jäivät street.js:ään,
+kuten osissa 3–5. Sidonta: 15 live-getteriä (`ctx`, `canvas`, `viewW`, `camX`, `isDay`,
+`coinCount`, `hamburgerCount`, `drunkLevel`, `barBuyQty`, `jukeQueue`, `jukePick`, `jukeSel`,
+`jukeCovers`, `sleepPhase`, `sleepSel`) + `chaosFlags`-olio + 10 vakiota. Huonerekisterin
+`draw:`-osoittimet → `StreetRooms.drawSleep/drawBar/drawJukebox`.
+**⚠️ Ansa:** siirretty koodi käyttää joka funktiossa paikallista `H`-muuttujaa
+(`const W = WORLD_W, H = WORLD_H`) → host-nimi `H` varjostui (TDZ: "Cannot access 'H' before
+initialization", render-smoke 24/30) → **host-nimeksi `ENV`**. Tämä on kirjattu
+`tools/refactor/README.md`:n ansa-laatikkoon ja `BASELINE.md`:hen.
+**Bench-päivitys:** `street-drunk` (`drawBarRoom: StreetRooms.drawBar` + `ENV.barBuyQty`-salliva
+lähdetarkistus). **Tulos:** `street.js` 9 698 → **8 722 rv** (11 169 → 8 722 osissa 1–6);
+NORMAL 78 avainta / 0 eroa; render-smoke 30/30; 23 penkkiä 17 puhdasta / 6 = baseline;
+`street-drunk` 51/51. Työkalu **`tools/refactor/split-rooms.cjs`**. `#version-tag` + 10
+`?v=`-leimaa → **v11.40**.
+
+**v11.41 – BAD/FULL: ikkunavalot eivät syttyneet ollenkaan (bugikorjaus, sääntö 03):** käyttäjän
+havainto (3.10.2026): *"Bad ja full chaos ikkunoissa ei koskaan pala yöllä valot."* Syy oli
+**ennestään ollut** (todennettu `git show HEAD:street.js`:stä): BAD/FULLin
+`shuffleBuildingOrder()` nollaa `litWindows`-listan (`litWindows.length = 0`), mutta
+`updateLitWindows()` arpoo uuden tavoitteen (0..`windowTargetMax`) **vain kun jokin ikkuna
+sammuu** → tyhjä lista ei koskaan täyty → koko runi ilman satunnaisia ikkunavaloja. Ainoa kylvö
+oli IIFE:n **lataushetken** lause, joka ajetaan ennen kaaosprofiilin soveltamista (ja jonka
+shuffle myöhemmin nollaa). Korjaus: kylvö eriytettiin funktioksi **`seedLitWindows()`**, jota
+kutsutaan (1) latauksessa kuten ennen, (2) `shuffleBuildingOrder()`in lopussa ja
+(3) `resetBuildingOrder()`issa (BAD/FULL → NORMAL samassa sessiossa). `windowTargetMax`-akseli
+(BAD 0–2 · FULL 0–12) säilyy ennallaan – nyt se *näkyy*. **Uusi penkki**
+`tools/tests/street-window-lights-test.cjs` (deterministinen: `Math.random` kiinnitetty 0.9 →
+oletus 5 · tavoite 3 → 3 · BAD 2 → 2). `#version-tag` + 11 leimaa → **v11.41**. **Tulos:**
+NORMAL 78 avainta / 0 eroa; render-smoke 30/30; **24 penkkiä 18 puhdasta / 6 = baseline**.
+
+**v11.42 – Vaihe 5 osa 7: liikennologiikka samaan moduuliin (street/traffic.js):**
+`updateTraffic(dt, playerSafe)` (124 rv kommentteineen: spawnit, liike, törmäys → tainnutus)
+siirrettiin piirron (`drawVehicle`) seuraksi. Kadun tila (`playerSafe`, huoneet, `knockFallY`-logiikka)
+lasketaan yhä street.js:ssä, joka kutsuu `StreetTraffic.update(dt[, true])` (7 kutsukohtaa).
+Host laajeni 3 → ~18 nimeen: getterit `vehicles`, `spawnTimers`, `player`, `vehicleShakeTimer`
+(**get+set**), `trafficSpeedMult`, `trafficSpawnMult`; vakiot `LANE_DEFS`, `TRAFFIC_DAY_MULT`;
+apurit `chaosAllGone`, `spawnParticles`, `collisionCost`, `H.sfx.*` (playKnock + moottorin
+start/update/stop).
+**⚠️ Ansa 2:** `PLAYER_DEPTH_MAX_Y` on määritelty vasta rivillä ~8023 → **pakko sitoa getterinä**
+(muuten bind kaatuisi TDZ:hen). Kirjattu `tools/refactor/README.md`:n ansa-laatikkoon.
+**Penkkipäivitykset (3 kpl)** – lähdetekstihaut, jotka osuivat siirrettyyn koodiin:
+`street-traffic-rooms` (17 OK / 0, oli 16/2), `street-knockdown-traffic` (43 OK / 0, oli 42/2 tai 42/1),
+`street-beam-pickup-spawn` (27 OK / 0; kaistarajan purku sallii `H.`-etuliitteen).
+**Tulos:** `street.js` 8 722 → **8 622 rv** (11 169 → 8 622 osissa 1–7); `street/traffic.js`
+271 → **668 rv**; NORMAL 78 avainta / 0 eroa; render-smoke 30/30; **24 penkkiä 18 puhdasta /
+6 = baseline**. `#version-tag` + 11 leimaa → **v11.42**. Työkalu **`tools/refactor/split-traffic-logic.cjs`**.
+
+**v11.43 – kaksi canvas-bugia FULLissa + uusi invarianssipenkki (bugikorjaus, sääntö 03):**
+käyttäjän havainto (3.10.2026): *"joku parametrien arvonta kadottaa rauta-aidan ja itse pelihahmonkin,
+että pelaamisesta tulee mahdotonta. Aamu kun vaihtui, niin kaikki elementitkin katosivat tai piirtyivät
+ainakin kahden tasavärin alle."* Syyt olivat **kaksi erillistä** kelvottoman canvas-arvon bugia –
+kumpikaan ei kaatanut Node-stubiä, koska **oikea selain hylkää kelvottoman arvon hiljaa**:
+(1) **ennestään ollut:** `randomHuePalette()` (FULL) palautti `hsl(...)`, mutta `lightenHex()`/`mixHex()`
+olettavat `#rrggbb` → `parseInt('sl',16)` = NaN → `#NaNNaNxx` → talot/tausta piirtyivät edellisellä
+värillä (BAD käyttää hex-palettia → siksi BAD oli kunnossa). Korjaus: `hslToHex()` + vahtilauseet
+apureihin (`lightenHex`/`mixHex` palauttavat alkuperäisen, jos tulo ei ole hex tai `t` ei ole äärellinen).
+(2) **osa 7:n regressio:** `updateTraffic` nimesi `WORLD_W` → `H.WORLD_W`, mutta `WORLD_W` **jäi pois**
+`StreetTraffic.bind()`ista → `undefined + w` = NaN → ajoneuvon spawn-x NaN → ajoneuvo katosi eikä
+poistunut koskaan (NaN-vertailut aina epätosia) → liikenne jäityi. Ilmeni vasta 300 framen jälkeen
+(ensimmäinen spawn) → siksi penkit eivät napanneet; **löytyi uudella fuzz-menetelmällä** (skannasin
+canvas-kutsujen argumentit NaN/±Infinity-varalta). Korjaus: `WORLD_W` lisätty bindiin.
+**Uusi penkki** `tools/tests/street-canvas-invariants-test.cjs` (3 FULL-arpaa + NORMAL × 420 frameä;
+vahtii NaN/undefined-argumentit, kelvottomat värit ja että pelaaja piirretään) – olisi napanneet
+molemmat. `#version-tag` + 11 leimaa → **v11.43**. **Tulos:** NORMAL 78 avainta / 0 eroa;
+render-smoke 30/30; FULL-fuzz **0 poikkeamaa / 40 arpaa**; **25 penkkiä 18 puhdasta / 7**
+(7. = tunnettu epävakaa `street-meteor-coin`).
+
 
 **v11.27 – päivitetty penkki:** `street-autohover-test` (korjattu): G (reduce-motion) ja M (puhelin + reduce-motion) odottavat nyt **tärinää**, ja lähdevahti varmistaa, ettei kumpikaan portti palaa (`street.js` motion-lippu / `style.css` `@media`-yliajo), että tärinä-animaatio ja ohjeikkunan oma reduce-motion-lohko ovat ennallaan ja että versioleimat ovat v11.27. Samalla penkin vanhentuneet ajoitusodotukset päivitettiin 346/450 ms → **173 ms** (9 löydöstä poistui). Regressiot: `chaos-normal-check` (78 avainta, 0 eroa), `street-chaos-fade-test` (24/0).
 

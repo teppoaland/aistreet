@@ -3,7 +3,7 @@
 > **Tarkoitus:** Cline:n referenssi projektin rakenteesta ja siitä, mitä ei saa rikkoa.
 > **Kompaktoitu 23.9.2026 (v4.71) · tiivistetty 28.9.2026 (v11.00, 13,4 → 12,5 kt):** kaaos K0–K7 → `docs/chaos.md`.
 > Esiforkin (Pimeä Katu) koko historia: `D:\AI\Main` – tämän repon historia alkaa `b854771`.
-> **Rajat (päivitetty 29.9.2026, v11.23):** tämä tiedosto **≤ 25 kt** · koko pankki **≤ 135 kt** – kokoa ei raportoida joka istunnossa; raja mainitaan vain, jos se ylittyy.
+> **Rajat (päivitetty 3.10.2026 – koko pankki 135 → 155 kt):** tämä tiedosto **≤ 25 kt** · koko pankki **≤ 155 kt** – kokoa ei raportoida joka istunnossa; raja mainitaan vain, jos se ylittyy.
 
 ## ⭐ Yleisarkkitehtuuri
 
