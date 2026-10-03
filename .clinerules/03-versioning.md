@@ -61,9 +61,11 @@ asetukset ovat parametreja, eivät koodia — niihin saa ja pitää koskea tarvi
 4. **COMMIT = paikallinen tallennus (aina sallittu, ei julkaise mitään):**
    `git add -A && git commit -m "vNN.NN: …"`. Committaa **jokaisen validoidun vaiheen jälkeen** →
    jokaisesta versiosta jää **revert-piste**. Commit-viesti repon tyylillä (suomi, ASCII, alkaen `vNN.NN:`).
-5. **PUSH = julkaisu (vain erikseen pyydettäessä):** `git push` vie koodin GitHubiin **ja GitHub Pagesiin
-   (julkinen)** → tehdään **vain** kun käyttäjä sanoo "push" / "julkaise". **Ei koskaan osana committia.**
-   Paikallinen `main` saa olla `origin/main`ia edellä – se on merkki julkaisemattomasta työstä.
+5. **PUSH = julkaisu TUOTANTOON (vain erikseen pyydettäessä):** `git push` vie koodin GitHubiin **ja
+   GitHub Pagesiin** – ja **pelaajat pelaavat suoraan `https://teppoaland.github.io/aistreet/`ista**,
+   joten push on **julkaisu tuotantoon**. Tehdään **vain** kun käyttäjä sanoo "push" / "julkaise".
+   **Ei koskaan osana committia.** Paikallinen `main` saa olla `origin/main`ia edellä – se on merkki
+   julkaisemattomasta (testatusta?) työstä.
 6. **Raportoi lyhyesti** – ei pitkiä yhteenvetoja (käyttäjä ei ehdi lukea niitä). Vain oleellinen: mitä muuttui ja lopputulos.
    Kerro aina **versionumero**, jotta käyttäjä tietää testaavansa uusinta.
 

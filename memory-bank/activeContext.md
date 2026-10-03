@@ -316,10 +316,12 @@ jukebox 27 · manhole-bonus 3). Epävakaat (A/B-todistettu penkkiviaksi): `stree
 - `%TEMP%\*.cjs`-kopiot penkeistä ovat vanhentuneita – **kanoniset penkit ovat repossa `tools/tests/`**.
 - **NORMAL ei saa rikkoutua** (pääsääntö 1) → aja `chaos-normal-check` jokaisen muutoksen jälkeen.
 
-**Pankin koko – kaikki rajojen sisällä (rajat 3.10.2026: 65 + 65 + 25 = 155 kt):**
-`activeContext.md` 63,0 kt (raja 65 kt) · `progress.md` 64,3 kt (raja 65 kt **– LÄHES RAJAA**) · `systemPatterns.md` 17,5 kt (raja 25 kt).
-→ **Seuraavan istunnon ensimmäinen työ:** siirrä `progress.md`:n vanhin kolmannes (v11.x-historia + esiforkin v3.8x–v5.02)
-`docs/`-tiedostoon (esim. `docs/historia-v11.md`) ja jätä tilalle yksi osoitinrivi. **Rajoja ei enää lasketa takaisin.**
+**Pankin koko – kaikki reilusti rajojen sisällä (rajat 3.10.2026: 65 + 65 + 25 = 155 kt):**
+`activeContext.md` **63,4 kt** (raja 65 kt) · `progress.md` **47,7 kt** (raja 65 kt) · `systemPatterns.md` 17,5 kt (raja 25 kt).
+→ **3.10.2026 tehty pankin kevennys:** esiforkin v3.8x–v5.02 -taulukkorivit (45 riviä) + vanhat
+penkkimuistiinpanot (51 riviä) siirrettiin **`docs/pimea-katu-historia.md`**:hen (18,2 kt) →
+`progress.md` **64,3 → 47,7 kt**. Tilalle jäi osoitinrivi per taulukko. **Rajoja ei lasketa takaisin.**
+Huom: `activeContext.md` on 63,4 kt – kun se ylittää 65 kt, siirrä sen "Nyt"-osion vanhimmat kohdat `progress.md`:hen.
 
 
 ## 🔑 Säännöt (ladataan automaattisesti joka istunnossa)
