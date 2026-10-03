@@ -17,6 +17,8 @@
 
 | Versio | Mitä | Lisätieto |
 |---|---|---|
+| **v11.48** | **Makuuhuoneen tunnistus + BAD/FULLin aita:** sininen **HOSTEL-neonkyltti** makuuhuoneen talon julkisivussa (`drawHostelSign`, kapea laatta tiiviistä `[HOSTEL]`-tekstistä; seuraa taloa BAD/FULLin järjestyssekotuksessa ja katoaa talon tuhoutuessa) + huoneen otsikko **HOSTEL - BEDROOM**; **rauta-aita jää piirtämättä BAD/FULLissa** (`chaosFlags.ruin`; NORMAL/MILD/GOOD bitti-identtiset) | `progress.md` |
+
 | **🟢 v11.45 – TUOTANNOSSA** | **Vaihe 4 loppuun:** päivä/yö-tila (15 irtamuuttujaa / ~178 viittausta) → `dayNight`-olio, toiminta bitti-identtinen · **Vaihe 6:** kommenttien versiosiivous (565 riviä, `tools/refactor/clean-version-comments.cjs`) | `progress.md`, `tools/refactor/README.md` |
 | **v11.44** | **Vaihe 5 osa 8:** huoneiden logiikka (`updateSleepRoom`/`BarRoom`/`JukeboxRoom`, jukeboxin valinnat, `closeXxxRoom`) → `street/rooms.js` get+set-hostilla; uusi penkki `street-rooms-logic-test` (41/0) | `progress.md` |
 | **v11.43** | **Bugikorjaus:** kaksi FULLin canvas-bugia – `#NaNNaN`-väri (`hslToHex`) ja `translate(NaN)` (puuttuva `WORLD_W`-sidonta); uusi penkki `street-canvas-invariants-test` | `progress.md` |

@@ -120,10 +120,19 @@ var StreetRooms = (function () {
         ENV.ctx.fillStyle = ENV.isDay ? '#ffd070' : '#7c8ad8';
         ENV.ctx.fillRect(panelX, panelTop, panelW, 2);
 
+        /* Otsikko: talo on HOSTEL – sama nimi kuin ulkona sinisessä
+           neonkyltissä. Neon-sininen väri sitoo otsikon kylttiin.
+           Press Start 2P on monospace → fontti sovitetaan paneeliin. */
+        const roomTitle = 'HOSTEL - BEDROOM';
+        let titleFs = needPx(16, 12, 16);
         ENV.ctx.textAlign = 'center';
-        ENV.ctx.font = needPx(16, 12, 16) + 'px "Press Start 2P", monospace';
-        ENV.ctx.fillStyle = '#eae4f2';
-        ENV.ctx.fillText('BEDROOM', 400, titleY);
+        ENV.ctx.font = titleFs + 'px "Press Start 2P", monospace';
+        const titleW = ENV.ctx.measureText(roomTitle).width;
+        const titleMax = panelW - 16;
+        if (titleW > titleMax) titleFs = Math.max(7, Math.floor(titleFs * titleMax / titleW));
+        ENV.ctx.font = titleFs + 'px "Press Start 2P", monospace';
+        ENV.ctx.fillStyle = '#7fdcff';
+        ENV.ctx.fillText(roomTitle, 400, titleY);
 
         ENV.ctx.font = 'bold ' + nameFs + 'px "Courier New", monospace';
         ENV.ctx.fillStyle = ENV.isDay ? '#ffdd88' : '#c8d8ff';

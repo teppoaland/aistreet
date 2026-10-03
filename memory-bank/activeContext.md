@@ -2,14 +2,17 @@
 
 > **Kevyt:** Vain tämä tiedosto luetaan session alussa.
 > **✅ REFAKTOROINTI VALMIS (Vaiheet 0–6, v11.38–v11.45) JA JULKAISTU 3.10.2026.**
-> Tuotanto = `origin/main` = **v11.45** → `https://teppoaland.github.io/aistreet/` (Pages tarjoilee
-> v11.45:n; käyttäjä testasi sen ja totesi toimivaksi). Portti **26 penkkiä / 26 puhdasta / 0 löydöstä**.
+> Tuotanto = `origin/main` = **v11.48** → `https://teppoaland.github.io/aistreet/` (Pages tarjoilee
+> v11.48:n; käyttäjä testasi sen ja totesi toimivaksi). Portti **26 penkkiä / 26 puhdasta / 0 löydöstä**.
+> **v11.46–v11.48 (3.10.2026):** makuuhuoneen sininen **HOSTEL-neonkyltti** (`drawHostelSign`) +
+> huoneen otsikko **HOSTEL - BEDROOM** + **rauta-aita pois BAD/FULLista** (`chaosFlags.ruin`) –
+> ks. `progress.md`. NORMAL/MILD/GOOD bitti-identtiset.
 > Sääntö 03: Vaihe 6 (kommenttisiivous) **ei nostanut versiota** – `verify-comments-only.cjs` todisti,
 > että koodi on kommentit poistettuna identtinen (kommentit eivät ole ajettavaa koodia).
 > **🔴 UUSI SESSIO – KYSY ENSIN:** *"Mitä tehdään seuraavaksi?"* – refaktorointi on valmis ja julkaistu,
 > joten jäljellä ovat ei-refaktorointityöt: ks. **§ "🔜 Seuraavaksi"** (Blue Mäx -testimode,
 > pääsiäismunat Dig Däshiin, hedelmäpelin RTP-presetit + panosvalitsin, jukebox-testien siivous).
-> Jos käyttäjä raportoi v11.45:stä vian → **toista vika mekaanisesti (A/B + penkki) ennen korjausta**.
+> Jos käyttäjä raportoi v11.48:sta vian → **toista vika mekaanisesti (A/B + penkki) ennen korjausta**.
 > **Kompaktoitu 28.9.2026 (v11.00):** tiivistettiin vain v10.x/uusi aines (kaaos K0–K7 → `docs/chaos.md`) ja
 > korjattiin rakenteelliset viat. **Esiforkin v4.x-historia säilyy alla sellaisenaan.**
 > **Rajat (päivitetty 3.10.2026 – `progress.md` 45 → 65 kt ja pankki 135 → 155 kt, pysyvä):** tämä tiedosto **≤ 65 kt** · `progress.md` ≤ 65 kt ·
@@ -31,7 +34,7 @@
 
 ## 📍 Nyt (AI CHAOS STREET – fork 27.9.2026)
 
-- **Projekti:** **AI CHAOS STREET** – itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages `teppoaland.github.io/aistreet/` ONLINE 27.9.2026), forkattu Pimeä Katu v5.02:sta; alkuperäinen `D:\AI\Main` jäädytetty. **Versio `v11.45`** – `index.html` `#version-tag`: **v11.45 = Vaihe 4 loppuun (päivä/yö → `dayNight`-olio) + Vaihe 6 (kommenttien versiosiivous, 565 riviä – ei ajettavaa koodimuutosta, siksi sama versionumero)** · **v11.44 = Vaihe 5 osa 8: huoneiden LOGIIKKA `street/rooms.js`:ään** (345 rv, get+set-host; uusi penkki `street-rooms-logic-test` 41/0) · **v11.43 = kaksi FULLin canvas-bugia:** `#NaNNaN`-väri (hsl-paletti + hex-apuri) ja `translate(NaN)` (puuttuva `WORLD_W`-sidonta) · **v11.42 = Vaihe 5 osa 7: liikennologiikka `street/traffic.js`:ään** · **v11.41 = BAD/FULL: ikkunavalot syttyvät taas**
+- **Projekti:** **AI CHAOS STREET** – itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages `teppoaland.github.io/aistreet/` ONLINE 27.9.2026), forkattu Pimeä Katu v5.02:sta; alkuperäinen `D:\AI\Main` jäädytetty. **Versio `v11.48`** – `index.html` `#version-tag`: **v11.48 = makuuhuoneen sininen HOSTEL-neonkyltti (`drawHostelSign`, kapea laatta) + huoneen otsikko HOSTEL - BEDROOM + rauta-aita pois BAD/FULLista** (`chaosFlags.ruin`; ks. `progress.md`) · **v11.45 = Vaihe 4 loppuun (päivä/yö → `dayNight`-olio) + Vaihe 6 (kommenttien versiosiivous, 565 riviä – ei ajettavaa koodimuutosta, siksi sama versionumero)** · **v11.44 = Vaihe 5 osa 8: huoneiden LOGIIKKA `street/rooms.js`:ään** (345 rv, get+set-host; uusi penkki `street-rooms-logic-test` 41/0) · **v11.43 = kaksi FULLin canvas-bugia:** `#NaNNaN`-väri (hsl-paletti + hex-apuri) ja `translate(NaN)` (puuttuva `WORLD_W`-sidonta) · **v11.42 = Vaihe 5 osa 7: liikennologiikka `street/traffic.js`:ään** · **v11.41 = BAD/FULL: ikkunavalot syttyvät taas**
 (`seedLitWindows()`; ennen koko runi ilman ikkunavaloja) · **v11.40 = Vaihe 5 osa 6: huoneiden piirto `street/rooms.js`:ään** · **v11.39 = K7 "Valot sammuvat" -kortin bugikorjaus** (lamppujen kuvut, kuvun valopilkku, ovivalo ja pelaajan reunavalo sammuvat nyt myös, ks. `progress.md`; `?v=`-leimat samassa numerossa – pelkkä arvon/parametrin säätö ei nosta versionumeroa, sääntö 03; **Versiohistoria v11.06–v11.37: ks. `progress.md`** (mm. jukebox-intro, liikenne huoneissa, kolarin putoamistaso, sädease, tablet-ohjaimet, hover-kierto, meteoriitti + eskalaatio + BAD-avaus, rauniot, savukorjaus).
 - 🔓 **Sääntö 04 (talousbalanssi-lukko) EI PÄDE enää forkissa** (27.9.2026): se kirjoitettiin **alkuperäistä Pimeä Katu -peliä** varten → talousarvot (aloituskolikot/🍔, 🍔-tahti, RTP, hinnat, syntymäpaketti) ovat **vapaita myös NORMALissa**. `.clinerules/04` + `docs/economy-balance-memo.md` = historiallisia viitteitä, **eivät sitovia**.
 - 🧱 **Koodirakenne (Vaihe 1 VALMIS, v11.38 – ei toimintamuutoksia):** `street.js` pilkottiin

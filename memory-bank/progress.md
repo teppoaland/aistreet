@@ -1,6 +1,6 @@
 # 📊 Projektin edistyminen
 
-> **v11.45 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026.
+> **v11.48 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026.
 > **Kompaktoitu 28.9.2026 (v11.00, 29,5 → 20,7 kt):** tiivistettiin vain v10.x/uusi aines (v10.01–v11.00 -taulukko) + rakenteelliset viat (orvot taulukkorivit, tyhjät rivit, pitkät rivit).
 > **Esiforkin v3.8x–v5.02 -historia säilyy alla sellaisenaan** (koko historia: `D:\AI\Main`, 196 committia; ffb1dd9 · cc7046b · 44db9e7) – tämän repon historia alkaa `b854771`.
 > **3.10.2026: pankkia kevennettiin** – esiforkin taulukkorivit (v3.8x–v5.02) sekä vanhat
@@ -8,15 +8,16 @@
 > vain nykyajan (v10+/v11+) rivit ja refaktoroinnin kirjaukset.
 > **Rajat (päivitetty 3.10.2026 – `progress.md` 45 → 65 kt, pysyvä):** tämä tiedosto **≤ 65 kt** · `activeContext.md` ≤ 65 kt · `systemPatterns.md` ≤ 25 kt · koko pankki **≤ 155 kt** – kokoa ei raportoida joka istunnossa; raja mainitaan vain, jos se ylittyy. Tämä tiedosto on **historia** (versiot, mittaustulokset, testipenkit): uusi rivi per versio, ei nykytilan kuvausta (se on `activeContext.md`:ssä).
 >
-> **🚧 Jatkopiste (3.10.2026, v11.45):** **koodirefaktorointi on VALMIS (Vaiheet 0–6) ja validoitu**
+> **🚧 Jatkopiste (3.10.2026, v11.48):** **koodirefaktorointi on VALMIS (Vaiheet 0–6) ja JULKAISTU**
 > (penkit repoon, `update()` 85 rv, `render()` 143 rv, `handleAction()` 14 rv, `chaosFlags`,
 > `rooms[]`, `dayNight`-olio, `street/chaos-config.js` + `street/sfx.js` + `street/news.js` +
 > `street/traffic.js` + `street/chaos-cards.js` + `street/rooms.js`, kommenttien versiosiivous).
-> **Jäljellä vain julkaisupäätös** (push = tuotanto) ja ei-refaktorointityöt.
+> **Tuotanto = `origin/main` = v11.48** (pushattu 3.10.2026); jäljellä vain ei-refaktorointityöt
+> (Blue Mäx -testimode, pääsiäismunat Dig Däshiin, hedelmäpelin RTP-presetit, jukebox-testien siivous).
 > **Bugikorjaukset v11.39** (K7 "Valot sammuvat" -kortti), **v11.41** (BAD/FULLin ikkunavalot),
-> **v11.43** (FULLin canvas-arvot: `#NaNNaN`-väri + `translate(NaN)`), **v11.44** (huoneiden logiikka
-> moduuliin + penkki 41/0) ja **v11.45** (päivä/yö-ryhmittely + kommenttisiivous).
-> Työ on committoitu paikallisesti (pushia ei ole tehty). Jatko-ohjeet:
+> **v11.43** (FULLin canvas-arvot), **v11.44** (huoneiden logiikka + penkki 41/0), **v11.45**
+> (päivä/yö-ryhmittely + kommenttisiivous) sekä **v11.46–v11.48** (HOSTEL-neonkyltti + huoneen
+> otsikko + rauta-aita pois BAD/FULLista). Jatko-ohjeet:
 > **`activeContext.md` § "🚧 JATKOPISTE"**.
 
 ## 🏮 Pääportaali – AI CHAOS STREET
@@ -435,3 +436,31 @@ render-smoke 30/30 · **26 penkkiä 26 puhdasta / 0 löydöstä**.
 > v11.45:n ja käyttäjä testasi sen ennen julkaisua. Edellinen julkaisu oli v11.37.
 
 Vanhat penkkimuistiinpanot (v11.24–v11.27) ja vanhentunut penkkilista: `docs/pimea-katu-historia.md`.
+
+**v11.46–v11.48 – makuuhuoneen tunnistus (HOSTEL-neonkyltti) + rauta-aita pois BAD/FULLista (3.10.2026):**
+Käyttäjän pyynnöt: *"Lisätään makuuhuonetaloon sininen neonvalokyltti [ HOSTEL ] ja kun tilaan menee
+lisätään teksti Hostel - bedroom"* (BAD/FULLissa helpompi löytää makuuhuone; normipelissä helpottaa
+sisään pääsemistä) sekä *"rauta-aitaa ei piirretä BAD ja FULL CHAOS -modeissa"*.
+
+- **v11.46 – HOSTEL-neonkyltti + huoneen otsikko:** uusi `drawHostelSign(b)` (`street.js`) piirtää
+  sinisen neonkyltin makuuhuoneen talon julkisivuun heti katon lipan alle (ydin `#7fdcff`, hehku
+  `#0a84ff`, `shadowBlur 9`; seinä- ja katuhehku himmenee päivänvalossa kuten BAR-kyltillä).
+  Kutsutaan `drawBuildings()`in sisällä (`idx === SLEEP_BLDG_IDX`), joten kyltti **seuraa taloa
+  BAD/FULLin järjestyssekotuksessa ja katoaa talon tuhoutuessa** (romukasa). Huoneen otsikko
+  `BEDROOM` → **`HOSTEL - BEDROOM`** (`street/rooms.js`, neon-sininen, fontti sovitetaan paneeliin);
+  vanha `BEDROOM`-merkkijono säilyy osana otsikkoa → `street-hunger-scope`-penkin tunnistin ei muutu.
+- **v11.47 – kyltin tiukennus (käyttäjän havainto "tiukenna asettelua"):** teksti `[ HOSTEL ]` →
+  **`[HOSTEL]`** ja laatan leveys johdetaan tekstistä (`length × 8 px + 10 px` = **74 px**, ennen
+  86 px); korkeus (16 px) ja sijainti ennallaan.
+- **v11.48 – rauta-aita pois BAD/FULLista:** `render()`in aitalause sai ehdon `!chaosFlags.ruin`
+  (sama lippu kuin muussa raunialogiikassa) → NORMAL/MILD/GOOD piirtävät aidan ennallaan
+  (bitti-identtiset), BAD/FULL eivät lainkaan. Muu etuala (ruohotupsut, sanomalehden aukko) ja
+  törmäykset ennallaan – aidalla ei ole ollut törmäyslogiikkaa (pelaaja voi kävellä sen taakse).
+- **Validoinnit:** `chaos-normal-check` 78 avainta / 0 eroa · `street-render-smoke-test` 30/30 ·
+  `street-canvas-invariants-test` 0 löydöstä · `street-hunger-scope-test` 25/0 ·
+  `street-rooms-logic-test` 41/0 · `backdrop-destroy-test` 11/0 · `street-chaos-cards-test`
+  0 löydöstä. Lisäksi tilapäiset ajotarkistukset (%TEMP%, ei repoon): kyltti osui talon keskikohtaan
+  8/8 siemenellä BADissa ja `drawIronFence`-kutsut renderoinnissa olivat NORMAL/MILD/GOOD = 1,
+  BAD/FULL = 0 (6/6 OK).
+- **Julkaistu 3.10.2026** (push = tuotanto, v11.48).
+

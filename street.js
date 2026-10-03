@@ -348,6 +348,13 @@ const Street = (() => {
     /* Makuuhuone (ex-palkintohuone, talo 7, ovi x 675, lamps[3]):
        ovi aina auki, ei lukkoa eikä kolikoita */
     const SLEEP_BLDG_IDX = 7;
+    /* HOSTEL-kyltti (makuuhuoneen talo): sininen neonvalo julkisivussa.
+       Kyltti piirretään talon mukana (ks. drawHostelSign), joten se seuraa
+       taloa BAD/FULLin järjestyssekotuksessa ja katoaa talon tuhoutuessa.
+       Huoneen sisällä on sama nimi (HOSTEL - BEDROOM). */
+    const HOSTEL_SIGN_TEXT  = '[HOSTEL]';   // tiukka asettelu: ei välilyöntejä
+    const HOSTEL_NEON       = '#7fdcff';   // neonin ydin (vaalea sininen)
+    const HOSTEL_NEON_GLOW  = '#0a84ff';   // hohteen väri (tummempi sininen)
     const BAR_BLDG_IDX = 8;      // BAR-talo (tuhoutuu vasta viimeisenä)
     /* Laivanupotus (talo 2, buildings[2]) – ei omaa lamppua,
        1. potku sytyttää ikkunat, 2. potku avaa oven. Aina auki yöllä ja päivällä. */
@@ -5268,8 +5275,10 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         if (vehicles[1] && vehicles[1].y + vehicles[1].h / 2 >= lampFeetY) StreetTraffic.drawVehicle(vehicles[1]);
         if (vehicles[0] && vehicles[0].y + vehicles[0].h / 2 >= lampFeetY) StreetTraffic.drawVehicle(vehicles[0]);
 
-        // Rauta-aita (etualalla, pelaajan takana → piirretään pelaajan päälle)
-        if (foreground && foreground.ironFence) { drawIronFence(); }
+        // Rauta-aita (etualalla, pelaajan takana → piirretään pelaajan päälle).
+        // BAD/FULL (rauniot): aitaa ei piirretä lainkaan – kadun reuna on
+        // hajonnut muun kaupungin mukana (chaosFlags.ruin = BAD tai FULL).
+        if (foreground && foreground.ironFence && !chaosFlags.ruin) { drawIronFence(); }
         // Ruohotupsut aidan juuressa
         if (foreground) { drawGrassTufts(); }
 
@@ -5572,6 +5581,10 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             }
             // Yläreuna / lippa – tyyli arvottu per talo
             drawCornice(b, bodyC);
+            /* Makuuhuone (talo 7): sininen HOSTEL-neonkyltti julkisivussa.
+               Kyltti piirretään tässä, joten se seuraa taloa myös BAD/FULLin
+               järjestyssekotuksessa ja katoaa talon tuhoutuessa. */
+            if (idx === SLEEP_BLDG_IDX) drawHostelSign(b);
             ctx.restore();
         }
     }
@@ -6284,6 +6297,72 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             ctx.fillStyle = '#FF66A3';     // Itse tekstin (kirjainten) ydin, hieman kirkkaampi/vaaleampi
             ctx.fillText('BAR>', tcx, tcy);
         }
+        ctx.restore();
+    }
+
+
+    /* ── HOSTEL-neonkyltti (makuuhuoneen talo 7) ─────────────────────
+       Sininen neonkyltti talon julkisivussa heti katon lipan alla
+       (ikkunarivin yläpuolella). Kyltti piirretään drawBuildingsin
+       sisällä eli talon omassa syvyysskaalassa, joten se seuraa taloa
+       BAD/FULLin järjestyssekotuksessa ja katoaa talon tuhoutuessa.
+       Hehku himmenee päivänvalossa kuten BAR-kyltillä, mutta itse
+       kyltti jää näkyviin kaikissa tiloissa – pelaaja löytää
+       makuuhuoneen myös sekoitetusta kadusta. Laatta mitoitetaan
+       tekstin mukaan (napakka, ei ylimääräistä tyhjää). */
+    function drawHostelSign(b) {
+        const cx     = b.x + b.w / 2;
+        const topY   = GROUND_Y - b.h;
+        const fs     = 8;                       // Press Start 2P on monospace → 1 em / merkki
+        const padX   = 5;                       // laatan sisämarginaali tekstin molemmin puolin
+        const signW  = HOSTEL_SIGN_TEXT.length * fs + padX * 2;   // napakka laatta tekstin ympärille
+        const signH  = 16;
+        const sx     = cx - signW / 2;
+        const sy     = topY + 4;                // heti lipan alle
+        const pulse = 0.8 + 0.2 * Math.sin(Date.now() / 3400);
+        const dim   = (1 - dayNight.t) * pulse; // päivällä 0 → vain kyltti jää
+
+        ctx.save();
+        // 1) Valohehku: seinä kyltin ympärillä + valopohja kadulle
+        if (dim > 0.01) {
+            const gcy = sy + signH / 2;
+            const halo = ctx.createRadialGradient(cx, gcy, 3, cx, gcy, 52);
+            halo.addColorStop(0,   'rgba(10,132,255,' + (0.16 * dim).toFixed(3) + ')');
+            halo.addColorStop(0.5, 'rgba(10,132,255,' + (0.07 * dim).toFixed(3) + ')');
+            halo.addColorStop(1,   'rgba(10,132,255,0)');
+            ctx.fillStyle = halo;
+            ctx.beginPath();
+            ctx.arc(cx, gcy, 52, 0, Math.PI * 2);
+            ctx.fill();
+            // Valopohja rajoitetaan katupintaan (kuten BAR-kyltillä)
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(0, GROUND_Y, WORLD_W, WORLD_H - GROUND_Y);
+            ctx.clip();
+            const pool = ctx.createRadialGradient(cx, GROUND_Y + 12, 4, cx, GROUND_Y + 12, 46);
+            pool.addColorStop(0, 'rgba(10,132,255,' + (0.15 * dim).toFixed(3) + ')');
+            pool.addColorStop(1, 'rgba(10,132,255,0)');
+            ctx.fillStyle = pool;
+            ctx.fillRect(cx - 46, GROUND_Y, 92, 92);
+            ctx.restore();
+        }
+
+        // 2) Kylttilaatta + ohut reunus
+        ctx.fillStyle = '#0a0d18';
+        ctx.fillRect(sx, sy, signW, signH);
+        ctx.strokeStyle = '#1d2c46';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(sx + 0.5, sy + 0.5, signW - 1, signH - 1);
+
+        // 3) Neon-teksti – laatta mitoitetaan tekstin mukaan (ks. signW),
+        //    joten kyltti pysyy kapeana ja tiiviinä
+        ctx.font = fs + 'px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = HOSTEL_NEON_GLOW;
+        ctx.shadowBlur = 9;
+        ctx.fillStyle = HOSTEL_NEON;
+        ctx.fillText(HOSTEL_SIGN_TEXT, cx, Math.round(sy + signH / 2) + 1);
         ctx.restore();
     }
 
