@@ -17,7 +17,9 @@
 
 | Versio | Mitä | Lisätieto |
 |---|---|---|
-| **🟢 v11.49 – TUOTANNOSSA** | **Kuunvarjojen kaaoskerroin (BAD/FULL):** jokainen talo heittää kadulle oman mittaisen kuunvarjonsa (kerroin ×1,00–3,00; skaalaa pituuden ja kallistuksen). Arpa per talo, **kerran per yö** (uusi peli / Nuku / päivä→yö) → yön sisällä vakaa. Uusi K1-akseli `moonShadowMax` (NORMAL/MILD/GOOD = 1 → bitti-identtiset). Uusi penkki `street-moon-shadow-test` (33/0) | `progress.md` |
+| **🟢 v11.51 – TUOTANNOSSA** | **CASINO-kyltti hedelmäpelitaloon:** neonvihreä kyltti talon katon yläpuolella (`drawCasinoSign`, `buildings[6]`), ohut musta kehys + pienet jalat + pieni ilmarako katon ja tekstin välissä; seuraa taloa BAD/FULLin sekotuksessa ja katoaa talon tuhoutuessa | `progress.md` |
+| **v11.50** | **CASINO-kyltin runko:** neonvihreä `drawCasinoSign` hedelmäpelitalon (`buildings[6]`) katon yläpuolelle; teksti `\| CASINO \|` → myöhemmin `CASINO` (parametrisäätö) | `progress.md` |
+| **v11.49** | **Kuunvarjojen kaaoskerroin (BAD/FULL):** jokainen talo heittää kadulle oman mittaisen kuunvarjonsa (kerroin ×1,00–3,00; skaalaa pituuden ja kallistuksen). Arpa per talo, **kerran per yö** (uusi peli / Nuku / päivä→yö) → yön sisällä vakaa. Uusi K1-akseli `moonShadowMax` (NORMAL/MILD/GOOD = 1 → bitti-identtiset). Uusi penkki `street-moon-shadow-test` (33/0) | `progress.md` |
 | **v11.48** | **Makuuhuoneen tunnistus + BAD/FULLin aita:** sininen **HOSTEL-neonkyltti** makuuhuoneen talon julkisivussa (`drawHostelSign`, kapea laatta tiiviistä `[HOSTEL]`-tekstistä; seuraa taloa BAD/FULLin järjestyssekotuksessa ja katoaa talon tuhoutuessa) + huoneen otsikko **HOSTEL - BEDROOM**; **rauta-aita jää piirtämättä BAD/FULLissa** (`chaosFlags.ruin`; NORMAL/MILD/GOOD bitti-identtiset) | `progress.md` |
 
 | **v11.45** | **Vaihe 4 loppuun:** päivä/yö-tila (15 irtamuuttujaa / ~178 viittausta) → `dayNight`-olio, toiminta bitti-identtinen · **Vaihe 6:** kommenttien versiosiivous (565 riviä, `tools/refactor/clean-version-comments.cjs`) | `progress.md`, `tools/refactor/README.md` |

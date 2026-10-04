@@ -1,6 +1,6 @@
 # 📊 Projektin edistyminen
 
-> **v11.49 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026.
+> **v11.51 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026.
 > **Kompaktoitu 28.9.2026 (v11.00, 29,5 → 20,7 kt):** tiivistettiin vain v10.x/uusi aines (v10.01–v11.00 -taulukko) + rakenteelliset viat (orvot taulukkorivit, tyhjät rivit, pitkät rivit).
 > **Esiforkin v3.8x–v5.02 -historia säilyy alla sellaisenaan** (koko historia: `D:\AI\Main`, 196 committia; ffb1dd9 · cc7046b · 44db9e7) – tämän repon historia alkaa `b854771`.
 > **3.10.2026: pankkia kevennettiin** – esiforkin taulukkorivit (v3.8x–v5.02) sekä vanhat
@@ -12,7 +12,7 @@
 > (penkit repoon, `update()` 85 rv, `render()` 143 rv, `handleAction()` 14 rv, `chaosFlags`,
 > `rooms[]`, `dayNight`-olio, `street/chaos-config.js` + `street/sfx.js` + `street/news.js` +
 > `street/traffic.js` + `street/chaos-cards.js` + `street/rooms.js`, kommenttien versiosiivous).
-> **Tuotanto = `origin/main` = v11.49** (pushattu 3.10.2026); jäljellä vain ei-refaktorointityöt
+> **Tuotanto = `origin/main` = v11.51** (pushattu 4.10.2026); jäljellä vain ei-refaktorointityöt
 > (Blue Mäx -testimode, pääsiäismunat Dig Däshiin, hedelmäpelin RTP-presetit, jukebox-testien siivous).
 > **Bugikorjaukset v11.39** (K7 "Valot sammuvat" -kortti), **v11.41** (BAD/FULLin ikkunavalot),
 > **v11.43** (FULLin canvas-arvot), **v11.44** (huoneiden logiikka + penkki 41/0), **v11.45**
@@ -495,4 +495,26 @@ per yö**.
 - **Tulos:** `chaos-normal-check` 79/0 · `street-render-smoke` 30/30 · `street-canvas-invariants` 0
   löydöstä · **`run-all` 27 penkkiä / 27 puhdasta / 0 löydöstä**.
 - **Julkaistu 3.10.2026** (push = tuotanto; commit `242ded0`).
+
+**v11.50–v11.51 – hedelmäpelitalon neonvihreä CASINO-kyltti (4.10.2026, uusi visuaali – sääntö 03):**
+Käyttäjän pyyntö: *"Lisättiin eilen makuuhuonetaloon [Hostel]-kyltti, niin 'samalla tavalla' lisätään
+taloon jossa on hedelmäpeli talon KATOLLE ... kyltti | CASINO | ... Tämä voisi olla vaikka neonvihreä."*
+Tarkennukset: `|`-päädyt pois (liian leveä vrt talo), ohut musta kehys + jalat, kyltti alas, kehys minimiin.
+
+- **v11.50 – runko:** uusi `drawCasinoSign(b)` (`street.js`) piirtää neonvihreän kyltin
+  hedelmäpelitalon (**`buildings[6]`**, `x 560 w 50 h 145`) katon YLÄPUOLELLE (ydin `#8dffb0`, hehku
+  `#0ac84f`, `shadowBlur 7`; ei haloja/katupohjaa – valittu yksinkertaisin tyyli). Vakiot
+  `FRUIT_BLDG_IDX 6` / `CASINO_SIGN_TEXT` / `CASINO_NEON` / `CASINO_NEON_GLOW` HOSTEL-vakioiden
+  yhteyteen. Kutsutaan `drawBuildings()`in sisällä (`idx === FRUIT_BLDG_IDX`) → **seuraa taloa
+  BAD/FULLin järjestyssekotuksessa ja katoaa talon tuhoutuessa** (kuten HOSTEL). `#version-tag` +
+  10 `?v=`-leimaa + `.clinerules/03` → **v11.50**.
+- **v11.51 – kehys + jalat:** kyltin ympärille **ohut musta kehys** (`strokeRect`, `lineWidth 1`, ei
+  taustaa) ja **kaksi pientä jalkaa** kehyksen alareunasta katon yläreunaan; `ctx.shadowBlur = 0`
+  kehykselle/jaloille (terävä viiva). `#version-tag` + 10 `?v=`-leimaa + `.clinerules/03` → **v11.51**.
+- **Parametrisäätöjä (ei omaa versionumeroa, sääntö 03):** teksti `| CASINO |` → **`CASINO`**;
+  geometria viilattu – **lopputila:** kehys `frameH 12` / `padX 2`, jalat `legW 1`, ilmarako
+  **`legGap 7`** (tekstin keskikohta `topY-12` = sama kuin ensimmäisessä versiossa).
+- **Ei talous-/mekaniikkamuutoksia**, ei uusia dialogeja (sääntö 06), ei uusia localStorage-avaimia,
+  ei uutta penkkiä (kevyt polku – käyttäjä testaa visuaalisesti). `node --check street.js` OK.
+- **Julkaistu 4.10.2026** (push = tuotanto, v11.51).
 

@@ -8,7 +8,7 @@
 
 Versionumero näkyy pääsivun (`index.html`) oikeassa alakulmassa elementissä `#version-tag`.
 
-**Nykyinen versio:** `v11.49` (forkki **AI CHAOS STREET**; pidä tämä rivi ajan tasalla aina kun
+**Nykyinen versio:** `v11.51` (forkki **AI CHAOS STREET**; pidä tämä rivi ajan tasalla aina kun
 `#version-tag` muuttuu)
 
 ---

@@ -355,6 +355,14 @@ const Street = (() => {
     const HOSTEL_SIGN_TEXT  = '[HOSTEL]';   // tiukka asettelu: ei välilyöntejä
     const HOSTEL_NEON       = '#7fdcff';   // neonin ydin (vaalea sininen)
     const HOSTEL_NEON_GLOW  = '#0a84ff';   // hohteen väri (tummempi sininen)
+    /* CASINO-kyltti (hedelmäpelitalo, buildings[6]): neonvihreä teksti
+       ohuessa mustassa kehyksessä + jalat, talon katon yläpuolella.
+       Kyltti piirretään talon mukana (ks. drawCasinoSign), joten se seuraa
+       taloa BAD/FULLin järjestyssekotuksessa ja katoaa talon tuhoutuessa. */
+    const FRUIT_BLDG_IDX   = 6;             // hedelmäpelitalo (buildings[6])
+    const CASINO_SIGN_TEXT = 'CASINO';
+    const CASINO_NEON      = '#8dffb0';    // neonin ydin (vaalea vihreä)
+    const CASINO_NEON_GLOW = '#0ac84f';    // pieni hehku (tummempi vihreä)
     const BAR_BLDG_IDX = 8;      // BAR-talo (tuhoutuu vasta viimeisenä)
     /* Laivanupotus (talo 2, buildings[2]) – ei omaa lamppua,
        1. potku sytyttää ikkunat, 2. potku avaa oven. Aina auki yöllä ja päivällä. */
@@ -5605,6 +5613,10 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
                Kyltti piirretään tässä, joten se seuraa taloa myös BAD/FULLin
                järjestyssekotuksessa ja katoaa talon tuhoutuessa. */
             if (idx === SLEEP_BLDG_IDX) drawHostelSign(b);
+            /* Hedelmäpelitalo (buildings[6]): neonvihreä CASINO-kyltti
+               katon yläpuolella. Sama logiikka: seuraa taloa BAD/FULLin
+               järjestyssekotuksessa ja katoaa talon tuhoutuessa. */
+            if (idx === FRUIT_BLDG_IDX) drawCasinoSign(b);
             ctx.restore();
         }
     }
@@ -6383,6 +6395,48 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         ctx.shadowBlur = 9;
         ctx.fillStyle = HOSTEL_NEON;
         ctx.fillText(HOSTEL_SIGN_TEXT, cx, Math.round(sy + signH / 2) + 1);
+        ctx.restore();
+    }
+
+
+    /* ── CASINO-neonkyltti (hedelmäpelitalo, buildings[6]) ──────────
+       Neonvihreä teksti ohuessa mustassa kehyksessä, kaksi ohutta
+       jalkaa katon yläpuolella. Ei taustaa eikä haloja. Piirretään
+       drawBuildingsin sisällä eli talon omassa syvyysskaalassa, joten se
+       seuraa taloa BAD/FULLin järjestyssekotuksessa ja katoaa talon
+       tuhoutuessa. Pieni ilmarako jää katon ja kyltin väliin (lyhyet jalat). */
+    function drawCasinoSign(b) {
+        const cx        = b.x + b.w / 2;
+        const topY      = GROUND_Y - b.h;
+        const fs        = 8;                            // Press Start 2P on monospace → 1 em / merkki
+        const textW     = CASINO_SIGN_TEXT.length * fs; // 'CASINO' → 48 px
+        const padX      = 2;
+        const frameW    = textW + padX * 2;
+        const frameH    = 12;
+        const legGap    = 7;                            // pieni ilmarako katon ja kyltin välissä (jalat)
+        const fx        = Math.round(cx - frameW / 2);
+        const fy        = topY - legGap - frameH;       // kehyksen yläreuna
+        const legW      = 1;
+        const legTop    = fy + frameH;                  // kehyksen alareuna
+        const legBottom = topY;                         // katon yläreuna
+        ctx.save();
+        ctx.shadowBlur = 0;                             // jalat ja kehys ilman hehkua
+        // 1) Jalat: kaksi ohutta mustaa pylvästä kehyksen alta katolle
+        ctx.fillStyle = '#000';
+        ctx.fillRect(fx + 4, legTop, legW, legBottom - legTop);
+        ctx.fillRect(fx + frameW - 4 - legW, legTop, legW, legBottom - legTop);
+        // 2) Kehys: ohuin mahdollinen musta reunus – ei taustaa
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(fx + 0.5, fy + 0.5, frameW - 1, frameH - 1);
+        // 3) Neon-teksti + pieni hehku
+        ctx.font = fs + 'px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = CASINO_NEON_GLOW;
+        ctx.shadowBlur = 7;                      // pieni hehku
+        ctx.fillStyle = CASINO_NEON;
+        ctx.fillText(CASINO_SIGN_TEXT, cx, Math.round(fy + frameH / 2) + 1);
         ctx.restore();
     }
 
