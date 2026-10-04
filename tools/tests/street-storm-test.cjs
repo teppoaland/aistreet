@@ -116,7 +116,8 @@ let src = require('./street-src.cjs');
 const API = 'return { init, resize, closeGame, closeRoom, setChaos, saveChaosSession, loadChaosSession, clearChaosSession, clearBeamWeapon };';
 const DBG = API.replace(' };', `, __t: {
     resetStorm, updateStorm, triggerLightning, makeBoltPath, makeRainDrop, syncRainDrops,
-    drawRain, drawLightningBolt, updateLightning,
+    drawRain, drawRainBack, drawRainFar, drawLightningBolt, updateLightning,
+    get dayT() { return dayNight.t; }, set dayT(v) { dayNight.t = v; },
     get stormBurst() { return stormBurst; },
     get rainDrops() { return rainDrops; },
     get lightning() { return lightning; },
@@ -131,7 +132,7 @@ const DBG = API.replace(' };', `, __t: {
     get thunderPending() { return thunderPending; },
     set thunderPending(v) { thunderPending = v; },
     get conf() { return { cloudThickMult, rainAmount, stormCalmMin, stormCalmMax, stormBurstMin, stormBurstMax, thunderGapMin, thunderGapMax }; },
-    consts: { GROUND_Y, WORLD_W, WORLD_H, RAIN_MAX: STORM_RAIN_MAX, FLASH: LIGHTNING_FLASH_FRAMES, SEGS: LIGHTNING_BOLT_SEGS, RAMP: STORM_RAMP_FRAMES, THUNDER_LEVEL: STORM_THUNDER_LEVEL, TOP_Y: LIGHTNING_TOP_Y }
+    consts: { GROUND_Y, WORLD_W, WORLD_H, RAIN_MAX: STORM_RAIN_MAX, FLASH: LIGHTNING_FLASH_FRAMES, SEGS: LIGHTNING_BOLT_SEGS, RAMP: STORM_RAMP_FRAMES, THUNDER_LEVEL: STORM_THUNDER_LEVEL, TOP_Y: LIGHTNING_TOP_Y, RAIN_TOP: RAIN_TOP_Y }
 } };`);
 if (!src.includes(API)) { console.error('FAIL: export-rivi ei löytynyt street.js:stä'); process.exit(1); }
 src = src.replace(API, DBG);
@@ -242,6 +243,24 @@ for (let i = 0; i < C.RAMP + 10; i++) T.updateStorm(1);
 ok('transitio alas valmis: stormLevel = 0 ja sade poistuu',
     T.stormLevel === 0 && T.rainDrops.length === 0, [T.stormLevel, T.rainDrops.length]);
 
+console.log('\n4b) Sade vain öisin: päivällä ei sadetta, öisin sataa');
+Street.setChaos('normal');
+T.resetStorm();
+T.dayT = 1;                                  // täysi päivä
+T.phase = 'burst'; T.stormTimer = 9999; T.stormLevel = 1; T.thunderTimer = 9999;
+for (let i = 0; i < C.RAMP + 10; i++) { T.stormTimer = 9999; T.thunderTimer = 9999; T.updateStorm(1); }
+ok('päivällä: myrsky hiipuu olemattomiin (stormLevel = 0)', T.stormLevel === 0, T.stormLevel);
+ok('päivällä: ei pisaroita', T.rainDrops.length === 0, T.rainDrops.length);
+T.dayT = 0;                                  // yö
+T.phase = 'burst'; T.stormTimer = 9999; T.stormLevel = 0; T.thunderTimer = 9999;
+for (let i = 0; i < C.RAMP + 10; i++) { T.stormTimer = 9999; T.thunderTimer = 9999; T.updateStorm(1); }
+ok('yöllä: myrsky nousee täyteen (stormLevel = 1)', T.stormLevel === 1, T.stormLevel);
+ok('yöllä: sataa (pisaroita RAIN_MAX)', T.rainDrops.length === C.RAIN_MAX, T.rainDrops.length);
+ok('takarivi (talojen taakse, z < 0.5) alkaa pilvistä: y >= RAIN_TOP - 6',
+    T.rainDrops.filter((d) => d.z < 0.5).every((d) => d.y >= C.RAIN_TOP - 6), C.RAIN_TOP);
+ok('eturivi (talojen eteen, z >= 0.5) saa tulla näytön ylhäältä: y < RAIN_TOP',
+    T.rainDrops.some((d) => d.z >= 0.5 && d.y < C.RAIN_TOP));
+
 console.log('\n5) Salama: ylhäältä alas, talojen taakse');
 Street.setChaos('bad');
 T.resetStorm();
@@ -268,6 +287,9 @@ ok('sade piirretään ENNEN efektikerrosta (kaiken edessä)',
 const iBack = rBody.indexOf('drawRainBack()');
 ok('kauko-sade piirretään taustasiluetin JÄLKEEN', iBack > rBody.indexOf('drawBackdrop('), [iBack, rBody.indexOf('drawBackdrop(')]);
 ok('kauko-sade piirretään talojen ETEEN (jää talojen taakse)', iBack > 0 && iBack < rBody.indexOf('drawBuildings('), [iBack, rBody.indexOf('drawBuildings(')]);
+const iFar = rBody.indexOf('drawRainFar()');
+ok('syvä sade piirretään taustasiluetin TAKANA (ennen drawBackdrop)',
+    iFar > 0 && iFar < rBody.indexOf('drawBackdrop('), [iFar, rBody.indexOf('drawBackdrop(')]);
 const seBody = fnBody('drawScreenEffects');
 ok('välähdys koko ruudulle (fillRect 0,0,WORLD_W,WORLD_H)',
     seBody.includes('lightning.flashAlpha') && seBody.includes('fillRect(0, 0, WORLD_W, WORLD_H)'));
@@ -311,7 +333,7 @@ ok('playThunder: limitys säilyy (0,2 s askel)', thunderSrc.includes('i * 0.2'))
 ok('playThunder: ei korkeita säveliä (kaikki < 200 Hz)',
     (thunderSrc.match(/freq:\s*(\d+)/g) || []).every((s) => Number(s.replace(/\D/g, '')) < 200));
 ok('StreetSfx vie playThunderin', src.includes('playThunder: playThunder'));
-const stormFns = ['updateStorm', 'triggerLightning', 'updateRain', 'drawRain', 'drawRainBack', 'rainStreak',
+const stormFns = ['updateStorm', 'triggerLightning', 'updateRain', 'drawRain', 'drawRainBack', 'drawRainFar', 'rainStreak',
     'drawLightningBolt', 'resetStorm', 'makeBoltPath', 'makeRainDrop', 'syncRainDrops', 'randStorm', 'reseedStormRng'];
 ok('myrskyfunktioissa ei uusia dialogeja (sääntö 06)',
     stormFns.every((n) => !fnBody(n).includes('showNotification')));
@@ -325,6 +347,11 @@ ok('sade lukee stormLeveliä (transitio)', src.includes('0.16 * stormLevel') && 
 ok('transitio: STORM_RAMP_FRAMES = 300', src.includes('STORM_RAMP_FRAMES = 300'));
 ok('salaman alku pilvistä (LIGHTNING_TOP_Y = 60, ei y = 4)', src.includes('LIGHTNING_TOP_Y = 60'));
 ok('salama vasta täydessä myrskyssä (STORM_THUNDER_LEVEL = 0.85)', src.includes('STORM_THUNDER_LEVEL = 0.85'));
+ok('sade alkaa pilvistä (RAIN_TOP_Y = LIGHTNING_TOP_Y)', src.includes('RAIN_TOP_Y = LIGHTNING_TOP_Y'));
+ok('vain takarivi alkaa pilvistä (topY = (z < 0.5) ? RAIN_TOP_Y : 0)', src.includes('(z < 0.5) ? RAIN_TOP_Y : 0'));
+ok('sade vain öisin (portti dayNight.t < CLOSED_AT_DAYT)', src.includes('dayNight.t < CLOSED_AT_DAYT'));
+ok('kolme saderiviä (syvä z<0.25 · keski 0.25–0.5 · lähi z>=0.5)',
+    src.includes('d.z < 0.25') && src.includes('d.z >= 0.25 && d.z < 0.5') && src.includes('d.z >= 0.5'));
 
 console.log('\n8) Versio');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');

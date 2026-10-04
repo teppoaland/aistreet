@@ -130,16 +130,19 @@ file:///D:/AI/AI_street/index.html?chaos=full&day=1  ← pakota päivä (aamuong
   (×1,00–3,00)** → talot varjostavat eri pituisesti. Vertaa `?chaos=normal` (kaikki ×1,00).
   **Kerroin vaihtuu vain uudessa yössä** (Nuku / uusi peli) – ei väpätä kesken yön.
 - **v11.39 – blackout:** vertaa `?card=blackout` ↔ ilman parametria (lamppujen **kuput**, ei vain hehku).
-- **v11.68 – Myrsky kaikilla tasoilla (`?chaos=` mikä tahansa, `?day=0` tai `?day=1`):** pilvet ovat
-  **paksut** ja **sade + ukkonen** tulevat **satunnaisina purskeina** (tyyni 60–180 s → purske 60–180 s;
-  sade ei ala heti). **Sää muuttuu pehmeästi (v11.68):** purskeen alussa pilvet paksunevat, sade kasvaa
+- **v11.68 / v11.70 – Myrsky kaikilla tasoilla, mutta sade vain öisin (`?chaos=` mikä tahansa):** pilvet
+  ovat **paksut** ja **sade + ukkonen** tulevat **satunnaisina purskeina** (tyyni 60–180 s → purske 60–180 s;
+  sade ei ala heti). **v11.70: päivällä ei sadetta** – jos `dayT >= 0.5` (`?day=1`), myrsky on aina tyyni
+  (sade + ukkonen pois); katso sade **`?day=0` (yö)**. Sää muuttuu pehmeästi (v11.68): purskeen alussa pilvet paksunevat, sade kasvaa
   tihkusta täyteen ja ukkonen alkaa vasta kun myrsky on täysi (~5 s transitio); purskeen lopussa kaikki
-  hiipuu takaisin tyveksi – ei enää rysäystä. Purskeen aikana sade valuu koko ruudun yli, **salama iskee
+  hiipuu takaisin tyveksi – ei enää rysäystä. Purskeen aikana sade valuu alas, **salama iskee
   pilvistä (v11.69: kuun/auringon linjalta, ei ruudun yläreunasta) alas talojen taakse** (ei koskaan
   talojen eteen) ja **väläyttää koko ruudun**, ja **matala
   jyrinä** soi hetki välähdyksen jälkeen (ei korkeaa pimputusta; **5–10 limittäistä jyrähdystä**, viive
-  0,4–3,0 s). Sade on **puolet hitaampi**, sen **vinokulma seuraa tuulen voimakkuutta** ja se on
-  **kahdessa syvyyskerroksessa** (kauko-sade talojen takana + lähi-sade edessä). Impakti: ei
+  0,4–3,0 s). Sade on **puolet hitaampi**, sen **vinokulma seuraa tuulen voimakkuutta**, **takarivit
+  alkavat pilvistä (v11.71: `RAIN_TOP_Y`, ei ruudun yläreunasta); eturivi saa tulla näytön ylhäältä** ja
+  sade on **kolmessa syvyyskerroksessa**
+  (syvä taustasiluetin takana + keski talojen takana + lähi edessä). Impakti: ei
   pelimekaanista vaikutusta (sade ei vahingoita).
 - **v11.54 – Rosvon rauha + turvasäde (kaikki tasot):** rosvo ei ilmesty **ensimmäiseen 60 sekuntiin**
   pelin alusta (peli ei ala ryöstöllä). Sen jälkeenkin rosvo **ei koskaan synny lähelle sitä kohtaa,

@@ -2,8 +2,9 @@
 
 > **Kevyt:** Vain tämä tiedosto luetaan session alussa.
 > **✅ REFAKTOROINTI VALMIS (Vaiheet 0–6, v11.38–v11.45) JA JULKAISTU 3.10.2026.**
-> Tuotanto = `origin/main` = **v11.67** → `https://teppoaland.github.io/aistreet/` (Pages tarjoilee
-> v11.67:n). Paikallinen HEAD = **v11.69** (myrsky kaikille tasoille + sään transitio + salama pilvistä; ei julkaistu).
+> Tuotanto = `origin/main` = **v11.71** (myrsky kaikille tasoille + sade vain öisin + 3 saderiviä +
+> pilvistä alkaa vain takarivi, pushattu 4.10.2026) → `https://teppoaland.github.io/aistreet/`.
+> Työpuu = HEAD = v11.71.
 > Portti **29 penkkiä / 29 puhdasta / 0 löydöstä**.
 > **v11.46–v11.48 (3.10.2026):** makuuhuoneen sininen **HOSTEL-neonkyltti** (`drawHostelSign`) +
 > huoneen otsikko **HOSTEL - BEDROOM** + **rauta-aita pois BAD/FULLista** (`chaosFlags.ruin`) –
@@ -54,6 +55,14 @@
 > **v11.69 (4.10.2026):** **salama alkaa pilvistä** – uusi vakio `LIGHTNING_TOP_Y 60` (kuun/auringon
 > linja): siksak-polku alkaa pilvien kohdalta, **ei enää ruudun yläreunasta** (y = 4). Penkki
 > `street-storm-test` **78/0**. Ks. `progress.md`.
+> **v11.70–v11.71 (4.10.2026):** **sade vain öisin + kolmas saderivi + pilvistä vain takariville** –
+> (1) uusi `drawRainFar()` piirtää kaukaisimman rivin (`z < 0.25`) **taustasiluetin taakse** → saderivejä
+> **3** (syvä · keski talojen takana · lähi edessä); (2) **v11.71: vain takarivit** (`z < 0.5`, talojen
+> taakse) alkavat pilvistä (`RAIN_TOP_Y = LIGHTNING_TOP_Y` 60) – **eturivi** (`z >= 0.5`, talojen eteen)
+> saa tulla näytön yläreunasta (per-pisara `topY = (z < 0.5) ? RAIN_TOP_Y : 0`); (3) `updateStorm`
+> portittaa `dayNight.t < CLOSED_AT_DAYT` → **päivällä ei sadetta** (stormLevel hiipuu 0:aan), öisin ja
+> päivä/yö-siirtymissä normaali. Penkki `street-storm-test` **89/0**. Ks. `progress.md`.
+
 > **🕒 Aika & sää (todettu 4.10.2026, v11.69 – ei koodimuutosta, jätetään ennalleen):**
 > **Aika etenee kaikkialla** (`updateDayNight`/`updateDayCycle` kutsutaan ennen huonerekisteriä, rivi 3821) –
 > kadulla, canvas-huoneissa ja iframe-alapeleissa; ainoana poikkeuksena päivä/yön **liuku kohti tavoitetta**
@@ -505,14 +514,18 @@ osoittimiksi `progress.md`:hen, ja kun tiedosto ylittää 55 kt, siirrä vanhin 
   · skaalaa `MOON_BLD_SHADOW_LEN 0.36` ja `MOON_BLD_SHADOW_SKEW 0.055`; `MOON_BLD_SHADOW_ALPHA 0.50` ennallaan
   · penkki `street-moon-shadow-test` (33/0). *Huom: ×3-varjo ylittää 90 px:n maakaistan → katu tummenee
   tasaisemmin; alpha on tarvittaessa säädettävä nuppi.*
-- **BAD-myrsky (v11.52–v11.56):** `cloudThickMult 2.5` (hazy-pilven pystysäde ×kerroin) · `stormBurst true` ·
-  `rainAmount 1` · tyyni `stormCalmMin/Max 3600–10800` (60–180 s) · purske `stormBurstMin/Max 3600–10800`
-  (60–180 s) · salama `thunderGapMin/Max 300–900` (5–15 s; framet 60 f/s) · **sade `STORM_RAIN_SPEED 5.5`** ·
-  **vinokulma `RAIN_WIND_FACTOR 0.45` (tuulen voimakkuuden mukaan)** · 2 syvyyskerrosta (`z` < 0.5 kauko
-  talojen taakse, ≥ 0.5 lähi eteen) · `STORM_RAIN_MAX 150` · `LIGHTNING_FLASH_FRAMES 24` · jyrinä 5–10
-  limittäisenä kerroksena (määrä satunnainen; limitys 0,2 s askel), **salama → jyrinä 0,4–3,0 s**
-  (`THUNDER_DELAY_MIN/MAX`) ·
-  penkki `street-storm-test` (67/0).
+- **Myrsky (v11.52–v11.71):** `cloudThickMult 2.5` (hazy-pilven pystysäde ×kerroin; kaikki tasot) ·
+  `stormBurst true` · `rainAmount 1` · tyyni `stormCalmMin/Max 3600–10800` (60–180 s) · purske
+  `stormBurstMin/Max 3600–10800` (60–180 s) · salama `thunderGapMin/Max 300–900` (5–15 s; framet 60 f/s) ·
+  **sade `STORM_RAIN_SPEED 5.5`** · **vinokulma `RAIN_WIND_FACTOR 0.45`** · **vain takarivit (z < 0.5)
+  alkavat pilvistä `RAIN_TOP_Y = LIGHTNING_TOP_Y` (60)**; eturivi (z ≥ 0.5) näytön yläreunasta (per-pisara
+  `topY = (z < 0.5) ? RAIN_TOP_Y : 0`) · **3 syvyyskerrosta:** syvä `z < 0.25`
+  taustasiluetin taakse (`drawRainFar`) · keski `0.25–0.5` talojen taakse (`drawRainBack`) · lähi `≥ 0.5`
+  kaiken eteen (`drawRain`) · `STORM_RAIN_MAX 150` · `LIGHTNING_FLASH_FRAMES 24` · jyrinä 5–10 limittäisenä
+  kerroksena (limitys 0,2 s askel), **salama → jyrinä 0,4–3,0 s** (`THUNDER_DELAY_MIN/MAX`) ·
+  **sade vain öisin: portti `dayNight.t < CLOSED_AT_DAYT`** (päivällä stormLevel hiipuu 0:aan, ei sadetta
+  eikä ukkosta; öisin ja siirtymissä normaali) ·
+  penkki `street-storm-test` (89/0).
 - **Rosvo (v11.54):** `ROBBER_MIN_DIST 200` (turvasäde **ulostulokohdasta**, kaikki ovet; klampattu
   ehdokas hylätään) · `ROBBER_GRACE_FRAMES 3600` (**60 s aloitusrauha**) · BAR-ovi-häkä poistettu ·
   penkki `street-robber-grace-test` (19/0).

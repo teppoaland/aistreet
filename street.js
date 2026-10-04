@@ -4539,6 +4539,11 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
        (stormBurst) – myös NORMAL. Sää muuttuu pehmeästi: stormLevel liukuu
        0 ↔ 1 (transitio), joten pilvet paksunevat, sade voimistuu ja ukkonen
        alkaa vasta täydessä myrkyssä – ja kaikki palautuu tyveksi.
+       Sade vain ÖISIN: päivällä (dayT >= CLOSED_AT_DAYT) myrsky on aina tyyni
+       (sade + ukkonen pois). Takarivit (talojen taakse) alkavat pilvistä
+       (RAIN_TOP_Y = salaman linja); eturivi (talojen eteen) saa tulla näytön
+       yläreunasta. Sade piirretään kolmena syvyysrivinä (syvä taustasiluetin
+       takana · keski talojen takana · lähi kaiken edessä).
        Salama piirretään taivaskerrokseen (talot peittävät alaosan – ei koskaan
        talojen eteen) ja välähdys koko ruudulle; jyrinä soi matalana viiveellä
        välähdyksen jälkeen (0,4–3,0 s; kerroksia 5–10). Ei uutta tekstiä (sääntö 06), ei pelimekaanista
@@ -4549,6 +4554,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     const STORM_RAMP_FRAMES = 300;      // sään transitio: stormLevel 0 → 1 (~5 s)
     const STORM_THUNDER_LEVEL = 0.85;   // salama vasta kun sää on lähes täysi myrsky
     const LIGHTNING_TOP_Y = 60;         // salaman alkukorkeus: pilvien / kuun ja auringon linja (ei ruudun yläreuna)
+    const RAIN_TOP_Y = LIGHTNING_TOP_Y; // takarivit (talojen taakse) alkavat salaman/pilvien linjalta; eturivi ruudun yläreunasta
     const LIGHTNING_FLASH_FRAMES = 24;  // välähdyksen kokonaiskesto (~0,4 s)
     const LIGHTNING_BOLT_SEGS = 14;     // siksak-segmenttien määrä
     const THUNDER_DELAY_MIN = 0.4;      // salama → jyrinä, lähin ukkonen (s)
@@ -4586,14 +4592,18 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         thunderTimer = 0;
     }
 
+    /* Yksi pisara. Takarivit (z < 0.5 = talojen taakse) alkavat pilvistä
+       (RAIN_TOP_Y = salaman linja); eturivi (z >= 0.5 = talojen eteen) saa tulla
+       näytön yläreunasta (topY 0). Arvontajärjestys säilyy (x · yf · z · len ·
+       speed), joten myrskyn oma RNG-jono pysyy täsmälleen samana. */
     function makeRainDrop() {
-        return {
-            x: stormRng() * WORLD_W,
-            y: stormRng() * WORLD_H,
-            z: stormRng(),                    // syvyys 0 (kaukana) … 1 (lähellä)
-            len: 8 + stormRng() * 10,
-            speed: 0.9 + stormRng() * 0.5
-        };
+        const x = stormRng() * WORLD_W;
+        const yf = stormRng();                              // 0..1, skaalataan topY:n mukaan
+        const z = stormRng();                               // syvyys 0 (kaukana) … 1 (lähellä)
+        const len = 8 + stormRng() * 10;
+        const speed = 0.9 + stormRng() * 0.5;
+        const topY = (z < 0.5) ? RAIN_TOP_Y : 0;            // takarivi pilvistä, eturivi ruudun yläreunasta
+        return { x: x, y: topY + yf * (WORLD_H - topY), z: z, len: len, speed: speed, topY: topY };
     }
 
     /* Päivittää pisaramäärän sään voimakkuuden mukaan (transitio):
@@ -4611,7 +4621,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             const zf = 0.55 + d.z * 0.9;                        // kauko (z pieni) = hitaampi → syvyys
             d.y += STORM_RAIN_SPEED * d.speed * zf * dt;
             d.x += wind * d.speed * zf * dt;
-            if (d.y > WORLD_H + 6) { d.y = -6; d.x = stormRng() * WORLD_W; }
+            if (d.y > WORLD_H + 6) { d.y = d.topY - 6; d.x = stormRng() * WORLD_W; }   // palaa oman rivin lähtökorkeudelle
             if (d.x < -6) d.x += WORLD_W + 12;
             else if (d.x > WORLD_W + 6) d.x -= WORLD_W + 12;
         }
@@ -4663,6 +4673,13 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             if (thunderPending <= 0) { thunderPending = -1; StreetSfx.playThunder(); }
         }
 
+        /* Sade vain öisin: päivällä (dayT >= CLOSED_AT_DAYT) myrsky on aina tyyni
+           – sade ja ukkonen eivät toimi. Öisin ja päivä/yö-siirtymissä myrsky
+           elää normaalisti (sade voi alkaa), ja päivän tullessa sade hiipuu
+           pehmeästi pois (stormLevel liukuu → 0). Sama raja kuin ovilla
+           (CLOSED_AT_DAYT 0.5). */
+        const rainAllowed = dayNight.t < CLOSED_AT_DAYT;
+
         // Vaihe: tyyni ↔ purske
         stormTimer -= dt;
         if (stormTimer <= 0) {
@@ -4677,7 +4694,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         }
 
         // Sään voimakkuus liukuu kohti vaiheen tavoitetta (transitio)
-        const target = (stormPhase === 'burst') ? 1 : 0;
+        const target = (rainAllowed && stormPhase === 'burst') ? 1 : 0;
         const step = dt / STORM_RAMP_FRAMES;
         stormLevel += Math.max(-step, Math.min(step, target - stormLevel));
         if (stormLevel < 0) stormLevel = 0; else if (stormLevel > 1) stormLevel = 1;
@@ -4688,7 +4705,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         else rainDrops = [];
 
         // Salama vasta kun sää on lähes täysi myrsky (ei ukkosta tihkusateessa)
-        if (stormPhase === 'burst' && stormLevel >= STORM_THUNDER_LEVEL) {
+        if (rainAllowed && stormPhase === 'burst' && stormLevel >= STORM_THUNDER_LEVEL) {
             thunderTimer -= dt;
             if (thunderTimer <= 0) {
                 triggerLightning();
@@ -4730,6 +4747,21 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         ctx.lineTo(d.x + (vx / n) * len, d.y + (vy / n) * len);
     }
 
+    /* Syvin saderivi: taustasiluetin TAKANA (kaikkein kauimpana) – oma rivi,
+       jotta sade näkyy myös kaukaisen kaupungin takana. Sadekerrokset ovat
+       kolme: syvä (z < 0.25, tämä), keski (0.25–0.5, drawRainBack) ja lähi
+       (>= 0.5, drawRain). Alpha skaalautuu sään voimakkuudella. */
+    function drawRainFar() {
+        if (!rainDrops.length) return;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(140,165,200,' + (0.10 * stormLevel).toFixed(3) + ')';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (const d of rainDrops) if (d.z < 0.25) rainStreak(d);
+        ctx.stroke();
+        ctx.restore();
+    }
+
     /* Kauko-sade: talojen TAAKSE (himmeä, hidas) – syvyysvaikutelma.
        Alpha skaalautuu sään voimakkuudella → sade hiipuu pehmeästi. */
     function drawRainBack() {
@@ -4738,7 +4770,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         ctx.strokeStyle = 'rgba(150,175,205,' + (0.16 * stormLevel).toFixed(3) + ')';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        for (const d of rainDrops) if (d.z < 0.5) rainStreak(d);
+        for (const d of rainDrops) if (d.z >= 0.25 && d.z < 0.5) rainStreak(d);
         ctx.stroke();
         ctx.restore();
     }
@@ -5497,9 +5529,12 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
         drawMeteorFlash();
 
+        // Syvin saderivi: taustasiluetin TAKANA (kaukaisin) – sade näkyy myös
+        // kaukaisen kaupungin takana
+        drawRainFar();
         // Kaukainen kaupunkisiluetti (parallaksi 0.4×) – tähtien/taivaan päällä, talojen takana
         drawBackdrop(camX * (1 - BACKDROP_PARALLAX));
-        // Kauko-sade talojen taakse (himmeä, hidas) – BAD-myrsky
+        // Kauko-sade talojen taakse (himmeä, hidas) – myrsky
         drawRainBack();
         drawBuildings();
         // meteoriitteja ei enää piirretä talojen edessä (ks. taivashaara yllä),

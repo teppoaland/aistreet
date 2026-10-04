@@ -788,6 +788,55 @@ kuuta ja aurinkoa. Niin ukkonen alkaa sitten pilvistä ei kuvaruudun ylhäältä
   (BAR/jukebox/makuuhuone/lehti) – syynä huonerekisterin `return` ennen `updateClouds`/`updateStorm`ia
   (`street.js` rivi 3833). Käyttäjän linjaus 4.10.2026: **jätetään ennalleen** ("ei sitä kukaan huomaa").
   Ei muutosta lähdekoodiin (ei versionnostoa, sääntö 03).
+**v11.70 – Sade vain öisin + sade alkaa pilvistä + kolmas saderivi (4.10.2026, sääntö 03):**
+Käyttäjän pyyntö 4.10.2026: *"Yksi saderivi lisää, että talojen taakse myös sataa ja tämä sade alkaa
+samalta korkeudelta kuin salamat: mikä on noin puoliväli Auringosta, että saadaan näyttämään että sade
+tulee pilvistä. … sataa voi vain [yöllä] … päivällä ei sadetta."*
+
+- **`street.js` – kolme saderiviä:** uusi **`drawRainFar()`** piirtää syvimmän rivin (z < 0.25)
+  **ennen `drawBackdrop()`**:ia → sade näkyy myös kaukaisen kaupungin/taustasiluetin takana.
+  `drawRainBack()` rajattiin väliin **0.25 ≤ z < 0.5**; lähi-rivi (`z >= 0.5`, `drawRain()`) ennallaan.
+  Alfa skaalautuu `stormLevel`illä (syvä 0.10 · keski 0.16 · lähi 0.36).
+- **Sade alkaa pilvistä:** uusi vakio **`RAIN_TOP_Y = LIGHTNING_TOP_Y`** (60 = salaman/pilvien linja).
+  `makeRainDrop` syntyy väliltä `[RAIN_TOP_Y, WORLD_H]` ja `updateRain` palauttaa pisaran `RAIN_TOP_Y − 6`:een
+  → sade ei enää ala ruudun yläreunasta, vaan näyttää tulevan pilvistä. **v11.71 tarkensi: pilvikorkeus
+  vain takariveille (z < 0.5); eturivi saa tulla näytön yläreunasta.**
+- **Sade vain öisin:** `updateStorm` portittaa **`dayNight.t < CLOSED_AT_DAYT`** (0.5, sama raja kuin ovilla):
+  päivällä myrsky on aina tyyni – `target = 0` → `stormLevel` hiipuu pehmeästi 0:aan (ei sadetta eikä ukkosta);
+  öisin ja päivä/yö-siirtymissä myrsky elää normaalisti (sade voi alkaa). Ilman tätä porttia sade olisi satanut
+  myös kirkkaalla päivällä. Ei uusia dialogeja (sääntö 06), ei talousmuutoksia.
+- **Testit:** `street-storm-test` **78 → 87/0** (uusi osio 4b: päivällä ei sadetta / yöllä sataa; pisarat
+  ≥ `RAIN_TOP − 6`; render-järjestys `drawRainFar` ennen `drawBackdrop`; lähdetarkistukset `RAIN_TOP_Y`,
+  `dayNight.t < CLOSED_AT_DAYT`, kolme z-kaistaa). `run-all` **29 penkkiä / 29 puhdasta / 0 löydöstä** ·
+  `chaos-normal-check` 88 avainta / 0 eroa · `node --check` OK.
+- **Versiot:** `#version-tag` + 10 `?v=`-leimaa + `.clinerules/03` → **v11.70**.
+  **Committoitu + pushattu 4.10.2026 yhdessä v11.71:n kanssa** (yksi commit – v11.70 jäi työpuuhun,
+  v11.71 korjasi sen ennen julkaisua).
+- **Dokumentit:** `CHANGELOG.md` · `docs/chaos.md` §6.1 + muutoshistoria · `tools/tests/BASELINE.md` ·
+  `memory-bank/activeContext.md` · tämä tiedosto.
+**v11.71 – Sadekorjaus: pilvistä alkaa vain takarivi (4.10.2026, sääntö 03):**
+Käyttäjän tarkennus 4.10.2026: *"Tarkoitin että saderivi joka tulee talojen taakse alkaa auringon
+puolivälin eli pilvien / ukkosen korkeudelta, en eturivin sadetta joka tulee talojen eteen. Se saa tulla
+näytön ylhäältä."*
+
+- **`street.js`:** v11.70 sovelsi `RAIN_TOP_Y`:n (pilvikorkeus) **kaikkiin** pisaroihin. Nyt **per-pisara
+  `topY`**: takarivit (`z < 0.5` = talojen taakse, `drawRainFar` + `drawRainBack`) alkavat pilvistä
+  (`RAIN_TOP_Y`), **eturivi** (`z >= 0.5` = talojen eteen, `drawRain`) alkaa **näytön yläreunasta**
+  (`topY 0`). `makeRainDrop` laskee `topY = (z < 0.5) ? RAIN_TOP_Y : 0` ja jakaa y:n välille
+  `[topY, WORLD_H]`; `updateRain` palauttaa pisaran `d.topY − 6`:een. **Arvontajärjestys säilyy**
+  (x · yf · z · len · speed) → myrskyn RNG-jono identtinen (eturivin pisarat saavat täsmälleen entiset
+  y-arvot). Muut v11.70:n osat ennallaan (3 saderiviä + sade vain öisin). Ei uusia dialogeja (sääntö 06).
+- **Testit:** `street-storm-test` **87 → 89/0** (takarivi alkaa pilvistä · eturivi saa tulla ylhäältä ·
+  lähdetarkistus `(z < 0.5) ? RAIN_TOP_Y : 0`). `run-all` **29 penkkiä / 29 puhdasta / 0 löydöstä** ·
+  `chaos-normal-check` 88 avainta / 0 eroa · `node --check` OK.
+- **Versiot:** `#version-tag` + 10 `?v=`-leimaa + `.clinerules/03` → **v11.71**.
+  **Julkaistu 4.10.2026** (push = tuotanto).
+- **Dokumentit:** `CHANGELOG.md` · `docs/chaos.md` · `tools/tests/BASELINE.md` · `docs/testilista.md` ·
+  `memory-bank/activeContext.md` · tämä tiedosto.
+
+
+
+
 
 
 

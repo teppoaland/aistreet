@@ -18,6 +18,12 @@
 > → **29 penkkiä, 29 puhdasta, 0 löydöstä**.
 > **4.10.2026 (v11.69):** salama alkaa pilvistä (`LIGHTNING_TOP_Y 60`); `street-storm-test` **78/0**
 > → **29 penkkiä, 29 puhdasta, 0 löydöstä**.
+> **4.10.2026 (v11.70):** uusi saderivi taustasiluetin taakse (`drawRainFar`, z < 0.25) + sade alkaa
+> pilvistä (`RAIN_TOP_Y = LIGHTNING_TOP_Y`) + sade vain öisin (`dayNight.t < CLOSED_AT_DAYT`);
+> `street-storm-test` **87/0** → **29 penkkiä, 29 puhdasta, 0 löydöstä**.
+> **4.10.2026 (v11.71):** tarkennus – pilvistä alkaa **vain takarivi** (`z < 0.5`); eturivi näytön
+> yläreunasta (per-pisara `topY = (z < 0.5) ? RAIN_TOP_Y : 0`); `street-storm-test` **89/0**
+> → **29 penkkiä, 29 puhdasta, 0 löydöstä**.
 
 ## Miten baselinea luetaan
 
