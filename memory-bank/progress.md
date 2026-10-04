@@ -1,6 +1,6 @@
 # 📊 Projektin edistyminen
 
-> **v11.51 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026.
+> **v11.59 – AI CHAOS STREET** · forkattu Pimeä Katu v5.02:sta 27.9.2026.
 > **Kompaktoitu 28.9.2026 (v11.00, 29,5 → 20,7 kt):** tiivistettiin vain v10.x/uusi aines (v10.01–v11.00 -taulukko) + rakenteelliset viat (orvot taulukkorivit, tyhjät rivit, pitkät rivit).
 > **Esiforkin v3.8x–v5.02 -historia säilyy alla sellaisenaan** (koko historia: `D:\AI\Main`, 196 committia; ffb1dd9 · cc7046b · 44db9e7) – tämän repon historia alkaa `b854771`.
 > **3.10.2026: pankkia kevennettiin** – esiforkin taulukkorivit (v3.8x–v5.02) sekä vanhat
@@ -12,7 +12,7 @@
 > (penkit repoon, `update()` 85 rv, `render()` 143 rv, `handleAction()` 14 rv, `chaosFlags`,
 > `rooms[]`, `dayNight`-olio, `street/chaos-config.js` + `street/sfx.js` + `street/news.js` +
 > `street/traffic.js` + `street/chaos-cards.js` + `street/rooms.js`, kommenttien versiosiivous).
-> **Tuotanto = `origin/main` = v11.56** (pushattu 4.10.2026); jäljellä vain ei-refaktorointityöt
+> **Tuotanto = `origin/main` = v11.59** (pushattu 4.10.2026); jäljellä vain ei-refaktorointityöt
 > (Blue Mäx -testimode, pääsiäismunat Dig Däshiin, hedelmäpelin RTP-presetit, jukebox-testien siivous).
 > **Bugikorjaukset v11.39** (K7 "Valot sammuvat" -kortti), **v11.41** (BAD/FULLin ikkunavalot),
 > **v11.43** (FULLin canvas-arvot), **v11.44** (huoneiden logiikka + penkki 41/0), **v11.45**
@@ -649,5 +649,45 @@ perässä. Nyt taisi olla viive 0.4–0.8. Kasvata tätä 0.4–4 s … tehdää
 - **Versio:** `#version-tag` + 10 `?v=`-leimaa + `.clinerules/03` → **v11.56**. **Julkaistu 4.10.2026** (push = tuotanto).
 - **Dokumentit:** `docs/chaos.md` §6.1 + muutoshistoria · `CHANGELOG.md` · `tools/tests/BASELINE.md` ·
   `docs/testilista.md` · `memory-bank/activeContext.md` · tämä tiedosto.
+
+**v11.57 – Jukeboxin valintalista kiertää päästä päähän (4.10.2026, sääntö 03):**
+Käyttäjän pyyntö 4.10.2026: *"nuolella ylös ja alas ei pääse listasta läpi vaan alhaalta pitää
+näpytellä takaisin ylös. Muuta että listan läpi pääsee takaisin ylös suoraan."*
+
+- **Kierto (`street/rooms.js`):** `updateJukeboxRoom` – reunaklampit `Math.max(0, …)` /
+  `Math.min(trackCount, …)` vaihdettu kiertoon: **▲ riviltä 0 → viimeinen raita**, **▼ viimeiseltä
+  raidalta → rivi 0**. Yksi painallus = yksi askel (reunanilmaisu `jukeHeldUp/Down` ennallaan –
+  pohjassa pito ei toistu). Vain jukebox muuttui (makuuhuone 2 riviä, BAR osta/peru = eri semantiikka).
+- **Testit:** `street-jukebox-test.cjs` päivitetty kiertokäytökseen – rivimäärä luetaan nyt lähteestä
+  (`TRACK_N` = `url: 'jukebox/` -osumat, `JUKE_ROWS = TRACK_N + 1`) ja J2/J3/J6/J9 navigoivat
+  deterministisesti (J2: kierto + paluu riville 0; J6: pohja + pitkän pidon 1 askel; J9: koko kierros).
+  `run-all` **29 penkkiä / 29 puhdasta / 0 löydöstä** · `street-rooms-logic-test` 41/0 · `node --check` OK.
+- **Versio:** `#version-tag` + 10 `?v=`-leimaa + `.clinerules/03` → **v11.57**.
+
+**v11.58 – Jukeboxin kansikuva näkyy myös selatessa (4.10.2026, sääntö 03):**
+Käyttäjän pyyntö 4.10.2026: *"kun listaa selaa, niin niille [raidoille] joille on kansikuva se
+näytetään jukeboxissa. Nythän kansikuva näytetään vain kun biisi on soimassa."* (valinta: soitossa
+soivan raidan kansi voittaa – esikatselu vain kun mikään ei soi).
+
+- **Kansikuvan valinta (`street/rooms.js`):** `drawJukeboxRoom` valitsee `cover`in – **soitossa**
+  soivan raidan kansi (`curTrack`), **muuten** kursorin raidan kansi (`ENV.jukeSel`). `drawJukeboxCabinet`:
+  `const showCover = !!cover && cover.ready;` (aiemmin `playing && …`). Kuvasuhde/kehys/pyörivä
+  piste ennallaan; raidat 1–3 (ei kantta) ja rivi 0 → levy.
+- **Testit:** mikään penkki ei testaa kansikuvaa (`Image`-stub → `cover.ready` aina `false`), joten
+  muutoksia ei tarvittu. `run-all` **29/29 puhdasta / 0 löydöstä**.
+- **Versio:** `#version-tag` + 10 `?v=`-leimaa + `.clinerules/03` → **v11.58**.
+
+**v11.59 – Jukebox: kaikilla 9 raidalla kansikuva (4.10.2026, uusi sisältö – sääntö 03):**
+Käyttäjän pyyntö 4.10.2026: *"Nappaa tuolta Knived 1-3 biiseille kuva … jota voi käyttää
+jukeboxissa niin on kaikille kappaleille kansikuva."*
+
+- **Kansikuvat:** `D:\AI\tmp\Knived.jfif` (1024×1024 JPEG) → skaalattu 148×148 PNG:ksi kolmeen
+  kopioon **`jukebox/covers/1.png`, `2.png`, `3.png`** (~42 KB/kpl; sama nimeämiskäytäntö kuin
+  `4.png`–`6.png`). **`street.js`:** `cover: 'jukebox/covers/N.png'` raidoille 1–3 + kommentti
+  päivitetty ("jokaisella raidalla 1–9 kansikuva"). Aiemmin kansi oli vain raidoilla 4–9.
+- **Testit:** `run-all` **29 penkkiä / 29 puhdasta / 0 löydöstä** · `node --check street.js` OK.
+- **Versio:** `#version-tag` + 10 `?v=`-leimaa + `.clinerules/03` → **v11.59**. **Julkaistu 4.10.2026** (push = tuotanto).
+- **Dokumentit:** `CHANGELOG.md` · `docs/jukebox-memo.md` · `memory-bank/activeContext.md` · tämä tiedosto.
+
 
 

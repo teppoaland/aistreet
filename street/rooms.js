@@ -578,8 +578,12 @@ var StreetRooms = (function () {
 
         // 6) Jukebox-kone oikealla – vain kun sille jää tilaa (ei peitä listaa)
         if (wide) {
-            /* Soivan kappaleen kansikuva: raidat 4–6 → kuva, muut → null */
-            const cover = (curTrack > 0) ? ENV.jukeCovers[curTrack - 1] : null;
+            /* Kansikuva (raidat 4–9; raidat 1–3 ja Poistu-rivi = null → levy):
+               soitossa soivan raidan kansi, muuten selatessa kursorin raidan
+               kansi (esikatselu – v11.58). */
+            const cover = playing
+                ? ((curTrack > 0) ? ENV.jukeCovers[curTrack - 1] : null)
+                : ((ENV.jukeSel > 0) ? ENV.jukeCovers[ENV.jukeSel - 1] : null);
             drawJukeboxCabinet(panelX + panelW + CAB_GAP, ENV.GROUND_Y + 4, now, playing,
                                ENV.jukeSel > 0 || pickCount > 0, cover);
         }
@@ -656,14 +660,15 @@ var StreetRooms = (function () {
             ENV.ctx.fillRect(rx - 2, top + 62, 4, baseY - top - 64);
         }
 
-        /* Levypesä + levy. Jos **soivalla** kappaleella on kansikuva (raidat
-           4–6) ja se on latautunut, kuva piirretään levypesän paikalle
-           kuvasuhde säilyttäen; muuten levy piirretään täsmälleen kuten ennen
-           (raidat 1–3 sekä tilanne, jossa mikään ei soi). */
+        /* Levypesä + levy. Jos kappaleella on kansikuva (raidat 4–9) ja se on
+           latautunut, kuva piirretään levypesän paikalle kuvasuhde säilyttäen;
+           muuten levy piirretään kuten ennen (raidat 1–3 sekä rivi 0). Kansi
+           näytetään soitossa (soiva raita) ja selatessa (kursorin raita, v11.58)
+           – valinta tehdään kutsujan puolella (`cover`). */
         const recY = top + 80, recR = 28;
         ENV.ctx.fillStyle = '#0d0a10';
         ENV.ctx.beginPath(); ENV.ctx.arc(cx, recY, recR + 4, 0, Math.PI * 2); ENV.ctx.fill();
-        const showCover = playing && !!cover && cover.ready;
+        const showCover = !!cover && cover.ready;
         if (showCover) {
             const box = (recR + 4) * 2;                        // koko tumman ympyrän kattava alue
             const iw  = cover.img.naturalWidth  || 1;
@@ -1222,6 +1227,7 @@ var StreetRooms = (function () {
     function updateJukeboxRoom(dt) {
         // JUKEBOX-huone (talo 5) – monivalinta
         //   ▲ / W = kursori ylös   ▼ / S = kursori alas (0 = Poistu-rivi, 1..N = kappale)
+        //   Lista kiertää: ▲ rivillä 0 → viimeinen kappale, ▼ viimeiseltä → rivi 0 (Poistu)
         //   (o) / Space / ⚡ = ota kappale listalle tai poista se
         //   (o) / Space / ⚡ rivillä 0 = soita valitut & poistu
         //   Enter = soita valitut & poistu mistä tahansa
@@ -1246,8 +1252,10 @@ var StreetRooms = (function () {
 
             // Kursori aina vapaana: valinta onnistuu myös soiton aikana,
             // jolloin uudet valinnat lisätään soivan jonon perään.
-            if (selUp && !ENV.jukeHeldUp) ENV.jukeSel = Math.max(0, ENV.jukeSel - 1);
-            if (selDown && !ENV.jukeHeldDown) ENV.jukeSel = Math.min(trackCount, ENV.jukeSel + 1);
+            // Lista kiertää päästä päähän (▲ riviltä 0 → viimeinen, ▼ viimeiseltä → rivi 0),
+            // joten pohjalta pääsee suoraan takaisin ylös ilman askel kerrallaan näpyttelyä.
+            if (selUp && !ENV.jukeHeldUp) ENV.jukeSel = (ENV.jukeSel <= 0) ? trackCount : ENV.jukeSel - 1;
+            if (selDown && !ENV.jukeHeldDown) ENV.jukeSel = (ENV.jukeSel >= trackCount) ? 0 : ENV.jukeSel + 1;
             ENV.jukeHeldUp = selUp;
             ENV.jukeHeldDown = selDown;
 

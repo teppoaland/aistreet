@@ -81,8 +81,15 @@
          laukaisee mouseenterin uudelleen, kun gate katoaa osoittimen alta,
          jolloin se pyyhkäisi käynnissä olevan kierroksen (ensimmäinen efekti
          näkyi vasta ~17 s kohdalla, kun hiiri lepäsi valikon päällä); samalla
-         pito + tärinä ajetaan aina, myös osoittimen alla olevalla napilla. -->
-    <link rel="stylesheet" href="style.css?v=11.56">
+         pito + tärinä ajetaan aina, myös osoittimen alla olevalla napilla.
+         v11.57: jukeboxin valintalista kiertää päästä päähän (▲ riviltä 0
+         viimeiselle, ▼ viimeiseltä riville 0) → kaikki ?v=-leimat samaan
+         numeroon kuin #version-tag.
+         v11.58: jukeboxin kansikuva näkyy myös selatessa (kursorin raita,
+         raidat 4–9) – soitossa soivan raidan kansi kuten ennen.
+         v11.59: raidoille 1–3 (Knived) lisätty kansikuva (covers/1–3.png)
+         → kaikilla yhdeksällä raidalla on kansi. -->
+    <link rel="stylesheet" href="style.css?v=11.59">
 </head>
 <body>
     <!-- ═══ ALOITUSGATE (äänilukko auki ennen chaos-valikkoa) ═══ -->
@@ -141,7 +148,7 @@
     </div>
 
     <!-- Versionumero (aina näkyvissä – myös alkunäkymässä) -->
-    <div id="version-tag">v11.56</div>
+    <div id="version-tag">v11.59</div>
 
     <!-- ═══ PÄÄNÄKYMÄ ═══════════════════════════════════ -->
     <div id="game-wrapper">
@@ -180,15 +187,15 @@
     </div>
 
     <!-- ═══ SKRIPTIT ═════════════════════════════════════ -->
-    <script src="gameState.js?v=11.56"></script>
-    <script src="audio.js?v=11.56"></script>
-    <script src="street/chaos-config.js?v=11.56"></script>
-    <script src="street/sfx.js?v=11.56"></script>
-    <script src="street/news.js?v=11.56"></script>
-    <script src="street/traffic.js?v=11.56"></script>
-    <script src="street/chaos-cards.js?v=11.56"></script>
-    <script src="street/rooms.js?v=11.56"></script>
-    <script src="street.js?v=11.56"></script>
+    <script src="gameState.js?v=11.59"></script>
+    <script src="audio.js?v=11.59"></script>
+    <script src="street/chaos-config.js?v=11.59"></script>
+    <script src="street/sfx.js?v=11.59"></script>
+    <script src="street/news.js?v=11.59"></script>
+    <script src="street/traffic.js?v=11.59"></script>
+    <script src="street/chaos-cards.js?v=11.59"></script>
+    <script src="street/rooms.js?v=11.59"></script>
+    <script src="street.js?v=11.59"></script>
 
     <!-- ✕-napit (alapeli + huone + reset) – yksi yhteinen toiminto -->
     <script>

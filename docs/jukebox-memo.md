@@ -1,11 +1,13 @@
 # 🎵 Jukebox – memo (talo 5)
 
-> Päivitetty 1.10.2026 – versio **v4.99**. Talo 5 (`buildings[4]`) on jukebox-huone,
+> Päivitetty 4.10.2026 – versio **v11.59**. Talo 5 (`buildings[4]`) on jukebox-huone,
 > josta voi valita **useamman kappaleen** (1 🪙 / kappale) ja valitut soitetaan
-> poistuttaessa yksi kerrallaan (1 → 3). Kappaleet ovat `jukebox/`-kansiossa.
+> poistuttaessa yksi kerrallaan (1 → N). Kappaleet ovat `jukebox/`-kansiossa.
 > **Aukiolo (v4.34): auki vain öisin (klo 20–06)** – päivällä ovesta tulee teksti-popup.
 > **Raidat 7–9 lisätty v4.97:** uusi nimeämiskäytäntö `7_tiedostonimi.mp3` = `covers/7_tiedostonimi.png`.
 > Kansikuvat `covers/`-kansiossa, sama etuliite ja nimi pitää parin synkassa.
+> **Kansikuvat (v11.58–v11.59): jokaisella raidalla 1–9 on kansi** (`covers/N.png`) – soitossa
+> soivan raidan ja selatessa kursorin raidan kansi näkyvät kaapin levypesässä.
 
 ---
 
@@ -51,9 +53,11 @@
 - Kappaleet soitetaan **aina kokonaan loppuun** (`loop = false`, ei katkaisua) ja
   **peräkkäin ilman taukoa**; vasta viimeisen jälkeen `JUKEBOX_GAP` (2,5 s) →
   taustamusiikki palaa. **Ei järjestysvalintoja:** jono on aina **1 → 3**.
-- **Kursori:** **▲ / W** = ylös (−1), **▼ / S** = alas (+1) (0…N, reunanilmaisu →
-  ei toistoa pohjassa). Rivi 0 = **Poistu**, rivit 1..3 = kappaleet. Nuolikorjaus
-  v4.21: rivi 0 on ylimpänä → ▲ pienentää ja ▼ kasvattaa valintaa.
+- **Kursori:** **▲ / W** = ylös (−1), **▼ / S** = alas (+1) (reunanilmaisu → ei toistoa
+  pohjassa). **v11.57: lista kiertää päästä päähän** – ▲ riviltä 0 (Poistu) hyppää
+  viimeiselle raidalle ja ▼ viimeiseltä raidalta takaisin riville 0, joten pohjalta
+  pääsee suoraan takaisin ylös. Rivi 0 = **Poistu**, rivit 1..9 = kappaleet.
+  Nuolikorjaus v4.21: rivi 0 on ylimpänä → ▲ pienentää ja ▼ kasvattaa valintaa.
 - **Ota / poista kappale:** **(o) / Space / ⚡-nappi**. Space ja ⚡ asettavat saman
   keyn (`' '`); `(o)`/`(O)` luetaan huoneessa erikseen (keydown ei tee siitä
   action-näppäintä, joten muualla kadulla `(o)` ei tee mitään). Valittu rivi
@@ -184,10 +188,10 @@ koko asettelu sovitetaan näkyvään ikkunaan:
 
 ## `street.js` – kytkentä
 
-- Vakiot/tila: `JUKEBOX_BLDG_IDX = 4`, `JUKEBOX_TRACKS` (3 raitaa), `jukeboxRoom`,
+- Vakiot/tila: `JUKEBOX_BLDG_IDX = 4`, `JUKEBOX_TRACKS` (9 raitaa), `jukeboxRoom`,
   `jukeSel` (kursori 0..N), `jukePick` (valinnat), `jukeQueue` (soivat raidat 1..N),
   `jukeHeldUp/Down`, `jukeSpaceHeld` (Space/⚡/(o)), `jukeEnterHeld` (Enter).
-- `jukeboxExitAndPlay()` (v4.46): kerää valinnat (1 → 3), veloittaa 1 🪙 / kappale
+- `jukeboxExitAndPlay()` (v4.46): kerää valinnat (1 → N), veloittaa 1 🪙 / kappale
   niin monta kuin kolikoita riittää, soittaa jonon (`playJukeboxQueue`) ja nollaa
   huoneen (`resetJukeboxRoom()`). Äänen puuttuessa veloitetut kolikot palautetaan.
   `closeRoom()` (✕-nappi) nollaa vain valinnat – **ei veloitusta**.
@@ -198,7 +202,9 @@ koko asettelu sovitetaan näkyvään ikkunaan:
   (päiväkiinni, v4.34) ② `smallHouseLights[4].lit && jkInReach` → huone auki.
 - `update()`: oma huonehaara BAR-haaran mallilla; `render()`:
   `drawJukeboxRoom()` (paneeli + rivilista + tilalaatikko + Wurlitzer
-  `drawJukeboxCabinet`, proseduraalinen, ei kuvatiedostoja).
+  `drawJukeboxCabinet` – proseduraalinen kaappi, jonka levypesässä näytetään
+  **kappaleen kansikuva**: soitossa soivan raidan ja selatessa kursorin raidan
+  kansi, v11.58; kansikuvat raidoilla 1–9).
 - `drawJukeboxRoom()` sovittaa sisällön näkyvään ikkunaan (`viewW`) ja valitsee
   fonttikoot näytön skaalan mukaan – ks. **Huoneen ulkoasu ja luettavuus (v4.22)**.
   Koko piirto on `ctx.save()`/`restore()`-parin sisällä, joten huone ei vuoda

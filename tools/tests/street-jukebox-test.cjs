@@ -20,6 +20,11 @@ const streetSrc = require('./street-src.cjs');
 const audioSrc  = fs.readFileSync(path.join(ROOT, 'audio.js'), 'utf8');
 const stateSrc  = fs.readFileSync(path.join(ROOT, 'gameState.js'), 'utf8');
 
+/* Jukeboxin rivimäärä lähteestä: rivi 0 = Exit + N raitaa. Kiertologiikka
+   (v11.57) vaatii tarkan rivimäärän, jotta navigointi osuu tunnetulle riville. */
+const TRACK_N   = (streetSrc.match(/url:\s*'jukebox\//g) || []).length;   // 9
+const JUKE_ROWS = TRACK_N + 1;                                            // 10 (0 = Exit)
+
 const problems = [], oks = [];
 const fail = (m) => problems.push(m);
 const ok = (m) => oks.push(m);
@@ -284,14 +289,17 @@ try {
     if (noPicks(e)) ok('J2: Space poisti valinnan (toggle, rivi 0 näyttää taas "–")');
     else fail('J2: valinnan poisto ei toiminut');
 
-    /* Pohjaan asti: 12 × ▼ ei ylitä raitalistan loppua (huone pysyy auki) */
-    for (let i = 0; i < 12; i++) { e.hold('ArrowDown'); e.frame(1); e.release('ArrowDown'); e.frame(1); }
-    if (e.room() && noPicks(e)) ok('J2: ylimääräinen ▼ ei ylitä raitalistan loppua');
-    else fail('J2: ▼ ylitti raitalistan');
-    /* Takaisin ylös: 20 × ▲ → rivi 0 (Exit), kursori ei mene negatiiviseksi */
-    for (let i = 0; i < 20; i++) { e.hold('ArrowUp'); e.frame(1); e.release('ArrowUp'); e.frame(1); }
-    if (e.room() && e.sawText('Exit')) ok('J2: ▲▲ palautti kursorin riville 0 eikä mennyt alle 0:n');
-    else fail('J2: kursori meni negatiiviseksi');
+    /* Lista kiertää päästä päähän (v11.57): kursori ei jumita reunaan.
+       Lähtö rivi 1 (yllä ▼ kerran) → ▼ × N kiertää koko listan takaisin riville 0. */
+    for (let i = 0; i < TRACK_N; i++) { e.hold('ArrowDown'); e.frame(1); e.release('ArrowDown'); e.frame(1); }
+    if (e.room() && noPicks(e)) ok('J2: ▼ kiertää koko listan (ei ylitä loppua)');
+    else fail('J2: ▼ jäi jumiin / ylitti listan');
+    e.hold('ArrowUp'); e.frame(1); e.release('ArrowUp'); e.frame(1);          // rivi 0 → viimeinen raita
+    if (e.room() && noPicks(e)) ok('J2: ▲ riviltä 0 kiertyy viimeiselle raidalle');
+    else fail('J2: ▲ meni negatiiviseksi');
+    e.hold('ArrowDown'); e.frame(1); e.release('ArrowDown'); e.frame(1);      // viimeinen → rivi 0
+    if (e.room() && noPicks(e)) ok('J2: ▼ viimeiseltä riviltä kiertyy takaisin riville 0');
+    else fail('J2: ▼ ei kiertynyt riville 0');
     if (e.savedCoins() !== c0) fail('J2: valinnat veloittivat'); else ok('J2: valinnat eivät veloita (vasta poistuessa)');
 
     /* ═══ J3: POISTUMINEN ilman valintoja (rivi 0 + Space) ═══ */
@@ -358,11 +366,14 @@ try {
     else {
         if (noPicks(e)) ok('J6: uusi vierailu alkaa ilman valintoja');
         else fail('J6: valinnat jäivät päälle');
-        for (let i = 0; i < 3; i++) { e.hold('ArrowDown'); e.frame(1); e.release('ArrowDown'); e.frame(1); }
-        e.hold('ArrowDown'); e.frame(90); e.release('ArrowDown'); e.frame(1);   // katto
-        tapDoor(e);                                    // ota raita listalle
-        if (!e.sawText('✓ 1 🪙')) fail('J6: valinta ei asettunut katossa');
-        for (let i = 0; i < 9; i++) { e.hold('ArrowUp'); e.frame(1); e.release('ArrowUp'); e.frame(1); }
+        /* ▼ × N → listan pohja (viimeinen raita). Pitkä pito (90 f) ei toista
+           (reunanilmaisu): vain 1 askel → kierto takaisin riville 0. */
+        for (let i = 0; i < TRACK_N; i++) { e.hold('ArrowDown'); e.frame(1); e.release('ArrowDown'); e.frame(1); }
+        e.hold('ArrowDown'); e.frame(90); e.release('ArrowDown'); e.frame(1);   // pitkä pito = 1 askel → rivi 0
+        e.hold('ArrowDown'); e.frame(1); e.release('ArrowDown'); e.frame(1);    // rivi 0 → raita 1
+        tapDoor(e);                                    // ota raita 1 listalle
+        if (!e.sawText('✓ 1 🪙')) fail('J6: valinta ei asettunut');
+        e.hold('ArrowUp'); e.frame(1); e.release('ArrowUp'); e.frame(1);        // raita 1 → rivi 0
         const cc = e.savedCoins();
         tapDoor(e);
         q = e.jukeQueueCalls();
@@ -446,7 +457,7 @@ try {
         if (e.sawText('♪ PLAYING')) ok('J9: mobiilissa soiva raita näkyy ("♪ PLAYING")');
         else fail('J9: ♪ PLAYING -tila puuttui mobiilissa');
         const c1 = e.savedCoins();
-        for (let i = 0; i < 9; i++) tapBtn('btn-up');   // takaisin riville 0
+        for (let i = 0; i < JUKE_ROWS; i++) tapBtn('btn-up');   // koko kierros takaisin riville 0
         tapBtn('action-btn');                           // ei valintoja → ei veloitusta
         if (e.savedCoins() !== c1 || e.jukeQueueCalls().length !== 1) fail('J9: valitsematon poistuminen veloitti');
         else ok('J9: ilman valintoja ⚡-nappi ei veloita uudelleen');

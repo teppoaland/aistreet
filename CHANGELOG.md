@@ -17,7 +17,10 @@
 
 | Versio | Mitä | Lisätieto |
 |---|---|---|
-| **🟢 v11.56 – TUOTANNOSSA** | **Ukkosen parametrit:** salaman → jyrinän viive **0,4–3,0 s** (`THUNDER_DELAY_MIN/MAX`), salamointi **5–15 s välein** (`thunderGapMin/Max` 300–900 f) ja jyrinän pituus satunnaiseksi – **5–10 limittäistä jyrinää** (`THUNDER_LAYERS_MIN/MAX`; limitys 0,2 s askel ennallaan) | `progress.md` |
+| **🟢 v11.59 – TUOTANNOSSA** | **Jukebox: kaikilla 9 raidalla kansikuva:** raidoille 1–3 (Knived) lisätty kansi (`jukebox/covers/1–3.png`, 148×148) – aiemmin kansi oli vain raidoilla 4–9; `street.js`:n `cover`-kentät + kommentti päivitetty | `progress.md` |
+| **v11.58** | **Jukebox: kansikuva näkyy myös selatessa:** kun mikään ei soi, kaapissa näytetään **kursorin raidan** kansi (esikatselu); soitossa soivan raidan kansi kuten ennen (`showCover = !!cover && cover.ready`) | `progress.md` |
+| **v11.57** | **Jukebox: valintalista kiertää päästä päähän:** ▲ riviltä 0 (Poistu) → viimeinen raita, ▼ viimeiseltä → rivi 0 – pohjalta pääsee suoraan takaisin ylös; penkki `street-jukebox-test.cjs` päivitetty kiertokäytökseen | `progress.md` |
+| **v11.56** | **Ukkosen parametrit:** salaman → jyrinän viive **0,4–3,0 s** (`THUNDER_DELAY_MIN/MAX`), salamointi **5–15 s välein** (`thunderGapMin/Max` 300–900 f) ja jyrinän pituus satunnaiseksi – **5–10 limittäistä jyrinää** (`THUNDER_LAYERS_MIN/MAX`; limitys 0,2 s askel ennallaan) | `progress.md` |
 | **v11.55** | **Jyrinä 5 kerrokseen + sade myöhemmäksi/pidemmäksi:** `playThunder` = **5 limittäistä jyrinää** (~3,1 s); BAD-sade alkaa vasta **~60 s jälkeen** ja kestää **60–180 s** (`stormCalm/BurstMin/Max 3600–10800`) | `progress.md` |
 | **v11.54** | **Rosvon rauha + turvasäde + jyrinä tiiviimmäksi:** rosvo ei ilmesty **ensimmäiseen 60 s** (`ROBBER_GRACE_FRAMES 3600`) eikä koskaan synny **ulostulokohdan päälle** (`ROBBER_MIN_DIST 200`, reunaklampin ohitse, kaikki ovet – BAR-ovi-häkä poistettu); `playThunder` tiivistetty (~2,7 s). Uusi penkki `street-robber-grace-test` (19/0) | `progress.md` |
 | **v11.53** | **BAD-myrsky viilattu:** ukkonen = **3 limittäistä jyrinää** (bruum-bruum-bruum, kesto ~3,5–4 s); sade **puolet hitaampi**, vinokulma **tuulen voimakkuuden mukaan**, **2 syvyyskerrosta** (kauko talojen taakse + lähi eteen) | `progress.md` |

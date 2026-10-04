@@ -375,9 +375,12 @@ const Street = (() => {
        lisätty (Alex Morgan + 2× NickPanek). Hinta ja veloitus ennallaan:
        1 🪙 / kappale (sääntö 04). */
     const JUKEBOX_TRACKS = [
-        { url: 'jukebox/Knived_Our_song.mp3',              title: 'Knived - Our Song',          duration: '4:24' },
-        { url: 'jukebox/Knived_Unafraid.mp3',              title: 'Knived - Unafraid',          duration: '4:43' },
-        { url: 'jukebox/Knived_Unafraid_instrumental.mp3', title: 'Knived - Unafraid (inst.)',  duration: '2:08' },
+        { url: 'jukebox/Knived_Our_song.mp3',              title: 'Knived - Our Song',          duration: '4:24',
+          cover: 'jukebox/covers/1.png' },
+        { url: 'jukebox/Knived_Unafraid.mp3',              title: 'Knived - Unafraid',          duration: '4:43',
+          cover: 'jukebox/covers/2.png' },
+        { url: 'jukebox/Knived_Unafraid_instrumental.mp3', title: 'Knived - Unafraid (inst.)',  duration: '2:08',
+          cover: 'jukebox/covers/3.png' },
         { url: 'jukebox/alec_koff-heavy-doom-dark-metal-493397.mp3', title: 'Alec Koff - Heavy Doom',        duration: '1:53',
           cover: 'jukebox/covers/4.png' },
         { url: 'jukebox/alec_koff-in-heavy-metal-492175.mp3',        title: 'Alec Koff - In Heavy Metal',    duration: '2:45',
@@ -391,16 +394,17 @@ const Street = (() => {
         { url: 'jukebox/9_nickpanek-heavy-doom-metal-instrumental-288971.mp3',                title: 'NickPanek - Heavy Doom Metal (inst.)',                duration: '3:02',
           cover: 'jukebox/covers/9_nickpanek-heavy-doom-metal-instrumental-288971.png' }
     ];
-    /* Kansikuvat (22.9.2026): raidoilla 4–6 on kansikuva, joka näytetään
-       jukebox-kaapin levykuvan paikalla **kappaleen soidessa**. Raidoilla 1–3
-       ei ole kuvaa → niiden kohdalla levy piirretään täsmälleen kuten ennen.
+    /* Kansikuvat: jokaisella raidalla 1–9 on kansikuva (`covers/1.png` …
+       `covers/9_….png`), joka näytetään jukebox-kaapin levykuvan paikalla –
+       soitossa soivan raidan kansi ja selatessa kursorin raidan kansi (v11.58).
+       (Alun perin vain raidoilla 4–6 oli kuva; raidat 1–3 saivat kuvan v11.59.)
        Lataus BAR-taulun mallilla: `ready`-lippu + `typeof Image` -tarkistus
        (headless-validonnat), varapinta jos kuva ei lataudu. Ei uusia
        localStorage-avaimia eikä talousmuutoksia (sääntö 04).
 
-       ⚠ MÄPPÄYS – kansiotiedoston nimi = **jukebox-rivi** (`covers/4.png` =
-       rivi 4). D:\AI\free_music -kansion numerointi EI vastaa jukeboxin rivejä,
-       koska jukeboxissa raidat ovat aakkosjärjestyksessä:
+       ⚠ MÄPPÄYS – kansiotiedoston nimi = **jukebox-rivi** (`covers/1.png` =
+       rivi 1, `covers/4.png` = rivi 4). D:\AI\free_music -kansion numerointi EI
+       vastaa jukeboxin rivejä, koska jukeboxissa raidat ovat aakkosjärjestyksessä:
          jukebox rivi 4 (Alec Koff - Heavy Doom)     ← 6_img.PNG
          jukebox rivi 5 (Alec Koff - In Heavy Metal) ← 5_img.PNG
          jukebox rivi 6 (MrClaps - This Heavy Metal) ← 4_img.PNG
