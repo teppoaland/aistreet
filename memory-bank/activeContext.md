@@ -4,8 +4,8 @@
 > **✅ REFAKTOROINTI VALMIS (Vaiheet 0–6, v11.38–v11.45) JA JULKAISTU 3.10.2026.**
 > Tuotanto = `origin/main` = **v11.71** (myrsky kaikille tasoille + sade vain öisin + 3 saderiviä +
 > pilvistä alkaa vain takarivi, pushattu 4.10.2026) → `https://teppoaland.github.io/aistreet/`.
-> Työpuu = HEAD = v11.71.
-> Portti **29 penkkiä / 29 puhdasta / 0 löydöstä**.
+> Työpuu = **v11.72** (spawn ei koskaan sähkökaapin kohdalle; **ei vielä pushattu**).
+> Portti **30 penkkiä / 30 puhdasta / 0 löydöstä**.
 > **v11.46–v11.48 (3.10.2026):** makuuhuoneen sininen **HOSTEL-neonkyltti** (`drawHostelSign`) +
 > huoneen otsikko **HOSTEL - BEDROOM** + **rauta-aita pois BAD/FULLista** (`chaosFlags.ruin`) –
 > ks. `progress.md`. NORMAL/MILD/GOOD bitti-identtiset.
@@ -62,6 +62,11 @@
 > saa tulla näytön yläreunasta (per-pisara `topY = (z < 0.5) ? RAIN_TOP_Y : 0`); (3) `updateStorm`
 > portittaa `dayNight.t < CLOSED_AT_DAYT` → **päivällä ei sadetta** (stormLevel hiipuu 0:aan), öisin ja
 > päivä/yö-siirtymissä normaali. Penkki `street-storm-test` **89/0**. Ks. `progress.md`.
+> **v11.72 (4.10.2026):** **spawn-bugikorjaus** – pelaaja saattoi spawnata **sähkökaapin kohdalle**
+> (talojen puoli y 280–288 peittää aina kaapin yläreunan `GROUND_Y − 16 = 294`), jolloin päällä oleva
+> kaappi iski **heti** (ei väistettävissä). `applyChaosProfile()` siirtää spawnin nyt kaapin sivulle –
+> **ei RNG-kutsuja** → NORMAL-maailma ja `?seed=`-penkit bitti-identtiset. Uusi penkki
+> `street-spawn-safe-test` (9/0) → portti **30/30**. Ks. `progress.md`.
 
 > **🕒 Aika & sää (todettu 4.10.2026, v11.69 – ei koodimuutosta, jätetään ennalleen):**
 > **Aika etenee kaikkialla** (`updateDayNight`/`updateDayCycle` kutsutaan ennen huonerekisteriä, rivi 3821) –

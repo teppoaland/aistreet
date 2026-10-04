@@ -834,6 +834,31 @@ näytön ylhäältä."*
 - **Dokumentit:** `CHANGELOG.md` · `docs/chaos.md` · `tools/tests/BASELINE.md` · `docs/testilista.md` ·
   `memory-bank/activeContext.md` · tämä tiedosto.
 
+**v11.72 – Spawn-bugikorjaus: pelaaja ei enää spawnaa sähkökaapin kohdalle (4.10.2026, sääntö 03):**
+Käyttäjän havainto 4.10.2026: *"Pelaaja joskus spawnaa sähkökaappien kohdalle, niin se pitäisi estää,
+että heti osuu kun pelaaja ei tätä voi välttää."*
+
+- **Syy:** `applyChaosProfile()` arpoi spawnin (`player.x = rnd(4, WORLD_W − w − 4)`; `player.y = 280…288`
+  talojen puolella / `347…350` aidan puolella). Talojen puolella pelaajan vartalo (h = 30) on `280…318`
+  → peittää **aina** kaapin yläreunan (`cab.y = GROUND_Y − 16 = 294`) ja törmäysehto
+  (`updateElectricCabinets`) on pelkkä vaakalimitys kaapin kanssa. Kaapit sijaitsevat x 200 ja x 560
+  (w 8) → osumaikkuna `x ∈ [181, 207]` ja `[541, 567]`. Todennäköisyys ≈ `(27·2)/772 × 80 % × 50 %`
+  (kaappi päällä) ≈ **~2,8 % spawnista** → "joskus". Aidan puolella (y ≥ 347) ei osu.
+- **Korjaus (`street.js` `applyChaosProfile`):** spawnin jälkeen, jos ollaan kaapin korkeudella
+  (`player.y < cabTop && player.y + player.h > cabTop`, `cabTop = GROUND_Y − 16`), jokainen kaappi tarkistetaan
+  ja spawn työnnetään lähimmälle puolelle (`left = cab.x − w − 4` / `right = cab.x + cab.w + 4`).
+  **Deterministinen – ei uusia RNG-kutsuja** → NORMAL-maailma ja `?seed=`-arinnat pysyvät täsmälleen
+  ennallaan. Kaappien tahti/hinta (−1 🍔 / FULL −1 🪙) ja vaara muuten **ennallaan**; ei uusia dialogeja
+  (sääntö 06).
+- **Testit:** uusi penkki **`tools/tests/street-spawn-safe-test.cjs` (9 OK / 0 löydöstä)** – (1) lähdevahdit,
+  (2) kontrolli: 200 000 raakaa arpaa osuisi kaappiin (bugi oli aito), (3) oikea spawn 5000 × `setChaos`
+  → **0 osumaa** ja rajoissa, (4) kiinnitetty arpa 0.25 (osuisi) → spawn siirtyy silti pois.
+  `run-all` **29 → 30 penkkiä / 30 puhdasta / 0 löydöstä** · `chaos-normal-check` 88 avainta / 0 eroa ·
+  `street-render-smoke-test` 30/30 · `node --check street.js` OK.
+- **Versiot:** `#version-tag` + 10 `?v=`-leimaa (1 CSS + 9 skriptiä) + `.clinerules/03` → **v11.72**.
+  **Ei committia / ei pushia** (työ jää työpuuhun, sääntö 03).
+- **Dokumentit:** `CHANGELOG.md` · `tools/tests/BASELINE.md` · `memory-bank/activeContext.md` · tämä tiedosto.
+
 
 
 

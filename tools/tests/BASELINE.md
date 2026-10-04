@@ -24,6 +24,8 @@
 > **4.10.2026 (v11.71):** tarkennus – pilvistä alkaa **vain takarivi** (`z < 0.5`); eturivi näytön
 > yläreunasta (per-pisara `topY = (z < 0.5) ? RAIN_TOP_Y : 0`); `street-storm-test` **89/0**
 > → **29 penkkiä, 29 puhdasta, 0 löydöstä**.
+> **4.10.2026 (v11.72):** uusi penkki `street-spawn-safe-test` (9/0) – pelaaja ei enää spawnaa
+> sähkökaapin kohdalle (spawn-väistö `applyChaosProfile()`issa) → **30 penkkiä, 30 puhdasta, 0 löydöstä**.
 
 ## Miten baselinea luetaan
 

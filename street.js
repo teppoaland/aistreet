@@ -2390,6 +2390,21 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         player.y = (Math.random() < 0.8)
             ? (280 + rnd(0, 8))          // talojen puoli (ylhäällä, turvassa autoilta)
             : (347 + rnd(0, 3));         // aidan puoli (alhaalla, turvassa autoilta)
+        /* Bugikorjaus: talojen puolella spawnataan välillä sähkökaapin kohdalle –
+           päällä oleva kaappi iskisi heti eikä pelaaja ehtisi väistää. Siirretään
+           spawn kaapin sivulle. Vartalo peittää kaapin yläreunan vain talojen
+           puolella, joten väistö tarvitaan vain siinä korkeudessa. Ei RNG-kutsuja,
+           joten NORMAL-maailma ja ?seed=-arinnat pysyvät bitti-identtisinä. */
+        const cabTop = GROUND_Y - 16;
+        if (player.y < cabTop && player.y + player.h > cabTop) {
+            for (const cab of electricCabinets) {
+                if (player.x < cab.x + cab.w + 4 && player.x + player.w > cab.x - 4) {
+                    const right = Math.min(WORLD_W - player.w - 4, cab.x + cab.w + 4);
+                    const left  = Math.max(4, cab.x - player.w - 4);
+                    player.x = (player.x + player.w / 2 < cab.x + cab.w / 2) ? left : right;
+                }
+            }
+        }
         player.facing = Math.random() < 0.5 ? 1 : -1;
         if (CHAOS_DEBUG) {
             console.table(chaosCfg);
