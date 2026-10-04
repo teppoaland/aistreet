@@ -1,4 +1,4 @@
-# 🧪 Testilista v11.54 – manuaalitestit (AI CHAOS STREET)
+# 🧪 Testilista v11.55 – manuaalitestit (AI CHAOS STREET)
 
 > ## ⚠️ UUSI SESSIO (Cline): LUE TÄMÄ ENSIN
 >
@@ -127,7 +127,7 @@ file:///D:/AI/AI_street/index.html?chaos=full&day=1  ← pakota päivä (aamuong
   **Kerroin vaihtuu vain uudessa yössä** (Nuku / uusi peli) – ei väpätä kesken yön.
 - **v11.39 – blackout:** vertaa `?card=blackout` ↔ ilman parametria (lamppujen **kuput**, ei vain hehku).
 - **v11.52–v11.53 – BAD-myrsky (`?chaos=bad`, `?day=0` tai `?day=1`):** pilvet ovat **paksut** ja **sade +
-  ukkonen** tulevat **satunnaisina purskeina** (tyyni ~15–45 s → purske ~8–20 s). Purskeen aikana
+  ukkonen** tulevat **satunnaisina purskeina** (v11.55: tyyni 60–180 s → purske 60–180 s; sade ei ala heti). Purskeen aikana
   sade valuu koko ruudun yli, **salama iskee ylhäältä alas talojen taakse** (ei koskaan talojen eteen)
   ja **väläyttää koko ruudun**, ja **matala jyrinä** soi hetki välähdyksen jälkeen (ei korkeaa
   pimputusta). **v11.53:** jyrinä on **kolme limittäistä jyrinää** (bruum-bruum-bruum, kesto ~3,5–4 s,
@@ -140,6 +140,9 @@ file:///D:/AI/AI_street/index.html?chaos=full&day=1  ← pakota päivä (aamuong
   josta pelaaja juuri tuli ulos** (turvasäde 200 px, **kaikki ovet** – myös reunatalot BAR x765 ja
   talo 0 x40; ennen vain BAR oli suojattu). **Ukkosen jyrinä tiivistetty** (~2,7 s, 3 limittäistä
   jyrinää lähempänä toisiaan).
+- **v11.55 – Jyrinä 5 kerrokseen + sade myöhemmäksi:** `?chaos=bad` – ukkosen jyrinä on nyt **5
+  limittäistä jyrinää** (~3,1 s; bruum×5). Sade **ei ala heti**: ensimmäinen myrskypurske tulee vasta
+  **~60 s jälkeen** (satunnaisesti) ja **kestää aina 60–180 s**.
 
 ---
 

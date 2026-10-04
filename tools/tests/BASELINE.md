@@ -9,6 +9,8 @@
 > sai yhdeksän uutta no-op-avainta → **28 penkkiä, 28 puhdasta, 0 löydöstä**.
 > **4.10.2026 (v11.54):** uusi penkki `street-robber-grace-test` (19/0) rosvon rauhalle + turvasäteelle;
 > `street-storm-test` kasvoi 62/0:aan → **29 penkkiä, 29 puhdasta, 0 löydöstä**.
+> **4.10.2026 (v11.55):** `street-storm-test` kasvoi 64/0:aan (ukkosen 5 kerrosta + purske 60–180 s)
+> → **29 penkkiä, 29 puhdasta, 0 löydöstä**.
 
 ## Miten baselinea luetaan
 

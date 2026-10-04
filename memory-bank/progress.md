@@ -608,3 +608,22 @@ silloin ei havaitse että mitä edes tapahtui. Tämä on geneerinen ongelma."*
 - **Dokumentit:** `docs/chaos.md` §6.1 + §6.3 + §6.6 + muutoshistoria · `CHANGELOG.md` ·
   `tools/tests/BASELINE.md` · `docs/testilista.md` · `memory-bank/activeContext.md` · tämä tiedosto.
 
+**v11.55 – Jyrinä 5 kerrokseen + sade myöhemmäksi & pidemmäksi (4.10.2026, sääntö 03):**
+Käyttäjän palaute 4.10.2026: *"jyrinä on hyvä, mutta varmaan siihen samalla kaavalla pitää lisätä
+vielä 3->5 jyrinää putkeen, niin tulee oikean kuuloinen. Sade … ei ala ihan heti vaan vaikka 60s
+jälkeen randomina jos alkaa ja sade kestää aina min 60s - 180s."*
+
+- **Jyrinä (`street/sfx.js`):** `playThunder`-kerrokset **3 → 5** (viiveet **0 · 0,20 · 0,40 · 0,60 ·
+  0,80 s**, voimakkuudet **1,0 · 0,85 · 0,72 · 0,61 · 0,52**, kestot 1,9 · 2,0 · 2,1 · 2,2 · 2,3 s →
+  yht. **~3,1 s**). Kerrosvoimakkuuden perustaso **0,26 → 0,18** (5 kerrosta → huippu ei säröydy).
+  Muu ennallaan (pehmeä alku, oma kohina/kerros, bassot 62→26 · 44→22 Hz).
+- **Sade (`street/chaos-config.js`):** BAD-profiili – tyyni **900–2700 → 3600–10800** (60–180 s; sade
+  ei ala heti), purske **480–1200 → 3600–10800** (60–180 s). `clampChaosCfg`-ylärajat **7200/3600 →
+  10800** (muuten klampi leikkaisi pitemmän keston). NORMAL/MILD/GOOD/FULL pysyvät no-op (0).
+- **Testit:** `street-storm-test` laajennettu → **64 OK / 0** (ukkosen 5 kerrosta + tarkistus
+  "tyyni ≥ 60 s" ja "purske 60–180 s"). `run-all` **29 penkkiä / 29 puhdasta / 0 löydöstä** ·
+  `chaos-normal-check` 88 avainta / 0 · `render-smoke` 30/30 · `node --check` OK.
+- **Versio:** `#version-tag` + 10 `?v=`-leimaa + `.clinerules/03` → **v11.55**.
+- **Dokumentit:** `docs/chaos.md` §6.1 + §6.6 + muutoshistoria · `CHANGELOG.md` ·
+  `tools/tests/BASELINE.md` · `docs/testilista.md` · `memory-bank/activeContext.md` · tämä tiedosto.
+

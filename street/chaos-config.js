@@ -348,12 +348,12 @@ function chaosProfile(level) {
                 sunSizeMult: rnd(1.6, 2.0),
                 moonShadowMax: 3,
                 // K1/K6 – BAD-myrsky: paksut pilvet (aina) + sade + ukkonen purskeina.
-                // Tyyni 15–45 s · purske 8–20 s · salama 3–8 s välein purskeen aikana.
+                // Tyyni 60–180 s · purske 60–180 s · salama 3–8 s välein purskeen aikana.
                 cloudThickMult: 2.5,
                 stormBurst: true,
                 rainAmount: 1,
-                stormCalmMin: 900, stormCalmMax: 2700,
-                stormBurstMin: 480, stormBurstMax: 1200,
+                stormCalmMin: 3600, stormCalmMax: 10800,
+                stormBurstMin: 3600, stormBurstMax: 10800,
                 thunderGapMin: 180, thunderGapMax: 480
             };
         case 'full':
@@ -438,10 +438,10 @@ function clampChaosCfg(cfg) {
     // K1/K6 – BAD-myrsky (visuaalinen + ääni → vain klampit, ei validointia)
     c.cloudThickMult   = clamp(c.cloudThickMult, 1, 4);
     c.rainAmount       = clamp(c.rainAmount, 0, 2);
-    c.stormCalmMin     = clamp(c.stormCalmMin, 0, 7200);
-    c.stormCalmMax     = Math.max(clamp(c.stormCalmMax, 0, 7200), c.stormCalmMin);
-    c.stormBurstMin    = clamp(c.stormBurstMin, 0, 3600);
-    c.stormBurstMax    = Math.max(clamp(c.stormBurstMax, 0, 3600), c.stormBurstMin);
+    c.stormCalmMin     = clamp(c.stormCalmMin, 0, 10800);
+    c.stormCalmMax     = Math.max(clamp(c.stormCalmMax, 0, 10800), c.stormCalmMin);
+    c.stormBurstMin    = clamp(c.stormBurstMin, 0, 10800);
+    c.stormBurstMax    = Math.max(clamp(c.stormBurstMax, 0, 10800), c.stormBurstMin);
     c.thunderGapMin    = clamp(c.thunderGapMin, 0, 1800);
     c.thunderGapMax    = Math.max(clamp(c.thunderGapMax, 0, 1800), c.thunderGapMin);
     return c;

@@ -228,8 +228,8 @@ function playBuildingCollapse() {
 }
 
 /* ── Ukkonen (BAD-myrsky): matala, pitkä jyrinä – EI korkeaa pimputusta.
-   KOLME päällekkäistä jyrinää samalla aikajanalla (kuten oikea ukkonen:
-   bruum-bruum-bruum) → tiivis, kerroksellinen kasauma (yht. ~2,7 s).
+   VIISI päällekkäistä jyrinää samalla aikajanalla (kuten oikea ukkonen:
+   bruum-bruum-bruum-bruum-bruum) → tiivis, kerroksellinen kasauma (yht. ~3,1 s).
    Jokainen kerros saa oman kohinansa (ei vaiheluontia) ja PEHMEÄN alun,
    jotta se jyrisee eikä tömsähdä. Kaikki bassoa (lowpass 700 → 80 Hz +
    sävelet 62→26 · 44→22 Hz). Voimakkuudet laskevat kerroksittain, ettei summa paisu. */
@@ -240,8 +240,10 @@ function playThunder() {
         const now = audioCtx.currentTime;
         const layers = [
             { delay: 0.00, vol: 1.00, dur: 1.9 },
-            { delay: 0.20, vol: 0.85, dur: 2.1 },
-            { delay: 0.40, vol: 0.70, dur: 2.3 }
+            { delay: 0.20, vol: 0.85, dur: 2.0 },
+            { delay: 0.40, vol: 0.72, dur: 2.1 },
+            { delay: 0.60, vol: 0.61, dur: 2.2 },
+            { delay: 0.80, vol: 0.52, dur: 2.3 }
         ];
         for (const L of layers) {
             const t0 = now + L.delay;
@@ -257,7 +259,7 @@ function playThunder() {
             lp.frequency.exponentialRampToValueAtTime(80, t0 + L.dur);
             const ng = audioCtx.createGain();
             ng.gain.setValueAtTime(0.0001, t0);
-            ng.gain.linearRampToValueAtTime(0.26 * L.vol * sfxVolumeMult, t0 + 0.20);   // pehmeä alku → jyrinä
+            ng.gain.linearRampToValueAtTime(0.18 * L.vol * sfxVolumeMult, t0 + 0.20);   // pehmeä alku → jyrinä (5 kerrosta → pienempi perusvoimakkuus)
             ng.gain.exponentialRampToValueAtTime(0.001, t0 + L.dur);
             src.connect(lp).connect(ng).connect(audioCtx.destination);
             src.start(t0); src.stop(t0 + L.dur);
