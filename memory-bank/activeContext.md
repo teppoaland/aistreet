@@ -2,9 +2,10 @@
 
 > **Kevyt:** Vain tämä tiedosto luetaan session alussa.
 > **✅ REFAKTOROINTI VALMIS (Vaiheet 0–6, v11.38–v11.45) JA JULKAISTU 3.10.2026.**
-> Tuotanto = `origin/main` = **v11.71** (myrsky kaikille tasoille + sade vain öisin + 3 saderiviä +
-> pilvistä alkaa vain takarivi, pushattu 4.10.2026) → `https://teppoaland.github.io/aistreet/`.
-> Työpuu = **v11.72** (spawn ei koskaan sähkökaapin kohdalle; **ei vielä pushattu**).
+> Tuotanto = `origin/main` = **v11.72** (spawn ei koskaan sähkökaapin kohdalle, pushattu 4.10.2026) →
+> `https://teppoaland.github.io/aistreet/`. Edellinen: v11.71 (myrsky kaikille tasoille + sade vain öisin
+> + 3 saderiviä + pilvistä alkaa vain takarivi, pushattu 4.10.2026).
+> Työpuu = HEAD = v11.72.
 > Portti **30 penkkiä / 30 puhdasta / 0 löydöstä**.
 > **v11.46–v11.48 (3.10.2026):** makuuhuoneen sininen **HOSTEL-neonkyltti** (`drawHostelSign`) +
 > huoneen otsikko **HOSTEL - BEDROOM** + **rauta-aita pois BAD/FULLista** (`chaosFlags.ruin`) –

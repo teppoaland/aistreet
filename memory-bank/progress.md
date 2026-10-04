@@ -856,7 +856,7 @@ että heti osuu kun pelaaja ei tätä voi välttää."*
   `run-all` **29 → 30 penkkiä / 30 puhdasta / 0 löydöstä** · `chaos-normal-check` 88 avainta / 0 eroa ·
   `street-render-smoke-test` 30/30 · `node --check street.js` OK.
 - **Versiot:** `#version-tag` + 10 `?v=`-leimaa (1 CSS + 9 skriptiä) + `.clinerules/03` → **v11.72**.
-  **Ei committia / ei pushia** (työ jää työpuuhun, sääntö 03).
+  **Committoitu + pushattu 4.10.2026** (push = tuotanto; `f4578f0`).
 - **Dokumentit:** `CHANGELOG.md` · `tools/tests/BASELINE.md` · `memory-bank/activeContext.md` · tämä tiedosto.
 
 
