@@ -13,6 +13,15 @@
 > CASINO-kyltti** (`drawCasinoSign`): ohut musta kehys + pienet jalat + pieni ilmarako; seuraa taloa
 > BAD/FULLin sekotuksessa ja katoaa talon tuhoutuessa. Tekstin kavennus (`| CASINO |` → `CASINO`) ja
 > geometriasäädöt olivat parametrisäätöjä (ei omaa versionumeroa, sääntö 03) – ks. `progress.md`.
+> **v11.52 (4.10.2026):** BAD CHAOS saa **myrskyn** – paksut pilvet (`cloudThickMult`) + **sade +
+> ukkonen satunnaisina purskeina** (`updateStorm`: tyyni 15–45 s → purske 8–20 s). Salama iskee
+> ylhäältä alas **talojen taakse** (ei koskaan eteen) ja **väläyttää koko ruudun**; matala `playThunder`
+> (ei korkeaa pimputusta) soi hetki välähdyksen jälkeen. **Vain BAD** (`chaosFlags.storm`); muut tasot
+> bitti-identtiset. Uusi penkki `street-storm-test` (55/0) → **portti 28/28** – ks. `progress.md`.
+> **v11.53 (4.10.2026):** BAD-myrsky **viilattu palautteen mukaan** – **ukkonen = 3 limittäistä
+> jyrinää** (bruum-bruum-bruum samalla aikajanalla, kesto ~3,5–4 s), **sade puolet hitaampi**,
+> vinokulma **tuulen voimakkuuden mukaan** ja **2 syvyyskerrosta** (kauko talojen taakse + lähi eteen).
+> Penkki `street-storm-test` **62/0** – ks. `progress.md`.
 > Sääntö 03: Vaihe 6 (kommenttisiivous) **ei nostanut versiota** – `verify-comments-only.cjs` todisti,
 > että koodi on kommentit poistettuna identtinen (kommentit eivät ole ajettavaa koodia).
 > **🔴 UUSI SESSIO – KYSY ENSIN:** *"Mitä tehdään seuraavaksi?"* – refaktorointi on valmis ja julkaistu,
@@ -40,7 +49,7 @@
 
 ## 📍 Nyt (AI CHAOS STREET – fork 27.9.2026)
 
-- **Projekti:** **AI CHAOS STREET** – itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages `teppoaland.github.io/aistreet/` ONLINE 27.9.2026), forkattu Pimeä Katu v5.02:sta; alkuperäinen `D:\AI\Main` jäädytetty. **Versio `v11.51`** – `index.html` `#version-tag`: **v11.51 = hedelmäpelitalon (`buildings[6]`) neonvihreä CASINO-kyltti katon yläpuolella (`drawCasinoSign`: ohut musta kehys + jalat + pieni ilmarako)** · **v11.50 = CASINO-kyltin runko** · **v11.49 = kuunvarjojen kaaoskerroin (BAD/FULL: per talo ×1,00–3,00, kerran per yö; K1-akseli `moonShadowMax`)** · **v11.48 = makuuhuoneen sininen HOSTEL-neonkyltti (`drawHostelSign`, kapea laatta) + huoneen otsikko HOSTEL - BEDROOM + rauta-aita pois BAD/FULLista** (`chaosFlags.ruin`; ks. `progress.md`) · **v11.45 = Vaihe 4 loppuun (päivä/yö → `dayNight`-olio) + Vaihe 6 (kommenttien versiosiivous, 565 riviä – ei ajettavaa koodimuutosta, siksi sama versionumero)** · **v11.44 = Vaihe 5 osa 8: huoneiden LOGIIKKA `street/rooms.js`:ään** (345 rv, get+set-host; uusi penkki `street-rooms-logic-test` 41/0) · **v11.43 = kaksi FULLin canvas-bugia:** `#NaNNaN`-väri (hsl-paletti + hex-apuri) ja `translate(NaN)` (puuttuva `WORLD_W`-sidonta) · **v11.42 = Vaihe 5 osa 7: liikennologiikka `street/traffic.js`:ään** · **v11.41 = BAD/FULL: ikkunavalot syttyvät taas**
+- **Projekti:** **AI CHAOS STREET** – itsenäinen projekti (`D:\AI\AI_street`, repo `aistreet`, Pages `teppoaland.github.io/aistreet/` ONLINE 27.9.2026), forkattu Pimeä Katu v5.02:sta; alkuperäinen `D:\AI\Main` jäädytetty. **Versio `v11.53`** – `index.html` `#version-tag`: **v11.53 = BAD-myrsky viilattu: ukkonen 3 limittäisenä jyrinänä (bruum-bruum-bruum), sade puolet hitaampi + vinokulma tuulen mukaan + 2 syvyyskerrosta (kauko talojen taakse / lähi eteen)** · **v11.52 = BAD-myrsky: paksut pilvet (`cloudThickMult`) + sade + ukkonen purskeina (`chaosFlags.storm`)** · **v11.51 = hedelmäpelitalon (`buildings[6]`) neonvihreä CASINO-kyltti katon yläpuolella (`drawCasinoSign`: ohut musta kehys + jalat + pieni ilmarako)** · **v11.50 = CASINO-kyltin runko** · **v11.49 = kuunvarjojen kaaoskerroin (BAD/FULL: per talo ×1,00–3,00, kerran per yö; K1-akseli `moonShadowMax`)** · **v11.48 = makuuhuoneen sininen HOSTEL-neonkyltti (`drawHostelSign`, kapea laatta) + huoneen otsikko HOSTEL - BEDROOM + rauta-aita pois BAD/FULLista** (`chaosFlags.ruin`; ks. `progress.md`) · **v11.45 = Vaihe 4 loppuun (päivä/yö → `dayNight`-olio) + Vaihe 6 (kommenttien versiosiivous, 565 riviä – ei ajettavaa koodimuutosta, siksi sama versionumero)** · **v11.44 = Vaihe 5 osa 8: huoneiden LOGIIKKA `street/rooms.js`:ään** (345 rv, get+set-host; uusi penkki `street-rooms-logic-test` 41/0) · **v11.43 = kaksi FULLin canvas-bugia:** `#NaNNaN`-väri (hsl-paletti + hex-apuri) ja `translate(NaN)` (puuttuva `WORLD_W`-sidonta) · **v11.42 = Vaihe 5 osa 7: liikennologiikka `street/traffic.js`:ään** · **v11.41 = BAD/FULL: ikkunavalot syttyvät taas**
 (`seedLitWindows()`; ennen koko runi ilman ikkunavaloja) · **v11.40 = Vaihe 5 osa 6: huoneiden piirto `street/rooms.js`:ään** · **v11.39 = K7 "Valot sammuvat" -kortin bugikorjaus** (lamppujen kuvut, kuvun valopilkku, ovivalo ja pelaajan reunavalo sammuvat nyt myös, ks. `progress.md`; `?v=`-leimat samassa numerossa – pelkkä arvon/parametrin säätö ei nosta versionumeroa, sääntö 03; **Versiohistoria v11.06–v11.37: ks. `progress.md`** (mm. jukebox-intro, liikenne huoneissa, kolarin putoamistaso, sädease, tablet-ohjaimet, hover-kierto, meteoriitti + eskalaatio + BAD-avaus, rauniot, savukorjaus).
 - 🔓 **Sääntö 04 (talousbalanssi-lukko) EI PÄDE enää forkissa** (27.9.2026): se kirjoitettiin **alkuperäistä Pimeä Katu -peliä** varten → talousarvot (aloituskolikot/🍔, 🍔-tahti, RTP, hinnat, syntymäpaketti) ovat **vapaita myös NORMALissa**. `.clinerules/04` + `docs/economy-balance-memo.md` = historiallisia viitteitä, **eivät sitovia**.
 - 🧱 **Koodirakenne (Vaihe 1 VALMIS, v11.38 – ei toimintamuutoksia):** `street.js` pilkottiin
@@ -454,6 +463,12 @@ osoittimiksi `progress.md`:hen, ja kun tiedosto ylittää 55 kt, siirrä vanhin 
   · skaalaa `MOON_BLD_SHADOW_LEN 0.36` ja `MOON_BLD_SHADOW_SKEW 0.055`; `MOON_BLD_SHADOW_ALPHA 0.50` ennallaan
   · penkki `street-moon-shadow-test` (33/0). *Huom: ×3-varjo ylittää 90 px:n maakaistan → katu tummenee
   tasaisemmin; alpha on tarvittaessa säädettävä nuppi.*
+- **BAD-myrsky (v11.52–v11.53):** `cloudThickMult 2.5` (hazy-pilven pystysäde ×kerroin) · `stormBurst true` ·
+  `rainAmount 1` · tyyni `stormCalmMin/Max 900–2700` · purske `stormBurstMin/Max 480–1200` ·
+  salama `thunderGapMin/Max 180–480` (framet; 60 f/s) · **sade `STORM_RAIN_SPEED 5.5`** · **vinokulma
+  `RAIN_WIND_FACTOR 0.45` (tuulen voimakkuuden mukaan)** · 2 syvyyskerrosta (`z` < 0.5 kauko talojen
+  taakse, ≥ 0.5 lähi eteen) · `STORM_RAIN_MAX 150` · `LIGHTNING_FLASH_FRAMES 24` · jyrinä 3 limittäisenä
+  kerroksena (~3,5–4 s), ~0,4–0,8 s välähdyksestä · penkki `street-storm-test` (62/0).
 - **Päivä/yö:** `DAY_FADE_FRAMES 1200` / `NIGHT_FADE_FRAMES 1200` · `DAY_SKY_TOP/MID/HORIZON` ·
   `SUN_X 140 / SUN_Y 62 / SUN_R 26` (päivä, vasen) · `MOON_X 680 / MOON_Y 60 / MOON_R 28` (peruspaikka;
   v4.65 liuku `MOON_X_MIN = SUN_X` → `MOON_SET_X ≈ 884`, `MOON_NIGHT_FRAMES 57600`, `MOON_SET_START 0.60`,

@@ -227,6 +227,47 @@ function playBuildingCollapse() {
     } catch(e) {}
 }
 
+/* ── Ukkonen (BAD-myrsky): matala, pitkä jyrinä – EI korkeaa pimputusta.
+   KOLME päällekkäistä jyrinää samalla aikajanalla (kuten oikea ukkonen:
+   bruum-bruum-bruum) → kerroksellinen, pidempi jyrinä (yht. ~3,5–4 s).
+   Jokainen kerros saa oman kohinansa (ei vaiheluontia) ja PEHMEÄN alun,
+   jotta se jyrisee eikä tömsähdä. Kaikki bassoa (lowpass 700 → 80 Hz +
+   sävelet 62→26 · 44→22 Hz). Voimakkuudet laskevat kerroksittain, ettei summa paisu. */
+function playThunder() {
+    try {
+        initAudio();
+        if (!audioCtx || audioCtx.state !== 'running') return;
+        const now = audioCtx.currentTime;
+        const layers = [
+            { delay: 0.00, vol: 1.00, dur: 2.4 },
+            { delay: 0.38, vol: 0.72, dur: 2.7 },
+            { delay: 0.78, vol: 0.52, dur: 3.0 }
+        ];
+        for (const L of layers) {
+            const t0 = now + L.delay;
+            // Jyrinämassa: kohina, joka vaipuu hitaasti (L.durin mittainen häntä)
+            const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * L.dur), audioCtx.sampleRate);
+            const data = buf.getChannelData(0);
+            for (let i = 0; i < data.length; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * L.dur * 0.42));
+            }
+            const src = audioCtx.createBufferSource(); src.buffer = buf;
+            const lp = audioCtx.createBiquadFilter(); lp.type = 'lowpass';
+            lp.frequency.setValueAtTime(700, t0);
+            lp.frequency.exponentialRampToValueAtTime(80, t0 + L.dur);
+            const ng = audioCtx.createGain();
+            ng.gain.setValueAtTime(0.0001, t0);
+            ng.gain.linearRampToValueAtTime(0.26 * L.vol * sfxVolumeMult, t0 + 0.20);   // pehmeä alku → jyrinä
+            ng.gain.exponentialRampToValueAtTime(0.001, t0 + L.dur);
+            src.connect(lp).connect(ng).connect(audioCtx.destination);
+            src.start(t0); src.stop(t0 + L.dur);
+            // Bassot per kerros (matala jyrinä, joka laskee)
+            sfxTone({ freq: 62, freqTo: 26, dur: 1.6, type: 'sine',     vol: 0.24 * L.vol, delay: L.delay });
+            sfxTone({ freq: 44, freqTo: 22, dur: 2.0, type: 'triangle', vol: 0.18 * L.vol, delay: L.delay + 0.12 });
+        }
+    } catch(e) {}
+}
+
 /* ── Tyhjä laukaus: kuiva klikki, kun ase on vielä lukossa.
    Kertoo, että klikkaus meni perille mutta laukaus ei lähde – ei uutta
    tekstiä (sääntö 06), vain ääni. */
@@ -376,7 +417,7 @@ function stopVehicleEngine(engine) {
         playKick: playKick, playWalk: playWalk, playCoin: playCoin, playKnock: playKnock,
         playZap: playZap, playLaser: playLaser, playMeteorHit: playMeteorHit,
         playBuildingCollapse: playBuildingCollapse, playBeamEmpty: playBeamEmpty,
-        playLampOn: playLampOn,
+        playLampOn: playLampOn, playThunder: playThunder,
         startVehicleEngine: startVehicleEngine, updateVehicleEngine: updateVehicleEngine,
         stopVehicleEngine: stopVehicleEngine
     };

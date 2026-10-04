@@ -1,10 +1,12 @@
-# 📊 BASELINE – pöytäpenkkien tila 2.10.2026 (v11.37 → v11.49 · **kaikki 27 puhdasta 3.10.2026**)
+# 📊 BASELINE – pöytäpenkkien tila 2.10.2026 (v11.37 → v11.52 · **kaikki 28 puhdasta 4.10.2026**)
 
 > Tämä tiedosto on **vertailukohta refaktoroinnille**. Penkit siirrettiin `%TEMP%`:ista
 > repoon 2.10.2026 (Vaihe 0). Aja aina: `node tools/tests/run-all.cjs`.
 > **3.10.2026:** kuusi vanhentunutta odotusta (keltainen tila) korjattiin → **0 löydöstä**
-> (ks. viimeinen luku "Penkkivelka nollattu"). Pelikoodia ei muutettu silloin – **v11.45:ssä**
+> (ks. viimeinen luku "Penkkivelkä nollattu"). Pelikoodia ei muutettu silloin – **v11.45:ssä**
 > (Vaihe 4: päivä/yö-ryhmittely) portti ajettiin uudelleen: **26/26 puhdasta / 0 löydöstä**.
+> **4.10.2026 (v11.52):** uusi penkki `street-storm-test` (55/0) BAD-myrskylle + `chaos-normal-check`
+> sai yhdeksän uutta no-op-avainta → **28 penkkiä, 28 puhdasta, 0 löydöstä**.
 
 ## Miten baselinea luetaan
 

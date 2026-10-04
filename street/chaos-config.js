@@ -46,6 +46,14 @@ const CHAOS_DEFAULTS2 = Object.assign({}, CHAOS_DEFAULTS, {
     silhouetteChance: 0.5, winDayFill: '#151716',
     lampRadius: 30, batCountMax: 5, buildingPalette: null,
     moonShadowMax: 1,                       // kuunvarjojen kaaoskerroin: per talo ×1…max (BAD/FULL = 3)
+    // K1/K6 – BAD-myrsky: paksut pilvet (aina) + sade + ukkonen satunnaisina purskeina.
+    // NORMAL/MILD/GOOD/FULL: no-op (cloudThickMult 1, stormBurst false, rain 0, gapit 0).
+    cloudThickMult: 1,                      // hazy-pilvien pystysädekerroin (1 = nykyinen)
+    stormBurst: false,                      // BAD: sade + ukkonen päällä (purskeina)
+    rainAmount: 0,                          // sateen voimakkuus (0 = ei sadetta)
+    stormCalmMin: 0, stormCalmMax: 0,       // tyyni jakso (framet)
+    stormBurstMin: 0, stormBurstMax: 0,     // myrskypurske (framet)
+    thunderGapMin: 0, thunderGapMax: 0,     // salaman väli purskeen aikana (framet)
     // K2 (kellon rytmit) + K6 (SFX)
     dayFadeFrames: 1200, nightFadeFrames: 1200, cycleChangeDelayFrames: 900,
     nightLampFirst: 30, nightLampInterval: 18, spawnLampDelay: 240,
@@ -338,7 +346,15 @@ function chaosProfile(level) {
                 barBurntLetter: rndInt(0, 2),
                 cabFlicker: rnd(0.5, 0.8),
                 sunSizeMult: rnd(1.6, 2.0),
-                moonShadowMax: 3
+                moonShadowMax: 3,
+                // K1/K6 – BAD-myrsky: paksut pilvet (aina) + sade + ukkonen purskeina.
+                // Tyyni 15–45 s · purske 8–20 s · salama 3–8 s välein purskeen aikana.
+                cloudThickMult: 2.5,
+                stormBurst: true,
+                rainAmount: 1,
+                stormCalmMin: 900, stormCalmMax: 2700,
+                stormBurstMin: 480, stormBurstMax: 1200,
+                thunderGapMin: 180, thunderGapMax: 480
             };
         case 'full':
             return generateFullChaosSeed();
@@ -419,6 +435,15 @@ function clampChaosCfg(cfg) {
     c.cabFlicker       = clamp(c.cabFlicker, 0, 1);
     c.sunSizeMult      = clamp(c.sunSizeMult, 0.6, 2.0);
     c.moonShadowMax    = clamp(c.moonShadowMax, 1, 3);
+    // K1/K6 – BAD-myrsky (visuaalinen + ääni → vain klampit, ei validointia)
+    c.cloudThickMult   = clamp(c.cloudThickMult, 1, 4);
+    c.rainAmount       = clamp(c.rainAmount, 0, 2);
+    c.stormCalmMin     = clamp(c.stormCalmMin, 0, 7200);
+    c.stormCalmMax     = Math.max(clamp(c.stormCalmMax, 0, 7200), c.stormCalmMin);
+    c.stormBurstMin    = clamp(c.stormBurstMin, 0, 3600);
+    c.stormBurstMax    = Math.max(clamp(c.stormBurstMax, 0, 3600), c.stormBurstMin);
+    c.thunderGapMin    = clamp(c.thunderGapMin, 0, 1800);
+    c.thunderGapMax    = Math.max(clamp(c.thunderGapMax, 0, 1800), c.thunderGapMin);
     return c;
 }
 

@@ -1,4 +1,4 @@
-# 🧪 Testilista v11.49 – manuaalitestit (AI CHAOS STREET)
+# 🧪 Testilista v11.53 – manuaalitestit (AI CHAOS STREET)
 
 > ## ⚠️ UUSI SESSIO (Cline): LUE TÄMÄ ENSIN
 >
@@ -126,6 +126,15 @@ file:///D:/AI/AI_street/index.html?chaos=full&day=1  ← pakota päivä (aamuong
   (×1,00–3,00)** → talot varjostavat eri pituisesti. Vertaa `?chaos=normal` (kaikki ×1,00).
   **Kerroin vaihtuu vain uudessa yössä** (Nuku / uusi peli) – ei väpätä kesken yön.
 - **v11.39 – blackout:** vertaa `?card=blackout` ↔ ilman parametria (lamppujen **kuput**, ei vain hehku).
+- **v11.52–v11.53 – BAD-myrsky (`?chaos=bad`, `?day=0` tai `?day=1`):** pilvet ovat **paksut** ja **sade +
+  ukkonen** tulevat **satunnaisina purskeina** (tyyni ~15–45 s → purske ~8–20 s). Purskeen aikana
+  sade valuu koko ruudun yli, **salama iskee ylhäältä alas talojen taakse** (ei koskaan talojen eteen)
+  ja **väläyttää koko ruudun**, ja **matala jyrinä** soi hetki välähdyksen jälkeen (ei korkeaa
+  pimputusta). **v11.53:** jyrinä on **kolme limittäistä jyrinää** (bruum-bruum-bruum, kesto ~3,5–4 s,
+  ei yksittäinen tömähdys); sade on **puolet hitaampi**, sen **vinokulma seuraa tuulen voimakkuutta**
+  ja se on **kahdessa syvyyskerroksessa** (kauko-sade talojen takana + lähi-sade edessä → ei enää
+  "lasikalvolla"). Vertaa `?chaos=normal` (ei sadetta eikä ukkosta, pilvet entiset). **Vain BAD** –
+  FULL/NORMAL/MILD/GOOD eivät saa myrskyä. Impakti: ei pelimekaanista vaikutusta (sade ei vahingoita).
 
 ---
 

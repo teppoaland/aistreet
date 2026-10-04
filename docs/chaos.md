@@ -227,6 +227,8 @@ nopean liikenteen ja tiheän rosvon keskelle.
 | V | kuun pimeneminen | `MOON_SET_START 0.60` · `MOON_SET_DARK_ALPHA 0.15` | 457–458 | 0.15 | 0.08 | 0.3 | 0–0.4 |
 | V | kuun hehku/kraatterit | `MOON_GLOW_A` ym. | 475–509 | – | runsas | himmeä | arvottu |
 | K | **kuunvarjojen koko** (talot) | per talo `moonShadowMult` ×1,00 · `MOON_BLD_SHADOW_LEN 0.36` / `SKEW 0.055` | 6443 | ×1 | ×1 | **×1…3** (arpa/talo) | **×1…3** (arpa/talo) |
+| K | **paksut pilvet** (BAD-myrsky) | `cloudThickMult` × hazy-ellipsin pystysäde (`3 + dist*2`) | `drawClouds` | ×1 | ×1 | **×2.5** ⭐ | ×1 |
+| K | **sade + ukkonen purskeina** (BAD-myrsky) | `stormBurst` · `rainAmount 1` · tyyni `stormCalmMin/Max` 900–2700 f · purske `stormBurstMin/Max` 480–1200 f · salama `thunderGapMin/Max` 180–480 f · sade `STORM_RAIN_SPEED 5,5` · vinokulma `RAIN_WIND_FACTOR 0,45` (tuulen voimakkuuden mukaan) · **2 syvyyskerrosta** (kauko talojen taakse + lähi eteen) | `updateStorm` (`street.js`) | pois | pois | **päällä** ⭐ | pois (vain BAD) |
 | V | **tähtien määrä** | **80** | 1627 | 60–100 | **120–140** | 15–30 | 0–140 |
 | V | tähtien koko/kirkkaus | `r = rnd*1.5 + 0.5` · blink-faasi | 1631–1632 | ×1 | ×1.2 | ×0.8 | ×0.5–2 |
 | V | tähdenlento/satelliitti tahti | tauot 600–2700 / 400–1300 | 2632–2676 | ×0.8 | ×1.5 | ×0.3 | ×0.1–5 |
@@ -373,6 +375,7 @@ armoton mutta **aina voitettavissa**. Tämä on ainoa kohta, jossa vanhaa FULL-a
 | K | `JUKEBOX_VOLUME` · `JUKEBOX_GAP` | = MUSIC_VOLUME · 2500 | `audio.js` 40–41 | ±10 % | 4000 | 1200 | 500–6000 |
 | K | `melodyReverse` | arvotaan joka loopilla | `audio.js` 692 | ei pakotusta | ei | aina | arpa |
 | K | synkän tilan pituus (syntikan hiljaisuus) | nykyinen | `audio.js` ~614 | ±20 % | lyhyt | **pitkä** | 0–pitkä |
+| K | **ukkosen jyrinä** `playThunder` | **3 päällekkäistä jyrinää** (viiveet 0 · 0,38 · 0,78 s, voimakkuudet 1,0 · 0,72 · 0,52), kesto yhteensä ~3,5–4 s · matala lowpass-kohina (700→80 Hz) + bassot (62→26 · 44→22 Hz) | `street/sfx.js` | – | – | **päällä** (BAD-myrsky) | – |
 | V | SFX-tasot (kolikko, potku, osuma, kuolema) | nykyiset | `street.js` 1154–1332 | ±10 % | pehmeä | terävä | arvottu |
 | — | **uudet tekstit / popupit** | – | – | 🚫 **sääntö 06: ei koskaan ilman lupaa** | | | |
 
@@ -866,4 +869,6 @@ min/max/keskiarvo per akseli + kvantiilit (näkee, ettei arpa ole "aina sama").
 | 27.9.2026 | v10.01 (doc) | Suunnitelma v1 laadittu keskustelussa: kategoriat A–L, tasot NORMAL–FULL CHAOS, H-lohko (pelaaja/fysiikka/kamera) **poistettu käyttäjän pyynnöstä** |
 | 27.9.2026 | v10.01 (doc) | **v2 kirjattu tähän tiedostoon:** kaksi `!!!PÄÄSÄÄNTÖ!!!`-sääntöä, tasomanifesti, kategoriat **K0–K7** (vaikutuspohjainen jako), C-kyvykkyysindeksi + selviytymisinvariantti (🍔-intervallin lattia 1200 f), kielletyt yhdistelmät (10 kohtaa), parametrikatalogi K1–K7 varmennetuin arvoin ja rivinumeroin, MUST-kohteet (kova tuuli · paksut pilvet + myrskytaivas · vihreä aurinko), toteutusresepti portteineen ja siemenineen, testaus/DoD, 4 vaihetta, tiedostorajat ja avoimet päätökset (`❓`). Ei koodimuutoksia. |
 | 30.9.2026 | v11.26 (parametri) | **BAD CHAOS – katsojan syntymäpaketti** (käyttäjän pyyntö 30.9.2026: *"Laita pelaajalle fiksatut 100 kolikkoa ja 10 hampurilaista … pelihahmon täytyy pysyä hengissä"*): BAD alkaa kiinteällä **100 🪙 + 10 🍔** (ennen 2 🪙 + arpa 2–3 🍔), jotta ehtii nähdä koko maailmanlopun. Voimassa **vain `freshGame` / hard reset** (uusi peli, kuolema, ✕) – F5-soft reset ei nollaa. `burgerInterval`, uhkat ja muut tasot ennallaan; **ei versionnostoa**. |
+| 4.10.2026 | v11.52 | **BAD CHAOS – myrsky (paksut pilvet + sade + ukkonen purskeina)** (käyttäjän pyyntö 4.10.2026): `cloudThickMult 2.5` paksuntaa hazy-pilvet; uusi sää-tilakone (`updateStorm`) tuo **sateen ja salamat satunnaisina purskeina** (tyyni 15–45 s → purske 8–20 s). Salama iskee ylhäältä alas **talojen taakse** (taivaskerros → eturivin talot peittävät alaosan, ei koskaan eteen) ja **väläyttää koko ruudun**; `playThunder` soi matalana hetki välähdyksen jälkeen (ei korkeaa pimputusta). **Vain BAD** (`chaosFlags.storm`); NORMAL/MILD/GOOD/FULL bitti-identtiset (`stormBurst false`). Ei pelimekaanista vaikutusta eikä uusia dialogeja (sääntö 06). Uusi penkki `street-storm-test` (55/0). |
+| 4.10.2026 | v11.53 | **BAD-myrsky viilattu** (käyttäjän palaute 4.10.2026): **ukkonen = 3 limittäistä jyrinää** (bruum-bruum-bruum samalla aikajanalla, pehmeä alku → jyrinä eikä tömsähdys; kesto ~3,5–4 s) · **sade puolet hitaampi** (`STORM_RAIN_SPEED 11 → 5,5`) · **vinokulma tuulen voimakkuuden mukaan** (`RAIN_WIND_FACTOR 0,45`) · **2 syvyyskerrosta** (kauko-sade talojen taakse + lähi-sade eteen). Purskeen kesto ennallaan (testausvaihe). |
 

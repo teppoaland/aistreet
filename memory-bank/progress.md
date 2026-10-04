@@ -518,3 +518,66 @@ Tarkennukset: `|`-päädyt pois (liian leveä vrt talo), ohut musta kehys + jala
   ei uutta penkkiä (kevyt polku – käyttäjä testaa visuaalisesti). `node --check street.js` OK.
 - **Julkaistu 4.10.2026** (push = tuotanto, v11.51).
 
+**v11.52 – BAD CHAOS: myrsky (paksut pilvet + sade + ukkonen purskeina) (4.10.2026, uusi ominaisuus – sääntö 03):**
+Käyttäjän pyyntö: *"BAD Chaos versioon saisi tehdä paksummat pilvet ja silloin tulee sadetta ja
+ukkkosta. Ukkonen tietysti välkyttää koko näyttöä ja iskee ylhäältä alaspäin eturivin talojen taakse
+ei koskaan eteen … Äänihän pitää olla ukkosmainen. Ei mikään korkea pim. Vaan bassoa."*
+Tarkennukset: **vain BAD**, sade + ukkonen **satunnaisina purskeina**, sade kaiken edessä.
+
+- **K1/K6-akselit (`street/chaos-config.js`):** `CHAOS_DEFAULTS2` sai ysä no-op-avainta
+  (`cloudThickMult 1` · `stormBurst false` · `rainAmount 0` · `stormCalmMin/Max 0` ·
+  `stormBurstMin/Max 0` · `thunderGapMin/Max 0`) → NORMAL/MILD/GOOD/FULL **bitti-identtiset**.
+  `chaosProfile('bad')`: `cloudThickMult 2.5`, `stormBurst true`, `rainAmount 1`, tyyni 900–2700 f,
+  purske 480–1200 f, salama 180–480 f. `clampChaosCfg` klampit kaikille. `generateFullChaosSeed`
+  **ei** aseta myrskyä → FULL pysyy ilman (käyttäjän valinta "vain BAD").
+- **street.js:** uudet `let`:t + `applyChaosProfile`-kirjoitukset; `chaosFlags.storm = isBad`.
+  Uusi sää-tilakone (`resetStorm`/`updateStorm`): tyyni → purske → tyyni (`randStorm`). Purskeessa
+  `initRain` (150 pisaraa × `rainAmount`), `updateRain`, salama `thunderGap`-välein `triggerLightning`
+  → `updateLightning`; jyrinä viivästettynä (`thunderPending` ~0,4–0,8 s). `drawClouds` kertoo hazy-
+  ellipsin pystysäteen `cloudThickMult`:llä. Kytkennät: `update()` (`updateStorm`), `render()`
+  (`drawLightningBolt` **ennen** `drawBackdrop`/`drawBuildings` = talojen taakse; `drawRain` ennen
+  `drawScreenEffects` = kaiken edessä), `drawScreenEffects` (koko ruudun välähdys), `init` (`resetStorm`).
+  Ei uusia dialogeja (sääntö 06), ei pelimekaanista vaikutusta.
+- **Ääni (`street/sfx.js`):** uusi `playThunder()` – matala lowpass-kohina (700→80 Hz, häntä ~2,2 s)
+  + bassot (62→26 · 44→22 Hz). Ei korkeaa pimputusta; kerrotaan `sfxVolumeMult`:llä (K6).
+- **⚠️ Ansa (RNG):** `resetStorm` kutsuttiin `init()`issä kaikilla tasoilla. Aluksi `randStorm` kutsui
+  `Math.random()`:ia myös välin ollessa 0 → se **kulutti jaetun satunnaisjonon jo init:ssä** ja siirsi
+  deterministisiä simulaatioita (`street-manhole-bonus-test` T4 putosi 17 % → 6 %). Korjaus: `randStorm`
+  palauttaa `a`:n **kutsumatta** RNG:tä kun väli ≤ 0 → NORMAL ei enää kuluta jonoa. (Vastaava kuin
+  `moon-shadow`-ansion oma RNG-ratkaisu.)
+- **Testit:** uusi penkki `tools/tests/street-storm-test.cjs` (**55 OK / 0**): profiilit + klampit,
+  NORMAL/MILD/GOOD ei myrskyä, BAD päällä, tilakone (tyyni→purske→tyyni), sade valuu, salaman geometria
+  (y 4 → GROUND_Y+6, siksak, ruudulla), salama piirretään ennen taloja/taustaa, sade ennen efektejä,
+  koko ruudun välähdys, viivästetty `playThunder`, matala ääni (< 200 Hz), ei dialogeja, versioleimat.
+  `chaos-normal-check` sai ysä uutta avainta → **88 avainta / 0 eroa**.
+- **Tulos:** `run-all` **28 penkkiä / 28 puhdasta / 0 löydöstä** · `node --check` OK ·
+  `#version-tag` + 10 `?v=`-leimaa + `.clinerules/03` → **v11.52**. **Ei committia/pushia** (jää työpuuhun).
+- **Dokumentit:** `docs/chaos.md` §6.1 + §6.6 + muutoshistoria · `CHANGELOG.md` · `tools/tests/BASELINE.md` ·
+  `docs/testilista.md` · `memory-bank/activeContext.md` · tämä tiedosto.
+
+**v11.53 – BAD-myrsky viilattu: ukkonen 3×, sade hitaampi + tuulen vinokulma + 2 syvyyskerrosta (4.10.2026, sääntö 03):**
+Käyttäjän palaute: *"äänestä … sama ääni olisi 3x siten että se olisi peräkkäin, mutta äänien pitää
+tulla saman äänijakson päälle … Bruummmm-Bruummm-Bruumm … Nyt se vain on kuin rumbujen bassoa
+tömyttäisi kerran. Sade: hidasta sen liikettä puolella … miten sen saisi 'upotettua' peliin paremmin?
+… Vinokulmahan pitää sitten laskea tuulen voimakkuuden mukaan."* (kaksi kerrosta: kauko + lähi).
+
+- **Ääni (`street/sfx.js`):** `playThunder` → **3 limittäistä kerrosta** (viiveet **0 · 0,38 · 0,78 s**,
+  voimakkuudet **1,0 · 0,72 · 0,52**, kestot **2,4 · 2,7 · 3,0 s** → yhteensä **~3,5–4 s**) ja **pehmeä
+  alku** (gain-ramp 0,04 → **0,20 s**) → jyrisee eikä tömsähdä. Jokainen kerros saa **oman kohinansa**
+  (ei vaiheluontia) + omat bassot (62→26 · 44→22 Hz). Bassopainotteinen (< 200 Hz sävelet, lowpass
+  700→80 Hz).
+- **Sade (`street.js`):** `STORM_RAIN_SPEED 11 → 5,5` (puolet hitaampi) · **vinokulma tuulen
+  voimakkuuden mukaan** (`RAIN_WIND_FACTOR 0,45`; viiva piirretään liikevektorin suuntaan) ·
+  **2 syvyyskerrosta** pisaran `z`-syvyyden mukaan: **kauko-sade (`z < 0,5`) talojen TAAKSE**
+  (`drawRainBack`, himmeä 0,16, hidas) ja **lähi-sade (`z ≥ 0,5`) kaiken ETEEN** (`drawRain`, kirkas
+  0,36). Kaukaiset pisarat lyhyempiä ja hitaampia → syvyysvaikutelma (ei enää "lasikalvolla").
+  Yhteinen apuri **`rainStreak(d)`**; `updateRain` kuljettaa tuulen mukana.
+- **Purskeen kesto** (`480–1200 f` / tyyni `900–2700 f`) **ennallaan** – käyttäjä säätää pidemmäksi
+  myöhemmin (parametrisäätö, ei versionostoa).
+- **Testit:** `street-storm-test` laajennettu → **62 OK / 0** (z ∈ [0,1], lähi-sade piirtyy, viiva vino
+  tuulen mukaan, kauko-sade talojen taakse, ukkosen 3 kerrosta). `run-all` **28 penkkiä / 28 puhdasta /
+  0 löydöstä** · `chaos-normal-check` 88 avainta / 0 · `render-smoke` 30/30 · `node --check` OK.
+- **Versio:** `#version-tag` + 10 `?v=`-leimaa + `.clinerules/03` → **v11.53**. **Ei committia/pushia.**
+- **Dokumentit:** `docs/chaos.md` §6.1 + §6.6 + muutoshistoria · `CHANGELOG.md` · `docs/testilista.md` ·
+  `memory-bank/activeContext.md` · tämä tiedosto.
+
