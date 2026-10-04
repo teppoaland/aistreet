@@ -13,6 +13,11 @@
 > → **29 penkkiä, 29 puhdasta, 0 löydöstä**.
 > **4.10.2026 (v11.56):** `street-storm-test` kasvoi 68/0:aan (ukkosen viive 0,4–3,0 s + salamointi 5–15 s +
 > jyrinä 5–10 kerrosta) → **29 penkkiä, 29 puhdasta, 0 löydöstä**.
+> **4.10.2026 (v11.68):** myrsky kaikille tasoille (myös NORMAL) + **sään transitio** (`stormLevel`,
+> `STORM_RAMP_FRAMES 300`) + **oma RNG** (`stormRng`); `street-storm-test` kasvoi **77/0**
+> → **29 penkkiä, 29 puhdasta, 0 löydöstä**.
+> **4.10.2026 (v11.69):** salama alkaa pilvistä (`LIGHTNING_TOP_Y 60`); `street-storm-test` **78/0**
+> → **29 penkkiä, 29 puhdasta, 0 löydöstä**.
 
 ## Miten baselinea luetaan
 

@@ -36,8 +36,10 @@
 - **Polku:** `file:///D:/AI/AI_street/index.html` + parametrit. `start_server.bat` **ei** ole käytössä.
 - **Välimuisti:** `?v=11.45` vaihtui → selain hakee tuoreet tiedostot automaattisesti.
 - **Konsoli (F12)** kannattaa pitää auki: siellä näkyvät JS-virheet ja `?debug`-taulukko.
-- **BAD-myrsky (v11.56):** `?chaos=bad` → salamoita **5–15 s** välein; salaman jälkeen jyrinä tulee **0,4–3,0 s**
-  viiveellä ja jyrinän pituus vaihtelee luontevasti (**5–10 limittäistä jyrähdystä**).
+- **Myrsky (v11.68, kaikki tasot):** pilvet paksunevat, sade alkaa tihkusta ja ukkonen vasta täydessä
+  myrkyssä – sää **hiipuu myös pois** pehmeästi (~5 s transitio). Salamoita **5–15 s** välein; salaman
+  jälkeen jyrinä tulee **0,4–3,0 s** viiveellä ja jyrinän pituus vaihtelee luontevasti (**5–10
+  limittäistä jyrähdystä**). Myös NORMAL/MILD/GOOD/FULL saavat saman myrskyn.
 
 | Kytkin | Mihin |
 |---|---|
@@ -128,15 +130,17 @@ file:///D:/AI/AI_street/index.html?chaos=full&day=1  ← pakota päivä (aamuong
   (×1,00–3,00)** → talot varjostavat eri pituisesti. Vertaa `?chaos=normal` (kaikki ×1,00).
   **Kerroin vaihtuu vain uudessa yössä** (Nuku / uusi peli) – ei väpätä kesken yön.
 - **v11.39 – blackout:** vertaa `?card=blackout` ↔ ilman parametria (lamppujen **kuput**, ei vain hehku).
-- **v11.52–v11.53 – BAD-myrsky (`?chaos=bad`, `?day=0` tai `?day=1`):** pilvet ovat **paksut** ja **sade +
-  ukkonen** tulevat **satunnaisina purskeina** (v11.55: tyyni 60–180 s → purske 60–180 s; sade ei ala heti). Purskeen aikana
-  sade valuu koko ruudun yli, **salama iskee ylhäältä alas talojen taakse** (ei koskaan talojen eteen)
-  ja **väläyttää koko ruudun**, ja **matala jyrinä** soi hetki välähdyksen jälkeen (ei korkeaa
-  pimputusta). **v11.53:** jyrinä on **kolme limittäistä jyrinää** (bruum-bruum-bruum, kesto ~3,5–4 s,
-  ei yksittäinen tömähdys); sade on **puolet hitaampi**, sen **vinokulma seuraa tuulen voimakkuutta**
-  ja se on **kahdessa syvyyskerroksessa** (kauko-sade talojen takana + lähi-sade edessä → ei enää
-  "lasikalvolla"). Vertaa `?chaos=normal` (ei sadetta eikä ukkosta, pilvet entiset). **Vain BAD** –
-  FULL/NORMAL/MILD/GOOD eivät saa myrskyä. Impakti: ei pelimekaanista vaikutusta (sade ei vahingoita).
+- **v11.68 – Myrsky kaikilla tasoilla (`?chaos=` mikä tahansa, `?day=0` tai `?day=1`):** pilvet ovat
+  **paksut** ja **sade + ukkonen** tulevat **satunnaisina purskeina** (tyyni 60–180 s → purske 60–180 s;
+  sade ei ala heti). **Sää muuttuu pehmeästi (v11.68):** purskeen alussa pilvet paksunevat, sade kasvaa
+  tihkusta täyteen ja ukkonen alkaa vasta kun myrsky on täysi (~5 s transitio); purskeen lopussa kaikki
+  hiipuu takaisin tyveksi – ei enää rysäystä. Purskeen aikana sade valuu koko ruudun yli, **salama iskee
+  pilvistä (v11.69: kuun/auringon linjalta, ei ruudun yläreunasta) alas talojen taakse** (ei koskaan
+  talojen eteen) ja **väläyttää koko ruudun**, ja **matala
+  jyrinä** soi hetki välähdyksen jälkeen (ei korkeaa pimputusta; **5–10 limittäistä jyrähdystä**, viive
+  0,4–3,0 s). Sade on **puolet hitaampi**, sen **vinokulma seuraa tuulen voimakkuutta** ja se on
+  **kahdessa syvyyskerroksessa** (kauko-sade talojen takana + lähi-sade edessä). Impakti: ei
+  pelimekaanista vaikutusta (sade ei vahingoita).
 - **v11.54 – Rosvon rauha + turvasäde (kaikki tasot):** rosvo ei ilmesty **ensimmäiseen 60 sekuntiin**
   pelin alusta (peli ei ala ryöstöllä). Sen jälkeenkin rosvo **ei koskaan synny lähelle sitä kohtaa,
   josta pelaaja juuri tuli ulos** (turvasäde 200 px, **kaikki ovet** – myös reunatalot BAR x765 ja

@@ -46,14 +46,16 @@ const CHAOS_DEFAULTS2 = Object.assign({}, CHAOS_DEFAULTS, {
     silhouetteChance: 0.5, winDayFill: '#151716',
     lampRadius: 30, batCountMax: 5, buildingPalette: null,
     moonShadowMax: 1,                       // kuunvarjojen kaaoskerroin: per talo ×1…max (BAD/FULL = 3)
-    // K1/K6 – BAD-myrsky: paksut pilvet (aina) + sade + ukkonen satunnaisina purskeina.
-    // NORMAL/MILD/GOOD/FULL: no-op (cloudThickMult 1, stormBurst false, rain 0, gapit 0).
-    cloudThickMult: 1,                      // hazy-pilvien pystysädekerroin (1 = nykyinen)
-    stormBurst: false,                      // BAD: sade + ukkonen päällä (purskeina)
-    rainAmount: 0,                          // sateen voimakkuus (0 = ei sadetta)
-    stormCalmMin: 0, stormCalmMax: 0,       // tyyni jakso (framet)
-    stormBurstMin: 0, stormBurstMax: 0,     // myrskypurske (framet)
-    thunderGapMin: 0, thunderGapMax: 0,     // salaman väli purskeen aikana (framet)
+    // K1/K6 – myrsky: paksut pilvet + sade + ukkonen satunnaisina purskeina.
+    // KAIKKI tasot (myös NORMAL) saavat saman myrskyn kuin BAD; sää liukuu
+    // tyvenen ja ukkosmyrkyn välillä (transitio, stormLevel updateStormissa).
+    // Tehollinen hazy-pilven paksunnus = 1 + (cloudThickMult − 1) × stormLevel.
+    cloudThickMult: 2.5,                    // hazy-pilvien pystysädekerroin (max, ×stormLevel)
+    stormBurst: true,                       // sade + ukkonen päällä (purskeina)
+    rainAmount: 1,                          // sateen voimakkuus
+    stormCalmMin: 3600, stormCalmMax: 10800,   // tyyni jakso (framet, 60–180 s)
+    stormBurstMin: 3600, stormBurstMax: 10800, // myrskypurske (framet, 60–180 s)
+    thunderGapMin: 300, thunderGapMax: 900,    // salaman väli purskeen aikana (framet, 5–15 s)
     // K2 (kellon rytmit) + K6 (SFX)
     dayFadeFrames: 1200, nightFadeFrames: 1200, cycleChangeDelayFrames: 900,
     nightLampFirst: 30, nightLampInterval: 18, spawnLampDelay: 240,

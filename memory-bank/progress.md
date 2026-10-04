@@ -738,5 +738,61 @@ korkeat mitä mallikuvassa. Väri musta."*
   **Ei committia** (työ jää työpuuhun, sääntö 03).
 - **Dokumentit:** `CHANGELOG.md` · tämä tiedosto.
 
+**v11.68 – Myrsky kaikille tasoille + sään transitio (4.10.2026, sääntö 03):**
+Käyttäjän pyyntö 4.10.2026: *"Sade todettu toimivaksi ukkosineen. Sateen voisi lisätä kaikkiin
+pelimoodeihin. Samat speksit kuin BAD modessa. … Eihän se muuten voi olla ukkonen jos ei pilvet
+paksune, että sään pitää muuttua, ukkosmyrskyksi välissä, ja sitten sää taas palautuu. Tässä
+pitäisi olla tietysti transitio, kun nyt sade alkaa yhtäkkiä ja loppuu myös yhtäkkiä."*
+
+- **Kaikki tasot (`street/chaos-config.js`):** `CHAOS_DEFAULTS2` sai BADin myrskyarvot →
+  `cloudThickMult 2.5` · `stormBurst true` · `rainAmount 1` · tyyni/purske `3600–10800` f (60–180 s) ·
+  salama `300–900` f (5–15 s). NORMAL/MILD/GOOD/FULL perivät ne; BADin eksplisiittiset arvot ovat
+  samat. `chaosFlags.storm` **poistettu** (ei luettu missään; todellinen portti oli `stormBurst`).
+- **Sään transitio (`street.js`):** uusi liukuva voimakkuus **`stormLevel` (0…1)**. `updateStorm`
+  ajaa tyyni ↔ purske -vaihetta ja liu'uttaa `stormLevel`iä tavoitetta kohti (`STORM_RAMP_FRAMES 300`
+  ≈ 5 s). Tehollinen pilvipaksunnus `drawClouds`issa = `1 + (cloudThickMult − 1) × stormLevel`;
+  pisaramäärä = `STORM_RAIN_MAX × rainAmount × stormLevel` (`syncRainDrops`) ja sateen alpha
+  skaalautuu `stormLevel`illa → **sade alkaa tihkusta, voimistuu ja hiipuu pois** (ei enää rysäystä).
+  Salama iskee vasta kun `stormLevel ≥ STORM_THUNDER_LEVEL (0.85)` → **ukkonen alkaa täydessä
+  myrkyssä**. `initRain` korvautui `makeRainDrop` + `syncRainDrops`.
+- **Oma RNG (`street.js`):** `stormRng` (`makeRng`, kuten `moonShadowRng`; siemen `CHAOS_SEED`ista
+  tai `Date.now()`ista) korvaa `Math.random`in kaikissa myrskyfunktioissa (`randStorm`, `makeRainDrop`,
+  `updateRain`-wrap, `makeBoltPath`, `triggerLightning`) → **ei kuluta jaettua Math.random-jonoa**,
+  joten NORMALin maailman generointi ja muut arvat pysyvät bitti-identtisinä. `reseedStormRng`
+  uudistaa siemenen `resetStorm`issa (?seed= toistaa).
+- **Testit:** `street-storm-test` **68 → 77/0** (transitio ylös/alas, `stormLevel`-skaalaus, uusi
+  pisara, oma RNG -vahti, kaikkien tasojen myrsky). `chaos-normal-check` **88 avainta / 0 eroa**
+  (myrskyarvot = uudet oletukset). `run-all` **29 penkkiä / 29 puhdasta / 0 löydöstä** · `node --check` OK.
+- **Versiot:** `#version-tag` + 10 `?v=`-leimaa (1 CSS + 9 skriptiä) + `.clinerules/03` → **v11.68**.
+  **Ei committia / ei pushia** (työ jää työpuuhun, sääntö 03).
+- **Dokumentit:** `docs/chaos.md` §6.1 + muutoshistoria · `CHANGELOG.md` · `tools/tests/BASELINE.md` ·
+  `docs/testilista.md` · `memory-bank/activeContext.md` · tämä tiedosto.
+**v11.69 – Salama alkaa pilvistä (4.10.2026, sääntö 03):**
+Käyttäjän pyyntö 4.10.2026: *"Laita muuten ukkonen alkamaan noin linjalta joka puoleen välin kohdalla
+kuuta ja aurinkoa. Niin ukkonen alkaa sitten pilvistä ei kuvaruudun ylhäältä."*
+
+- **`street.js`:** uusi vakio **`LIGHTNING_TOP_Y = 60`** (kuun/auringon korkeus = pilvikaistan linja).
+  `makeBoltPath` aloittaa siksak-polun tästä (`let y = LIGHTNING_TOP_Y`, askel `(endY − LIGHTNING_TOP_Y) / segs`)
+  → **salama alkaa pilvistä**, ei enää ruudun yläreunasta (y = 4). Loppupiste ennallaan (`GROUND_Y + 6`
+  = talojen taakse). Vain piirtoarvo/vakio – ei pelimekaniikkaa, ei taloutta, ei uusia dialogeja (sääntö 06).
+- **Testit:** `street-storm-test` **77 → 78/0** (kohta "alkaa pilvistä" käyttää `LIGHTNING_TOP_Y`-vakiota
+  `C.TOP_Y` + lähdetarkistus `LIGHTNING_TOP_Y = 60`). `run-all` **29 penkkiä / 29 puhdasta / 0 löydöstä** ·
+  `chaos-normal-check` 88 avainta / 0 eroa · `node --check` OK.
+- **Versiot:** `#version-tag` + 10 `?v=`-leimaa + `.clinerules/03` → **v11.69**.
+  **Ei committia / ei pushia** (työ jää työpuuhun, sääntö 03).
+- **Dokumentit:** `docs/chaos.md` §6.1 + muutoshistoria · `CHANGELOG.md` · `tools/tests/BASELINE.md` ·
+  `docs/testilista.md` · `memory-bank/activeContext.md` · tämä tiedosto.
+- **Huomio (ei koodimuutosta):** tarkistettu, pyöriikö aika ja sade alapeleissä/huoneissa. **Aika kyllä
+  kaikkialla** (`updateDayNight`/`updateDayCycle` ennen huonerekisteriä; vain päivä/yön liuku kohti tavoitetta
+  on jäissä piilossa). **Sade (`updateStorm`) etenee alapeleissä (iframe) mutta jäätyy canvas-huoneissa**
+  (BAR/jukebox/makuuhuone/lehti) – syynä huonerekisterin `return` ennen `updateClouds`/`updateStorm`ia
+  (`street.js` rivi 3833). Käyttäjän linjaus 4.10.2026: **jätetään ennalleen** ("ei sitä kukaan huomaa").
+  Ei muutosta lähdekoodiin (ei versionnostoa, sääntö 03).
+
+
+
+
+
+
 
 

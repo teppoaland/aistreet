@@ -1,11 +1,13 @@
 /* ═══════════════════════════════════════════════════════════
-   street-storm-test.cjs – BAD-myrsky: paksut pilvet + sade + ukkonen (v11.52)
+   street-storm-test.cjs – Myrsky: paksut pilvet + sade + ukkonen (v11.68)
 
-   Miksi: BAD-myrsky tuo paksut pilvet (cloudThickMult) sekä sateen ja
-   ukkosen SATUNNAISINA PURSKEINA (tyyni → purske → tyyni). Salama iskee
-   ylhäältä alas talojen TAAKSE (ei koskaan eteen) ja väläyttää koko ruudun;
-   jyrinä soi matalana hetki välähdyksen jälkeen. Vain BAD (chaosFlags.storm);
-   NORMAL/MILD/GOOD/FULL pysyvät bitti-identtisinä (stormBurst = false).
+   Miksi: myrsky tuo paksut pilvet (cloudThickMult) sekä sateen ja ukkosen
+   SATUNNAISINA PURSKEINA (tyyni → purske → tyyni). Päällä KAIKILLA tasoilla
+   (myös NORMAL, stormBurst = true). Sää MUUTTUU pehmeästi: stormLevel liukuu
+   0 ↔ 1 (STORM_RAMP_FRAMES ~5 s), joten pilvet paksunevat, sade voimistuu ja
+   ukkonen alkaa vasta täydessä myrkyssä – ja kaikki palautuu tyveksi.
+   Salama iskee ylhäältä alas talojen TAAKSE (ei koskaan eteen) ja väläyttää
+   koko ruudun; jyrinä soi matalana hetki välähdyksen jälkeen.
 
    Testi ajaa oikeat init()/updateStorm()/drawLightningBolt() kutsut ja
    todistaa käytöksen muistiinpanevalla ctx-stubilla + lähdetarkistuksin.
@@ -113,13 +115,15 @@ sandbox.window = {
 let src = require('./street-src.cjs');
 const API = 'return { init, resize, closeGame, closeRoom, setChaos, saveChaosSession, loadChaosSession, clearChaosSession, clearBeamWeapon };';
 const DBG = API.replace(' };', `, __t: {
-    resetStorm, updateStorm, triggerLightning, makeBoltPath, initRain,
+    resetStorm, updateStorm, triggerLightning, makeBoltPath, makeRainDrop, syncRainDrops,
     drawRain, drawLightningBolt, updateLightning,
     get stormBurst() { return stormBurst; },
     get rainDrops() { return rainDrops; },
     get lightning() { return lightning; },
     get phase() { return stormPhase; },
     set phase(v) { stormPhase = v; },
+    get stormLevel() { return stormLevel; },
+    set stormLevel(v) { stormLevel = v; },
     get stormTimer() { return stormTimer; },
     set stormTimer(v) { stormTimer = v; },
     get thunderTimer() { return thunderTimer; },
@@ -127,7 +131,7 @@ const DBG = API.replace(' };', `, __t: {
     get thunderPending() { return thunderPending; },
     set thunderPending(v) { thunderPending = v; },
     get conf() { return { cloudThickMult, rainAmount, stormCalmMin, stormCalmMax, stormBurstMin, stormBurstMax, thunderGapMin, thunderGapMax }; },
-    consts: { GROUND_Y, WORLD_W, WORLD_H, RAIN_MAX: STORM_RAIN_MAX, FLASH: LIGHTNING_FLASH_FRAMES, SEGS: LIGHTNING_BOLT_SEGS }
+    consts: { GROUND_Y, WORLD_W, WORLD_H, RAIN_MAX: STORM_RAIN_MAX, FLASH: LIGHTNING_FLASH_FRAMES, SEGS: LIGHTNING_BOLT_SEGS, RAMP: STORM_RAMP_FRAMES, THUNDER_LEVEL: STORM_THUNDER_LEVEL, TOP_Y: LIGHTNING_TOP_Y }
 } };`);
 if (!src.includes(API)) { console.error('FAIL: export-rivi ei löytynyt street.js:stä'); process.exit(1); }
 src = src.replace(API, DBG);
@@ -158,60 +162,64 @@ const fnBody = (n) => sliceFrom('function ' + n + '(', '\n    }');
 
 console.log('\n1) Kaaosakselit: oletukset, profiilit, portti');
 const def = Chaos.CHAOS_DEFAULTS2;
-ok('CHAOS_DEFAULTS2: cloudThickMult = 1', def.cloudThickMult === 1, def.cloudThickMult);
-ok('CHAOS_DEFAULTS2: stormBurst = false', def.stormBurst === false, def.stormBurst);
-ok('CHAOS_DEFAULTS2: rainAmount = 0', def.rainAmount === 0, def.rainAmount);
-ok('CHAOS_DEFAULTS2: thunderGapMin/Max = 0/0', def.thunderGapMin === 0 && def.thunderGapMax === 0);
+ok('CHAOS_DEFAULTS2: cloudThickMult = 2.5 (myrskyn paksunnus)', def.cloudThickMult === 2.5, def.cloudThickMult);
+ok('CHAOS_DEFAULTS2: stormBurst = true (kaikki tasot)', def.stormBurst === true, def.stormBurst);
+ok('CHAOS_DEFAULTS2: rainAmount = 1', def.rainAmount === 1, def.rainAmount);
+ok('CHAOS_DEFAULTS2: thunderGap 300/900', def.thunderGapMin === 300 && def.thunderGapMax === 900);
+ok('CHAOS_DEFAULTS2: tyyni 60–180 s (3600–10800 f)', def.stormCalmMin === 3600 && def.stormCalmMax === 10800);
 const badP = Chaos.chaosProfile('bad');
-ok('BAD: cloudThickMult > 1 (paksut pilvet)', badP.cloudThickMult > 1, badP.cloudThickMult);
-ok('BAD: stormBurst = true', badP.stormBurst === true, badP.stormBurst);
-ok('BAD: rainAmount > 0', badP.rainAmount > 0, badP.rainAmount);
-ok('BAD: purske- ja tyynijaksot > 0', badP.stormCalmMin > 0 && badP.stormCalmMax >= badP.stormCalmMin &&
-    badP.stormBurstMin > 0 && badP.stormBurstMax >= badP.stormBurstMin,
-    [badP.stormCalmMin, badP.stormCalmMax, badP.stormBurstMin, badP.stormBurstMax]);
-ok('BAD: tyyni ≥ 60 s (sade ei ala heti)', badP.stormCalmMin >= 3600, badP.stormCalmMin);
-ok('BAD: purske 60–180 s (3600–10800 f)', badP.stormBurstMin >= 3600 && badP.stormBurstMax <= 10800,
-    [badP.stormBurstMin, badP.stormBurstMax]);
-ok('BAD: thunderGapMin/Max > 0', badP.thunderGapMin > 0 && badP.thunderGapMax >= badP.thunderGapMin,
-    [badP.thunderGapMin, badP.thunderGapMax]);
-ok('BAD: salamointi harvennettu 5–15 s (300–900 f)', badP.thunderGapMin >= 300 && badP.thunderGapMax <= 900,
-    [badP.thunderGapMin, badP.thunderGapMax]);
-ok('MILD/GOOD: ei myrskyä', !Chaos.chaosProfile('mild').stormBurst && !Chaos.chaosProfile('good').stormBurst);
+ok('BAD = samat myrskyarvot kuin oletus (2.5 / true / 1)',
+    badP.cloudThickMult === 2.5 && badP.stormBurst === true && badP.rainAmount === 1,
+    [badP.cloudThickMult, badP.stormBurst, badP.rainAmount]);
+const mildCfg = Chaos.drawChaosCfg('mild'), goodCfg = Chaos.drawChaosCfg('good');
+ok('MILD/GOOD: myrsky periytyy oletuksesta (stormBurst true)',
+    mildCfg.stormBurst === true && goodCfg.stormBurst === true, [mildCfg.stormBurst, goodCfg.stormBurst]);
 const fullCfg = Chaos.drawChaosCfg('full');
-ok('FULL: ei myrskyä (stormBurst false, rainAmount 0)', fullCfg.stormBurst === false && fullCfg.rainAmount === 0,
-    [fullCfg.stormBurst, fullCfg.rainAmount]);
+ok('FULL: myrsky päällä (stormBurst true, rainAmount 1)',
+    fullCfg.stormBurst === true && fullCfg.rainAmount === 1, [fullCfg.stormBurst, fullCfg.rainAmount]);
 ok('clampChaosCfg: cloudThickMult 99 → 4', Chaos.clampChaosCfg(Object.assign({}, def, { cloudThickMult: 99 })).cloudThickMult === 4);
 ok('clampChaosCfg: cloudThickMult -5 → 1', Chaos.clampChaosCfg(Object.assign({}, def, { cloudThickMult: -5 })).cloudThickMult === 1);
 ok('clampChaosCfg: rainAmount -5 → 0', Chaos.clampChaosCfg(Object.assign({}, def, { rainAmount: -5 })).rainAmount === 0);
 ok('clampChaosCfg: thunderGapMin -5 → 0', Chaos.clampChaosCfg(Object.assign({}, def, { thunderGapMin: -5 })).thunderGapMin === 0);
 ok('clampChaosCfg: stormCalmMax < min → nostetaan', Chaos.clampChaosCfg(Object.assign({}, def, { stormCalmMin: 100, stormCalmMax: 10 })).stormCalmMax === 100);
 
-console.log('\n2) NORMAL/MILD/GOOD: ei sadetta eikä ukkosta (bitti-identtinen)');
-for (const lvl of ['normal', 'mild', 'good']) {
+console.log('\n2) Kaikki tasot: myrsky päällä (sama kuin BAD)');
+for (const lvl of ['normal', 'mild', 'good', 'bad']) {
     Street.setChaos(lvl);
-    ok(lvl + ': stormBurst = false', T.stormBurst === false, T.stormBurst);
-    ok(lvl + ': rainAmount = 0, cloudThickMult = 1', T.conf.rainAmount === 0 && T.conf.cloudThickMult === 1,
+    ok(lvl + ': stormBurst = true', T.stormBurst === true, T.stormBurst);
+    ok(lvl + ': rainAmount = 1, cloudThickMult = 2.5', T.conf.rainAmount === 1 && T.conf.cloudThickMult === 2.5,
         [T.conf.rainAmount, T.conf.cloudThickMult]);
 }
 
-console.log('\n3) BAD: myrsky päällä');
-Street.setChaos('bad');
-ok('BAD: stormBurst = true', T.stormBurst === true);
-ok('BAD: rainAmount = 1, cloudThickMult > 1', T.conf.rainAmount === 1 && T.conf.cloudThickMult > 1,
-    [T.conf.rainAmount, T.conf.cloudThickMult]);
-ok('BAD: chaosFlags.storm päällä (lähde)', /chaosFlags\.storm\s*=\s*isBad/.test(src));
+console.log('\n3) NORMAL tyvenessä: stormLevel 0 → ohuet pilvet (bitti-identtinen)');
+Street.setChaos('normal');
+T.resetStorm();
+ok('NORMAL: alkaa tyvenestä (stormLevel 0)', T.stormLevel === 0, T.stormLevel);
+ok('NORMAL: ei pisaroita tyvenessä', T.rainDrops.length === 0, T.rainDrops.length);
+ok('NORMAL: stormBurst päällä (myrsky tulee myöhemmin)', T.stormBurst === true);
 
-console.log('\n4) Sää-tilakone: tyyni → purske → tyyni');
+console.log('\n4) Sää-tilakone + transitio: tyyni → nouseva → täysi → hiipuva');
 Street.setChaos('bad');
 T.resetStorm();
-ok('resetStorm: alkaa tyynestä', T.phase === 'calm' && T.rainDrops.length === 0);
+ok('resetStorm: alkaa tyynestä (stormLevel 0, ei pisaroita)',
+    T.phase === 'calm' && T.stormLevel === 0 && T.rainDrops.length === 0);
 T.phase = 'calm'; T.stormTimer = 0.5;
 T.updateStorm(1);
 ok('tyyni loppuu → purske alkaa', T.phase === 'burst', T.phase);
-ok('purske synnyttää sateen (rainAmount × RAIN_MAX)',
-    T.rainDrops.length === Math.round(C.RAIN_MAX * 1), T.rainDrops.length);
-ok('pisarat maailman sisällä', T.rainDrops.every((d) => d.x >= 0 && d.x <= C.WORLD_W && d.y >= 0 && d.y <= C.WORLD_H && d.len > 0));
+ok('transitio: sää ei ala täytenä (0 < stormLevel < 1)', T.stormLevel > 0 && T.stormLevel < 1, T.stormLevel);
+ok('transitio: sade alkaa tihkusta (< RAIN_MAX)', T.rainDrops.length < C.RAIN_MAX, T.rainDrops.length);
+ok('transitio: pisaramäärä = RAIN_MAX × stormLevel',
+    T.rainDrops.length === Math.round(C.RAIN_MAX * 1 * T.stormLevel), [T.rainDrops.length, T.stormLevel]);
+// Aja ramppi täyteen (estetään vaiheen vaihto + salamat)
+for (let i = 0; i < C.RAMP + 10; i++) { T.stormTimer = 9999; T.thunderTimer = 9999; T.updateStorm(1); }
+ok('transitio valmis: stormLevel = 1 (täysi myrsky)', T.stormLevel === 1, T.stormLevel);
+ok('täysi myrsky: pisaroita RAIN_MAX', T.rainDrops.length === C.RAIN_MAX, T.rainDrops.length);
+ok('pisarat maailman sisällä (wrap sallittu ±12)', T.rainDrops.every((d) => d.x >= -12 && d.x <= C.WORLD_W + 12 && d.y >= -12 && d.y <= C.WORLD_H + 12 && d.len > 0));
 ok('pisaroilla on syvyys z ∈ [0,1]', T.rainDrops.every((d) => d.z >= 0 && d.z <= 1));
+const fresh = T.makeRainDrop();
+ok('uusi pisara syntyy maailman sisään (x, y, z, len)',
+    fresh.x >= 0 && fresh.x <= C.WORLD_W && fresh.y >= 0 && fresh.y <= C.WORLD_H &&
+    fresh.z >= 0 && fresh.z <= 1 && fresh.len > 0);
 pts = []; ops = [];
 T.drawRain();                                  // lähi-kerros (z >= 0.5)
 const segs = [];
@@ -224,10 +232,15 @@ drop.y = 100;
 T.thunderTimer = 9999; T.stormTimer = 9999;
 T.updateStorm(1);
 ok('sade valuu alaspäin (y kasvaa)', drop.y > 100 && drop.y < C.WORLD_H, drop.y);
+// Purske loppuu → sää alkaa hiipua (ei rysäystä)
 T.phase = 'burst'; T.stormTimer = 0.5; T.thunderTimer = 9999;
 T.updateStorm(1);
-ok('purske loppuu → tyyni + sade poistuu', T.phase === 'calm' && T.rainDrops.length === 0,
-    [T.phase, T.rainDrops.length]);
+ok('purske loppuu → tyyni, sade EI katoa heti (hiipuu)',
+    T.phase === 'calm' && T.rainDrops.length > 0, [T.phase, T.rainDrops.length]);
+// Hiipuminen loppuun
+for (let i = 0; i < C.RAMP + 10; i++) T.updateStorm(1);
+ok('transitio alas valmis: stormLevel = 0 ja sade poistuu',
+    T.stormLevel === 0 && T.rainDrops.length === 0, [T.stormLevel, T.rainDrops.length]);
 
 console.log('\n5) Salama: ylhäältä alas, talojen taakse');
 Street.setChaos('bad');
@@ -235,7 +248,7 @@ T.resetStorm();
 T.triggerLightning();
 const bolt = T.lightning.bolt;
 ok('salama syntyy (lightning + polku)', !!bolt && bolt.length === C.SEGS + 1, bolt ? bolt.length : null);
-ok('alkaa ylhäältä (y = 4)', bolt[0].y === 4, bolt[0].y);
+ok('alkaa pilvistä (y = LIGHTNING_TOP_Y, ei ruudun yläreunasta)', bolt[0].y === C.TOP_Y, [bolt[0].y, C.TOP_Y]);
 ok('päättyy maan tasoon (GROUND_Y + 6)', near(bolt[bolt.length - 1].y, C.GROUND_Y + 6), bolt[bolt.length - 1].y);
 ok('pysyy vaakasuunnassa ruudulla', bolt.every((p) => p.x >= 6 && p.x <= C.WORLD_W - 6),
     [Math.min.apply(null, bolt.map((p) => p.x)), Math.max.apply(null, bolt.map((p) => p.x))]);
@@ -267,10 +280,20 @@ T.updateStorm(1);
 ok('viivästetty jyrinä soi (playThunder)', thunderCalls === 1, thunderCalls);
 ok('jyrinä kuitataan (thunderPending = -1)', T.thunderPending === -1, T.thunderPending);
 Street.setChaos('normal');
+T.resetStorm();
 T.thunderPending = 1; thunderCalls = 0;
 T.updateStorm(1);
-ok('ei-NORMAL: jyrinä ei soi (updateStorm no-op)', thunderCalls === 0, thunderCalls);
+ok('myös NORMAL: jyrinä soi (myrsky kaikilla tasoilla)', thunderCalls === 1, thunderCalls);
 T.thunderPending = -1;
+// Transitio: salama vasta kun sää on lähes täysi myrsky (ei ukkosta tihkusateessa)
+Street.setChaos('bad');
+T.resetStorm();
+T.phase = 'burst'; T.stormTimer = 9999; T.stormLevel = 0.5; T.thunderTimer = 0;
+T.updateStorm(1);
+ok('transitio: ei salamaa puolikkaalla säällä', T.lightning === null, T.lightning ? 'lightning' : null);
+T.stormLevel = 1; T.thunderTimer = 0;
+T.updateStorm(1);
+ok('täysi myrsky: salama iskee (thunderTimer 0 → triggerLightning)', !!T.lightning);
 // v11.56: salaman → jyrinän viive 0,4–3,0 s (kaukaisin ukkonen jyrisee vasta ~3 s päästä)
 ok('salama → jyrinä 0,4–3,0 s (THUNDER_DELAY_MIN/MAX)',
     src.includes('THUNDER_DELAY_MIN = 0.4') && src.includes('THUNDER_DELAY_MAX = 3'));
@@ -288,12 +311,20 @@ ok('playThunder: limitys säilyy (0,2 s askel)', thunderSrc.includes('i * 0.2'))
 ok('playThunder: ei korkeita säveliä (kaikki < 200 Hz)',
     (thunderSrc.match(/freq:\s*(\d+)/g) || []).every((s) => Number(s.replace(/\D/g, '')) < 200));
 ok('StreetSfx vie playThunderin', src.includes('playThunder: playThunder'));
-const stormFns = ['updateStorm', 'triggerLightning', 'updateRain', 'drawRain', 'drawRainBack', 'rainStreak', 'drawLightningBolt', 'resetStorm', 'makeBoltPath', 'initRain'];
+const stormFns = ['updateStorm', 'triggerLightning', 'updateRain', 'drawRain', 'drawRainBack', 'rainStreak',
+    'drawLightningBolt', 'resetStorm', 'makeBoltPath', 'makeRainDrop', 'syncRainDrops', 'randStorm', 'reseedStormRng'];
 ok('myrskyfunktioissa ei uusia dialogeja (sääntö 06)',
     stormFns.every((n) => !fnBody(n).includes('showNotification')));
+ok('myrskyfunktiot eivät kuluta jaettua Math.random-jonoa (oma RNG)',
+    stormFns.every((n) => !fnBody(n).includes('Math.random')));
+ok('myrskyn oma RNG (stormRng = makeRng, kuten moonShadowRng)', src.includes('stormRng = makeRng('));
 ok('updateStorm kutsutaan update():ssa', /updateStorm\(dt\);/.test(src));
 ok('resetStorm kutsutaan init():ssä', /resetStorm\(\);/.test(src));
-ok('cloudThickMult käytössä drawCloudsissa', src.includes('* cloudThickMult'));
+ok('pilvien paksunnus skaalautuu stormLevelillä (drawClouds)', src.includes('(cloudThickMult - 1) * stormLevel'));
+ok('sade lukee stormLeveliä (transitio)', src.includes('0.16 * stormLevel') && src.includes('0.36 * stormLevel'));
+ok('transitio: STORM_RAMP_FRAMES = 300', src.includes('STORM_RAMP_FRAMES = 300'));
+ok('salaman alku pilvistä (LIGHTNING_TOP_Y = 60, ei y = 4)', src.includes('LIGHTNING_TOP_Y = 60'));
+ok('salama vasta täydessä myrskyssä (STORM_THUNDER_LEVEL = 0.85)', src.includes('STORM_THUNDER_LEVEL = 0.85'));
 
 console.log('\n8) Versio');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');

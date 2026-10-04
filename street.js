@@ -1460,11 +1460,14 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     let lastCloudTime = 0;     // Pilvien dt-laskenta
     let windDir = Math.random() < 0.5 ? 1 : -1;
     let windSpeed = 2 + Math.random() * 3; // px/s (2–5)
-    /* BAD-myrsky (purske): sade + ukkonen. Tilakone: tyyni → purske → tyyni.
-       NORMAL/MILD/GOOD/FULL: stormBurst = false → funktiot ovat no-opeja. */
+    /* Myrsky (sade + ukkonen). Tilakone: tyyni → purske → tyyni.
+       Päällä kaikilla tasoilla (stormBurst). Sään voimakkuus liukuu
+       stormLevelillä (transitio): pilvet paksunevat, sade voimistuu ja
+       ukkonen alkaa vasta täydessä myrkyssä – ja kaikki palautuu pehmeästi. */
     let rainDrops = [];        // sade: { x, y, len, speed }
     let stormPhase = 'calm';   // 'calm' | 'burst'
     let stormTimer = 0;        // jäljellä oleva aika (framet)
+    let stormLevel = 0;        // sään voimakkuus 0..1 (transitio; ohjaa pilvet/sade/ukkosen)
     let thunderTimer = 0;      // seuraavan salaman laskuri purskeen aikana
     let lightning = null;      // aktiivinen salama { t, bolt, boltAlpha, flashAlpha }
     let thunderPending = -1;   // frame laskuri jyrinälle (-1 = ei mitään)
@@ -1570,7 +1573,6 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         badFinale: false,     // BAD: finaali – ei tähtiä, hidas meteoriittiväli
         ruin: false,          // BAD/FULL: rauniot – talojärjestys arvotaan, liikenne ja eläimet seisovat, savu
         mosquitoes: false,    // BAD/FULL: lamppujen hyttyset isompia ja tummempia (K1/K3)
-        storm: false,         // BAD: myrsky – paksut pilvet (aina) + sade + ukkonen purskeina
         anyChaos: false       // ei-NORMAL: kaaosakselit ja K7-kortit aktiivisia
     };
     /* ── Kuunvarjojen kaaoskerroin (BAD/FULL) ──
@@ -1615,12 +1617,12 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     let barBurntLetter   = -1;    // BAR-kyltin palanut kirjain (-1 = ei mitään, 0–2 = B/A/R)
     let cabFlicker       = 0;     // sähkökaapin valon "rätinä" (0–1)
     let sunSizeMult      = 1;     // auringon koko (1 = nykyinen, 2 = tupla)
-    // K1/K6 – BAD-myrsky (paksut pilvet + sade + ukkonen purskeina)
-    let cloudThickMult   = 1;     // hazy-pilvien pystysädekerroin (1 = nykyinen)
-    let stormBurst       = false; // BAD: sade + ukkonen päällä
-    let rainAmount       = 0;     // sateen voimakkuus (0 = ei sadetta)
-    let stormCalmMin = 0, stormCalmMax = 0, stormBurstMin = 0, stormBurstMax = 0;
-    let thunderGapMin = 0, thunderGapMax = 0;
+    // K1/K6 – myrsky (paksut pilvet + sade + ukkonen purskeina; kaikki tasot)
+    let cloudThickMult   = 2.5;   // hazy-pilvien pystysädekerroin (max; tehollinen ×stormLevel)
+    let stormBurst       = true;  // sade + ukkonen päällä
+    let rainAmount       = 1;     // sateen voimakkuus
+    let stormCalmMin = 3600, stormCalmMax = 10800, stormBurstMin = 3600, stormBurstMax = 10800;
+    let thunderGapMin = 300, thunderGapMax = 900;
 
     /* Kaaos – satunnaisesti lukittu ovi (jukebox + hedelmäpeli).
        Ei ilmoitusta (sääntö 06): ovi ei vain aukea. BAR ja makuuhuone
@@ -2279,7 +2281,6 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         chaosFlags.badFinale     = isBad;
         chaosFlags.ruin          = ruins;
         chaosFlags.mosquitoes    = ruins;
-        chaosFlags.storm         = isBad;   // BAD: myrsky (sade + ukkonen purskeina)
         chaosFlags.anyChaos      = chaosLevel !== 'normal';
     }
 
@@ -4488,6 +4489,8 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
                           mix(CLOUD_NIGHT_HAZY[1], CLOUD_DAY_HAZY[1]) + ',' +
                           mix(CLOUD_NIGHT_HAZY[2], CLOUD_DAY_HAZY[2]);
         const alphaMul = 1 + (CLOUD_DAY_ALPHA - 1) * dayMix;   // päivällä pilvet vahvistuvat
+        // Sään transitio: pilvet paksunevat stormLevelin mukaan (tyven = 1 = nykyinen).
+        const thick = 1 + (cloudThickMult - 1) * stormLevel;
         for (const c of clouds) {
             const x = c.x, y = c.y;
             if (x < -c.w || x > WORLD_W + c.w) continue;
@@ -4519,7 +4522,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
                     const lw = c.w * (0.15 + 0.10 * (1 - dist));
                     const la = a * (0.5 + 0.5 * (1 - dist));
                     ctx.fillStyle = 'rgba(' + baseClr + ',' + la + ')';
-                    const ry = (3 + dist * 2) * cloudThickMult;   // kaos K1: paksumpi pilvi (BAD)
+                    const ry = (3 + dist * 2) * thick;   // sään transitio: paksumpi pilvi myrkyssä
                     ctx.beginPath();
                     ctx.ellipse(x + ox, y + oy, lw, ry, 0, 0, Math.PI * 2);
                     ctx.fill();
@@ -4530,54 +4533,75 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         }
     }
 
-    /* ── BAD-myrsky: sade + ukkonen satunnaisina purskeina ──────────────
+    /* ── Myrsky: sade + ukkonen satunnaisina purskeina ──────────────
        Tilakone: tyyni (calm) → myrskypurske (burst) → tyyni. Purskeen aikana
-       sade valuu ja salama iskee thunderGap-välein. Kaikki vain BADissa
-       (chaosFlags.storm); NORMAL/MILD/GOOD/FULL: stormBurst = false → ei mitään,
-       joten piirto ja päivitys ovat no-opeja (NORMAL bitti-identtinen).
+       sade valuu ja salama iskee thunderGap-välein. Päällä KAIKILLA tasoilla
+       (stormBurst) – myös NORMAL. Sää muuttuu pehmeästi: stormLevel liukuu
+       0 ↔ 1 (transitio), joten pilvet paksunevat, sade voimistuu ja ukkonen
+       alkaa vasta täydessä myrkyssä – ja kaikki palautuu tyveksi.
        Salama piirretään taivaskerrokseen (talot peittävät alaosan – ei koskaan
        talojen eteen) ja välähdys koko ruudulle; jyrinä soi matalana viiveellä
        välähdyksen jälkeen (0,4–3,0 s; kerroksia 5–10). Ei uutta tekstiä (sääntö 06), ei pelimekaanista
        vaikutusta (pelaajaan iskevä salama = erillinen tuleva versio). */
-    const STORM_RAIN_MAX = 150;         // pisaramäärä täydellä teholla (rainAmount = 1)
+    const STORM_RAIN_MAX = 150;         // pisaramäärä täydellä teholla (stormLevel = 1)
     const STORM_RAIN_SPEED = 5.5;       // pisaran pystysuora perusnopeus (px/frame, puolitettu)
     const RAIN_WIND_FACTOR = 0.45;      // vinokulma tuulen mukaan: vaakakallistus = windSpeed × tämä
+    const STORM_RAMP_FRAMES = 300;      // sään transitio: stormLevel 0 → 1 (~5 s)
+    const STORM_THUNDER_LEVEL = 0.85;   // salama vasta kun sää on lähes täysi myrsky
+    const LIGHTNING_TOP_Y = 60;         // salaman alkukorkeus: pilvien / kuun ja auringon linja (ei ruudun yläreuna)
     const LIGHTNING_FLASH_FRAMES = 24;  // välähdyksen kokonaiskesto (~0,4 s)
     const LIGHTNING_BOLT_SEGS = 14;     // siksak-segmenttien määrä
     const THUNDER_DELAY_MIN = 0.4;      // salama → jyrinä, lähin ukkonen (s)
     const THUNDER_DELAY_MAX = 3.0;      // salama → jyrinä, kaukaisin ukkonen (s)
 
-    /* Arpoo [a, b]. Jos väli on 0, palauttaa a:n KUTSUMISTA Math.random()ia:
-       muuten NORMAL/MILD/GOOD/FULL kuluttaisivat jaetun satunnaisjonon jo
-       init():ssä ja siirtäisivät deterministisiä simulaatioita (esim.
-       manhole-bonus-penkki). Vain BAD (väli > 0) kuluttaa jonoa. */
+    /* Myrskyn OMA RNG: arvonta ei kuluta jaettua Math.random-jonoa (sama
+       periaate kuin moonShadowRng) → NORMALin maailman generointi ja muut
+       arvat pysyvät täsmälleen ennallaan. ?seed= toistaa myrskyn; ilman
+       siementä sää vaihtelee kellon mukaan (Date.now, ei Math.random). */
+    let stormRng = makeRng(((CHAOS_SEED !== null ? CHAOS_SEED : (Date.now() >>> 0)) ^ 0x1f7a3c) >>> 0);
+    let stormRoll = 0;
+    function reseedStormRng() {
+        stormRoll++;
+        const base = (CHAOS_SEED !== null)
+            ? ((CHAOS_SEED ^ 0x1f7a3c) + stormRoll * 2654435761)
+            : Date.now();
+        stormRng = makeRng(base >>> 0);
+    }
+
+    /* Arpoo [a, b] myrskyn omasta RNG:stä. */
     function randStorm(a, b) {
         const span = Math.max(0, b - a);
-        return span > 0 ? a + Math.random() * span : a;
+        return span > 0 ? a + stormRng() * span : a;
     }
 
     /* Nollaa myrsky tyyneksi (init / uusi peli). */
     function resetStorm() {
+        reseedStormRng();
         stormPhase = 'calm';
         stormTimer = randStorm(stormCalmMin, stormCalmMax);
+        stormLevel = 0;
         rainDrops = [];
         lightning = null;
         thunderPending = -1;
         thunderTimer = 0;
     }
 
-    function initRain() {
-        rainDrops = [];
-        const n = Math.round(STORM_RAIN_MAX * rainAmount);
-        for (let i = 0; i < n; i++) {
-            rainDrops.push({
-                x: Math.random() * WORLD_W,
-                y: Math.random() * WORLD_H,
-                z: Math.random(),                 // syvyys 0 (kaukana) … 1 (lähellä)
-                len: 8 + Math.random() * 10,
-                speed: 0.9 + Math.random() * 0.5
-            });
-        }
+    function makeRainDrop() {
+        return {
+            x: stormRng() * WORLD_W,
+            y: stormRng() * WORLD_H,
+            z: stormRng(),                    // syvyys 0 (kaukana) … 1 (lähellä)
+            len: 8 + stormRng() * 10,
+            speed: 0.9 + stormRng() * 0.5
+        };
+    }
+
+    /* Päivittää pisaramäärän sään voimakkuuden mukaan (transitio):
+       stormLevel 0 → ei pisaroita, 1 → täysi määrä. Kasvaa/pienenee pehmeästi. */
+    function syncRainDrops() {
+        const target = Math.round(STORM_RAIN_MAX * rainAmount * stormLevel);
+        while (rainDrops.length > target) rainDrops.pop();
+        while (rainDrops.length < target) rainDrops.push(makeRainDrop());
     }
 
     function updateRain(dt) {
@@ -4587,25 +4611,26 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             const zf = 0.55 + d.z * 0.9;                        // kauko (z pieni) = hitaampi → syvyys
             d.y += STORM_RAIN_SPEED * d.speed * zf * dt;
             d.x += wind * d.speed * zf * dt;
-            if (d.y > WORLD_H + 6) { d.y = -6; d.x = Math.random() * WORLD_W; }
+            if (d.y > WORLD_H + 6) { d.y = -6; d.x = stormRng() * WORLD_W; }
             if (d.x < -6) d.x += WORLD_W + 12;
             else if (d.x > WORLD_W + 6) d.x -= WORLD_W + 12;
         }
     }
 
-    /* Salaman siksak-polku: ylhäältä alas talojen taakse asti. */
+    /* Salaman siksak-polku: pilvistä alas talojen taakse asti (alkaa
+       LIGHTNING_TOP_Y:stä = kuun/auringon korkeudelta, ei ruudun yläreunasta). */
     function makeBoltPath() {
         const segs = LIGHTNING_BOLT_SEGS;
         const endY = GROUND_Y + 6;
-        const step = (endY - 4) / segs;
-        let x = 60 + Math.random() * (WORLD_W - 120);
-        let y = 4;
+        const step = (endY - LIGHTNING_TOP_Y) / segs;
+        let x = 60 + stormRng() * (WORLD_W - 120);
+        let y = LIGHTNING_TOP_Y;
         const pts = [];
         for (let i = 0; i <= segs; i++) {
             pts.push({ x: x, y: y });
             y += step;
             if (i > 0 && i < segs) {
-                x += (Math.random() - 0.5) * 34;
+                x += (stormRng() - 0.5) * 34;
                 x = Math.max(6, Math.min(WORLD_W - 6, x));
             }
         }
@@ -4615,7 +4640,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     /* Käynnistää yhden salaman: polku + välähdys + viivästetty jyrinä. */
     function triggerLightning() {
         lightning = { t: 0, bolt: makeBoltPath(), boltAlpha: 1, flashAlpha: 0.8 };
-        thunderPending = (THUNDER_DELAY_MIN + Math.random() * (THUNDER_DELAY_MAX - THUNDER_DELAY_MIN)) * 60;   // 0,4–3,0 s (×60 = framet)
+        thunderPending = (THUNDER_DELAY_MIN + stormRng() * (THUNDER_DELAY_MAX - THUNDER_DELAY_MIN)) * 60;   // 0,4–3,0 s (×60 = framet)
     }
 
     function updateLightning(dt) {
@@ -4628,7 +4653,8 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         if (lightning.t >= LIGHTNING_FLASH_FRAMES) lightning = null;
     }
 
-    /* Sää-tilakone: vaiheet + sade + salamat. Vain BAD (stormBurst). */
+    /* Sää-tilakone: vaiheet (tyyni → purske → tyyni) + sään transitio
+       (stormLevel 0 ↔ 1) + sade + salamat. Päällä kaikilla tasoilla. */
     function updateStorm(dt) {
         if (!stormBurst) return;
         updateLightning(dt);
@@ -4636,28 +4662,38 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
             thunderPending -= dt;
             if (thunderPending <= 0) { thunderPending = -1; StreetSfx.playThunder(); }
         }
-        if (stormPhase === 'calm') {
-            stormTimer -= dt;
-            if (stormTimer <= 0) {
+
+        // Vaihe: tyyni ↔ purske
+        stormTimer -= dt;
+        if (stormTimer <= 0) {
+            if (stormPhase === 'calm') {
                 stormPhase = 'burst';
                 stormTimer = randStorm(stormBurstMin, stormBurstMax);
-                thunderTimer = 60;         // ensimmäinen salama ~1 s kuluttua
-                initRain();
+                thunderTimer = 60;         // ensimmäinen salama ~1 s kuluttua täydestä
+            } else {
+                stormPhase = 'calm';
+                stormTimer = randStorm(stormCalmMin, stormCalmMax);
             }
-            return;
         }
-        // burst
-        stormTimer -= dt;
-        updateRain(dt);
-        thunderTimer -= dt;
-        if (thunderTimer <= 0) {
-            triggerLightning();
-            thunderTimer = randStorm(thunderGapMin, thunderGapMax);
-        }
-        if (stormTimer <= 0) {
-            stormPhase = 'calm';
-            stormTimer = randStorm(stormCalmMin, stormCalmMax);
-            rainDrops = [];
+
+        // Sään voimakkuus liukuu kohti vaiheen tavoitetta (transitio)
+        const target = (stormPhase === 'burst') ? 1 : 0;
+        const step = dt / STORM_RAMP_FRAMES;
+        stormLevel += Math.max(-step, Math.min(step, target - stormLevel));
+        if (stormLevel < 0) stormLevel = 0; else if (stormLevel > 1) stormLevel = 1;
+
+        // Sade: pisaramäärä seuraa voimakkuutta (kasvaa/hiipuu pehmeästi)
+        syncRainDrops();
+        if (stormLevel > 0) updateRain(dt);
+        else rainDrops = [];
+
+        // Salama vasta kun sää on lähes täysi myrsky (ei ukkosta tihkusateessa)
+        if (stormPhase === 'burst' && stormLevel >= STORM_THUNDER_LEVEL) {
+            thunderTimer -= dt;
+            if (thunderTimer <= 0) {
+                triggerLightning();
+                thunderTimer = randStorm(thunderGapMin, thunderGapMax);
+            }
         }
     }
 
@@ -4694,11 +4730,12 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         ctx.lineTo(d.x + (vx / n) * len, d.y + (vy / n) * len);
     }
 
-    /* Kauko-sade: talojen TAAKSE (himmeä, hidas) – syvyysvaikutelma. */
+    /* Kauko-sade: talojen TAAKSE (himmeä, hidas) – syvyysvaikutelma.
+       Alpha skaalautuu sään voimakkuudella → sade hiipuu pehmeästi. */
     function drawRainBack() {
         if (!rainDrops.length) return;
         ctx.save();
-        ctx.strokeStyle = 'rgba(150,175,205,0.16)';
+        ctx.strokeStyle = 'rgba(150,175,205,' + (0.16 * stormLevel).toFixed(3) + ')';
         ctx.lineWidth = 1;
         ctx.beginPath();
         for (const d of rainDrops) if (d.z < 0.5) rainStreak(d);
@@ -4706,11 +4743,12 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         ctx.restore();
     }
 
-    /* Lähi-sade: kaiken ETEEN (kirkkaampi, nopeampi; BAD-myrskyn purske). */
+    /* Lähi-sade: kaiken ETEEN (kirkkaampi, nopeampi; myrskyn purske).
+       Alpha skaalautuu sään voimakkuudella → sade hiipuu pehmeästi. */
     function drawRain() {
         if (!rainDrops.length) return;
         ctx.save();
-        ctx.strokeStyle = 'rgba(180,200,220,0.36)';
+        ctx.strokeStyle = 'rgba(180,200,220,' + (0.36 * stormLevel).toFixed(3) + ')';
         ctx.lineWidth = 1;
         ctx.beginPath();
         for (const d of rainDrops) if (d.z >= 0.5) rainStreak(d);
