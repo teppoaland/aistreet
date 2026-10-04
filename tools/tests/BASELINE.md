@@ -11,6 +11,8 @@
 > `street-storm-test` kasvoi 62/0:aan → **29 penkkiä, 29 puhdasta, 0 löydöstä**.
 > **4.10.2026 (v11.55):** `street-storm-test` kasvoi 64/0:aan (ukkosen 5 kerrosta + purske 60–180 s)
 > → **29 penkkiä, 29 puhdasta, 0 löydöstä**.
+> **4.10.2026 (v11.56):** `street-storm-test` kasvoi 68/0:aan (ukkosen viive 0,4–3,0 s + salamointi 5–15 s +
+> jyrinä 5–10 kerrosta) → **29 penkkiä, 29 puhdasta, 0 löydöstä**.
 
 ## Miten baselinea luetaan
 

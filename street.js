@@ -4515,14 +4515,16 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
        (chaosFlags.storm); NORMAL/MILD/GOOD/FULL: stormBurst = false → ei mitään,
        joten piirto ja päivitys ovat no-opeja (NORMAL bitti-identtinen).
        Salama piirretään taivaskerrokseen (talot peittävät alaosan – ei koskaan
-       talojen eteen) ja välähdys koko ruudulle; jyrinä soi matalana hetki
-       välähdyksen jälkeen. Ei uutta tekstiä (sääntö 06), ei pelimekaanista
+       talojen eteen) ja välähdys koko ruudulle; jyrinä soi matalana viiveellä
+       välähdyksen jälkeen (0,4–3,0 s; kerroksia 5–10). Ei uutta tekstiä (sääntö 06), ei pelimekaanista
        vaikutusta (pelaajaan iskevä salama = erillinen tuleva versio). */
     const STORM_RAIN_MAX = 150;         // pisaramäärä täydellä teholla (rainAmount = 1)
     const STORM_RAIN_SPEED = 5.5;       // pisaran pystysuora perusnopeus (px/frame, puolitettu)
     const RAIN_WIND_FACTOR = 0.45;      // vinokulma tuulen mukaan: vaakakallistus = windSpeed × tämä
     const LIGHTNING_FLASH_FRAMES = 24;  // välähdyksen kokonaiskesto (~0,4 s)
     const LIGHTNING_BOLT_SEGS = 14;     // siksak-segmenttien määrä
+    const THUNDER_DELAY_MIN = 0.4;      // salama → jyrinä, lähin ukkonen (s)
+    const THUNDER_DELAY_MAX = 3.0;      // salama → jyrinä, kaukaisin ukkonen (s)
 
     /* Arpoo [a, b]. Jos väli on 0, palauttaa a:n KUTSUMISTA Math.random()ia:
        muuten NORMAL/MILD/GOOD/FULL kuluttaisivat jaetun satunnaisjonon jo
@@ -4592,7 +4594,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
     /* Käynnistää yhden salaman: polku + välähdys + viivästetty jyrinä. */
     function triggerLightning() {
         lightning = { t: 0, bolt: makeBoltPath(), boltAlpha: 1, flashAlpha: 0.8 };
-        thunderPending = 22 + Math.random() * 26;   // ~0,4–0,8 s välähdyksen jälkeen
+        thunderPending = (THUNDER_DELAY_MIN + Math.random() * (THUNDER_DELAY_MAX - THUNDER_DELAY_MIN)) * 60;   // 0,4–3,0 s (×60 = framet)
     }
 
     function updateLightning(dt) {

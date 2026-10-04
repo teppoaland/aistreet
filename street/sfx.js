@@ -228,44 +228,44 @@ function playBuildingCollapse() {
 }
 
 /* ── Ukkonen (BAD-myrsky): matala, pitkä jyrinä – EI korkeaa pimputusta.
-   VIISI päällekkäistä jyrinää samalla aikajanalla (kuten oikea ukkonen:
-   bruum-bruum-bruum-bruum-bruum) → tiivis, kerroksellinen kasauma (yht. ~3,1 s).
+   KERROSTEN MÄÄRÄ ARVOTAAN (5–10) → jyrinän pituus vaihtelee: lyhyt (5)
+   … pitkä (10). Limitys säilyy (0,2 s askel); pidempi määrä = pidempi jyrinä.
    Jokainen kerros saa oman kohinansa (ei vaiheluontia) ja PEHMEÄN alun,
    jotta se jyrisee eikä tömsähdä. Kaikki bassoa (lowpass 700 → 80 Hz +
    sävelet 62→26 · 44→22 Hz). Voimakkuudet laskevat kerroksittain, ettei summa paisu. */
+const THUNDER_LAYERS_MIN = 5;    // lyhin jyrinä (entinen 5 kerrosta)
+const THUNDER_LAYERS_MAX = 10;   // pisin jyrinä
 function playThunder() {
     try {
         initAudio();
         if (!audioCtx || audioCtx.state !== 'running') return;
         const now = audioCtx.currentTime;
-        const layers = [
-            { delay: 0.00, vol: 1.00, dur: 1.9 },
-            { delay: 0.20, vol: 0.85, dur: 2.0 },
-            { delay: 0.40, vol: 0.72, dur: 2.1 },
-            { delay: 0.60, vol: 0.61, dur: 2.2 },
-            { delay: 0.80, vol: 0.52, dur: 2.3 }
-        ];
-        for (const L of layers) {
-            const t0 = now + L.delay;
-            // Jyrinämassa: kohina, joka vaipuu hitaasti (L.durin mittainen häntä)
-            const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * L.dur), audioCtx.sampleRate);
+        // 5–10 kerrosta: limitys (0,2 s askel) ennallaan → pituus kasvaa automaattisesti
+        const n = THUNDER_LAYERS_MIN + Math.floor(Math.random() * (THUNDER_LAYERS_MAX - THUNDER_LAYERS_MIN + 1));
+        for (let i = 0; i < n; i++) {
+            const delay = i * 0.2;              // kerrosten limitys (0,2 s askel)
+            const vol   = Math.pow(0.85, i);    // laskeva voimakkuus (1,00 · 0,85 · 0,72 …)
+            const dur   = 1.9 + i * 0.1;        // hännän pituus (1,9 · 2,0 · 2,1 …)
+            const t0 = now + delay;
+            // Jyrinämassa: kohina, joka vaipuu hitaasti (durin mittainen häntä)
+            const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * dur), audioCtx.sampleRate);
             const data = buf.getChannelData(0);
-            for (let i = 0; i < data.length; i++) {
-                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * L.dur * 0.42));
+            for (let k = 0; k < data.length; k++) {
+                data[k] = (Math.random() * 2 - 1) * Math.exp(-k / (audioCtx.sampleRate * dur * 0.42));
             }
             const src = audioCtx.createBufferSource(); src.buffer = buf;
             const lp = audioCtx.createBiquadFilter(); lp.type = 'lowpass';
             lp.frequency.setValueAtTime(700, t0);
-            lp.frequency.exponentialRampToValueAtTime(80, t0 + L.dur);
+            lp.frequency.exponentialRampToValueAtTime(80, t0 + dur);
             const ng = audioCtx.createGain();
             ng.gain.setValueAtTime(0.0001, t0);
-            ng.gain.linearRampToValueAtTime(0.18 * L.vol * sfxVolumeMult, t0 + 0.20);   // pehmeä alku → jyrinä (5 kerrosta → pienempi perusvoimakkuus)
-            ng.gain.exponentialRampToValueAtTime(0.001, t0 + L.dur);
+            ng.gain.linearRampToValueAtTime(0.18 * vol * sfxVolumeMult, t0 + 0.20);   // pehmeä alku → jyrinä
+            ng.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
             src.connect(lp).connect(ng).connect(audioCtx.destination);
-            src.start(t0); src.stop(t0 + L.dur);
+            src.start(t0); src.stop(t0 + dur);
             // Bassot per kerros (matala jyrinä, joka laskee)
-            sfxTone({ freq: 62, freqTo: 26, dur: 1.6, type: 'sine',     vol: 0.24 * L.vol, delay: L.delay });
-            sfxTone({ freq: 44, freqTo: 22, dur: 2.0, type: 'triangle', vol: 0.18 * L.vol, delay: L.delay + 0.12 });
+            sfxTone({ freq: 62, freqTo: 26, dur: 1.6, type: 'sine',     vol: 0.24 * vol, delay: delay });
+            sfxTone({ freq: 44, freqTo: 22, dur: 2.0, type: 'triangle', vol: 0.18 * vol, delay: delay + 0.12 });
         }
     } catch(e) {}
 }

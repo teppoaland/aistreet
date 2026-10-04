@@ -1,4 +1,4 @@
-# 🧪 Testilista v11.55 – manuaalitestit (AI CHAOS STREET)
+# 🧪 Testilista v11.56 – manuaalitestit (AI CHAOS STREET)
 
 > ## ⚠️ UUSI SESSIO (Cline): LUE TÄMÄ ENSIN
 >
@@ -36,6 +36,8 @@
 - **Polku:** `file:///D:/AI/AI_street/index.html` + parametrit. `start_server.bat` **ei** ole käytössä.
 - **Välimuisti:** `?v=11.45` vaihtui → selain hakee tuoreet tiedostot automaattisesti.
 - **Konsoli (F12)** kannattaa pitää auki: siellä näkyvät JS-virheet ja `?debug`-taulukko.
+- **BAD-myrsky (v11.56):** `?chaos=bad` → salamoita **5–15 s** välein; salaman jälkeen jyrinä tulee **0,4–3,0 s**
+  viiveellä ja jyrinän pituus vaihtelee luontevasti (**5–10 limittäistä jyrähdystä**).
 
 | Kytkin | Mihin |
 |---|---|

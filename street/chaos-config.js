@@ -348,13 +348,13 @@ function chaosProfile(level) {
                 sunSizeMult: rnd(1.6, 2.0),
                 moonShadowMax: 3,
                 // K1/K6 – BAD-myrsky: paksut pilvet (aina) + sade + ukkonen purskeina.
-                // Tyyni 60–180 s · purske 60–180 s · salama 3–8 s välein purskeen aikana.
+                // Tyyni 60–180 s · purske 60–180 s · salama 5–15 s välein purskeen aikana.
                 cloudThickMult: 2.5,
                 stormBurst: true,
                 rainAmount: 1,
                 stormCalmMin: 3600, stormCalmMax: 10800,
                 stormBurstMin: 3600, stormBurstMax: 10800,
-                thunderGapMin: 180, thunderGapMax: 480
+                thunderGapMin: 300, thunderGapMax: 900
             };
         case 'full':
             return generateFullChaosSeed();

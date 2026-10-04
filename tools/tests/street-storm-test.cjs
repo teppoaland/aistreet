@@ -174,6 +174,8 @@ ok('BAD: purske 60–180 s (3600–10800 f)', badP.stormBurstMin >= 3600 && badP
     [badP.stormBurstMin, badP.stormBurstMax]);
 ok('BAD: thunderGapMin/Max > 0', badP.thunderGapMin > 0 && badP.thunderGapMax >= badP.thunderGapMin,
     [badP.thunderGapMin, badP.thunderGapMax]);
+ok('BAD: salamointi harvennettu 5–15 s (300–900 f)', badP.thunderGapMin >= 300 && badP.thunderGapMax <= 900,
+    [badP.thunderGapMin, badP.thunderGapMax]);
 ok('MILD/GOOD: ei myrskyä', !Chaos.chaosProfile('mild').stormBurst && !Chaos.chaosProfile('good').stormBurst);
 const fullCfg = Chaos.drawChaosCfg('full');
 ok('FULL: ei myrskyä (stormBurst false, rainAmount 0)', fullCfg.stormBurst === false && fullCfg.rainAmount === 0,
@@ -269,14 +271,20 @@ T.thunderPending = 1; thunderCalls = 0;
 T.updateStorm(1);
 ok('ei-NORMAL: jyrinä ei soi (updateStorm no-op)', thunderCalls === 0, thunderCalls);
 T.thunderPending = -1;
+// v11.56: salaman → jyrinän viive 0,4–3,0 s (kaukaisin ukkonen jyrisee vasta ~3 s päästä)
+ok('salama → jyrinä 0,4–3,0 s (THUNDER_DELAY_MIN/MAX)',
+    src.includes('THUNDER_DELAY_MIN = 0.4') && src.includes('THUNDER_DELAY_MAX = 3'));
+const tlBody = fnBody('triggerLightning');
+ok('triggerLightning lukee THUNDER_DELAY_MIN/MAX-vakiot',
+    tlBody.includes('THUNDER_DELAY_MIN') && tlBody.includes('THUNDER_DELAY_MAX'));
 Street.setChaos('bad');
 
 console.log('\n7) Lähteet: matala ääni, ei dialogeja, kytkennät');
 const thunderSrc = sliceFrom('function playThunder(', '\n}\n');
 ok('playThunder: lowpass-kohina', thunderSrc.includes("lp.type = 'lowpass'"));
 ok('playThunder: matalat bassosävelet (62 Hz, 44 Hz)', thunderSrc.includes('freq: 62') && thunderSrc.includes('freq: 44'));
-ok('playThunder: VIISI limittäistä kerrosta', thunderSrc.includes('delay: 0.20') && thunderSrc.includes('delay: 0.40') &&
-    thunderSrc.includes('delay: 0.60') && thunderSrc.includes('delay: 0.80'));
+ok('playThunder: 5–10 kerrosta (THUNDER_LAYERS_MIN/MAX)', src.includes('THUNDER_LAYERS_MIN = 5') && src.includes('THUNDER_LAYERS_MAX = 10'));
+ok('playThunder: limitys säilyy (0,2 s askel)', thunderSrc.includes('i * 0.2'));
 ok('playThunder: ei korkeita säveliä (kaikki < 200 Hz)',
     (thunderSrc.match(/freq:\s*(\d+)/g) || []).every((s) => Number(s.replace(/\D/g, '')) < 200));
 ok('StreetSfx vie playThunderin', src.includes('playThunder: playThunder'));

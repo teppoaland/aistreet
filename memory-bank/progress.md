@@ -12,7 +12,7 @@
 > (penkit repoon, `update()` 85 rv, `render()` 143 rv, `handleAction()` 14 rv, `chaosFlags`,
 > `rooms[]`, `dayNight`-olio, `street/chaos-config.js` + `street/sfx.js` + `street/news.js` +
 > `street/traffic.js` + `street/chaos-cards.js` + `street/rooms.js`, kommenttien versiosiivous).
-> **Tuotanto = `origin/main` = v11.51** (pushattu 4.10.2026); jäljellä vain ei-refaktorointityöt
+> **Tuotanto = `origin/main` = v11.56** (pushattu 4.10.2026); jäljellä vain ei-refaktorointityöt
 > (Blue Mäx -testimode, pääsiäismunat Dig Däshiin, hedelmäpelin RTP-presetit, jukebox-testien siivous).
 > **Bugikorjaukset v11.39** (K7 "Valot sammuvat" -kortti), **v11.41** (BAD/FULLin ikkunavalot),
 > **v11.43** (FULLin canvas-arvot), **v11.44** (huoneiden logiikka + penkki 41/0), **v11.45**
@@ -626,4 +626,28 @@ jälkeen randomina jos alkaa ja sade kestää aina min 60s - 180s."*
 - **Versio:** `#version-tag` + 10 `?v=`-leimaa + `.clinerules/03` → **v11.55**.
 - **Dokumentit:** `docs/chaos.md` §6.1 + §6.6 + muutoshistoria · `CHANGELOG.md` ·
   `tools/tests/BASELINE.md` · `docs/testilista.md` · `memory-bank/activeContext.md` · tämä tiedosto.
+
+**v11.56 – Ukkosen parametrit: viive 0,4–3,0 s + salamointi 5–15 s + jyrinän pituus satunnaiseksi 5–10 (4.10.2026, sääntö 03):**
+Käyttäjän pyyntö 4.10.2026: *"Luonnossa ukkonen näkyy kauas ja voi mennä jopa 5–6 s kun jyrinä tulee
+perässä. Nyt taisi olla viive 0.4–0.8. Kasvata tätä 0.4–4 s … tehdään jyrinän pituudesta myös random …
+5–10 … limitystä EI tarvitse muuttaa vaan sen pituus muuttuu automaattisesti."*
+
+- **Viive (`street.js`):** uudet vakiot `THUNDER_DELAY_MIN 0.4` / `THUNDER_DELAY_MAX 3.0` (s);
+  `triggerLightning` asettaa `thunderPending = (MIN + rand·(MAX−MIN)) × 60` → **0,4–3,0 s** (ennen
+  kiinteä `22 + rand×26` ≈ 0,4–0,8 s). Jyrinä soi edelleen myös purskeen jälkeen (pending-blokki on
+  ennen vaihehaaraa). *Epävakauden arvio:* yksi `thunderPending` riittää – päällekkäisyys (edellinen
+  jyrinä kesken kun uusi salama iskee) vain **~3 %** purskeista, joten jonoa ei tarvita.
+- **Salamointi (`street/chaos-config.js`):** BAD-profiilin `thunderGapMin/Max` **180–480 → 300–900** f
+  (**3–8 s → 5–15 s** välein) – käyttäjän palaute 4.10.2026: harvempi, rauhallisempi salamointi.
+- **Jyrinän pituus (`street/sfx.js`):** `playThunder` – kerrokset **5 kiinteää → 5–10 satunnaista**
+  (`THUNDER_LAYERS_MIN/MAX`; `delay = i·0,2`, `vol = 0,85^i`, `dur = 1,9 + i·0,1`). **Limitys (0,2 s
+  askel) ennallaan** → pidempi määrä = pidempi jyrinä. **N=5 = täsmälleen entinen ääni**; pisimmät (10)
+  hieman bassokkaampia (voimakkuudet laskevat kerroksittain, summa ei paisu).
+- **Testit:** `street-storm-test` **64 → 68/0** (uudet tarkistukset: `THUNDER_DELAY_MIN/MAX`-vakiot +
+  5–10 kerrosta + limitys `i * 0.2`). `run-all` **29 penkkiä / 29 puhdasta / 0 löydöstä** ·
+  `chaos-normal-check` **88 avainta / 0 eroa** (ei uusia kaaosakseleita) · `node --check` OK.
+- **Versio:** `#version-tag` + 10 `?v=`-leimaa + `.clinerules/03` → **v11.56**. **Julkaistu 4.10.2026** (push = tuotanto).
+- **Dokumentit:** `docs/chaos.md` §6.1 + muutoshistoria · `CHANGELOG.md` · `tools/tests/BASELINE.md` ·
+  `docs/testilista.md` · `memory-bank/activeContext.md` · tämä tiedosto.
+
 
