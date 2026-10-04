@@ -1,4 +1,4 @@
-# 🧪 Testilista v11.53 – manuaalitestit (AI CHAOS STREET)
+# 🧪 Testilista v11.54 – manuaalitestit (AI CHAOS STREET)
 
 > ## ⚠️ UUSI SESSIO (Cline): LUE TÄMÄ ENSIN
 >
@@ -135,6 +135,11 @@ file:///D:/AI/AI_street/index.html?chaos=full&day=1  ← pakota päivä (aamuong
   ja se on **kahdessa syvyyskerroksessa** (kauko-sade talojen takana + lähi-sade edessä → ei enää
   "lasikalvolla"). Vertaa `?chaos=normal` (ei sadetta eikä ukkosta, pilvet entiset). **Vain BAD** –
   FULL/NORMAL/MILD/GOOD eivät saa myrskyä. Impakti: ei pelimekaanista vaikutusta (sade ei vahingoita).
+- **v11.54 – Rosvon rauha + turvasäde (kaikki tasot):** rosvo ei ilmesty **ensimmäiseen 60 sekuntiin**
+  pelin alusta (peli ei ala ryöstöllä). Sen jälkeenkin rosvo **ei koskaan synny lähelle sitä kohtaa,
+  josta pelaaja juuri tuli ulos** (turvasäde 200 px, **kaikki ovet** – myös reunatalot BAR x765 ja
+  talo 0 x40; ennen vain BAR oli suojattu). **Ukkosen jyrinä tiivistetty** (~2,7 s, 3 limittäistä
+  jyrinää lähempänä toisiaan).
 
 ---
 

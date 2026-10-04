@@ -581,3 +581,30 @@ tömyttäisi kerran. Sade: hidasta sen liikettä puolella … miten sen saisi 'u
 - **Dokumentit:** `docs/chaos.md` §6.1 + §6.6 + muutoshistoria · `CHANGELOG.md` · `docs/testilista.md` ·
   `memory-bank/activeContext.md` · tämä tiedosto.
 
+**v11.54 – Rosvon rauha + turvasäde + jyrinä tiiviimmäksi (4.10.2026, sääntö 03):**
+Käyttäjän palaute 4.10.2026: *"Saatko vielä tiivistettyä jylinää, että äänen aika hiukan lyhenee ja
+jytinä menee päällekkäin … Rosvo laita, että ei ilmesty ensimmäiseen minuuttiin. Se vie heti kaikki
+rahat … Rosvo ei koskaan saisi myöskään ilmestyä samaan kohtaan, kuin mistä pelaaja tulee ulos, kun
+silloin ei havaitse että mitä edes tapahtui. Tämä on geneerinen ongelma."*
+
+- **Jyrinä (`street/sfx.js`):** `playThunder`-kerrokset tiivistetty – viiveet **0 · 0,38 · 0,78 →
+  0 · 0,20 · 0,40 s**, kestot **2,4 · 2,7 · 3,0 → 1,9 · 2,1 · 2,3 s** (yht. ~3,8 → **~2,7 s**),
+  voimakkuudet **1,0 · 0,72 · 0,52 → 1,0 · 0,85 · 0,70** → tiheämpi kasauma. Muu ennallaan
+  (pehmeä alku, oma kohina/kerros, bassot 62→26 · 44→22 Hz).
+- **Rosvon 60 s aloitusrauha (`street.js`):** uusi `ROBBER_GRACE_FRAMES 3600` + `robberGraceTimer`
+  (asetetaan `init()`issä, tikitetään `updateEnemies`issa, estetään `maybeSpawnRobber`issa) → rosvo ei
+  ilmesty ensimmäiseen minuuttiin. Kaikilla tasoilla.
+- **Turvasäde ulostulokohdasta (`street.js`):** `ROBBER_MIN_DIST 130 → **200**`; `spawnRobber`
+  kirjoitettu uudelleen: se arpoo ehdokkaan, **hylkää klampatun paikan, jos se jää alle turvasäteen**,
+  ja varmistuksena valitsee kauemman puolen → rosvo **ei koskaan synny lähelle sitä kohtaa, josta
+  pelaaja tuli ulos** (kaikki ovet; reunaklampin bugi poistettu). **BAR-ovi-häkä (`ROBBER_BAR_EXCLUDE_R`)
+  poistettu** – yleinen sääntö korvaa sen.
+- **Testit:** uusi penkki `tools/tests/street-robber-grace-test.cjs` (**19 OK / 0**): rauha estää
+  spawnin / raukeaa / kuluu; **jokainen spawn ≥ 200 px ulostulokohdasta 12 pelaajapositiolle × 150
+  arpaa** (myös reunatalot 0 / 765 / 780); BAR-häkä poistettu; ei dialogeja. `street-storm-test`
+  kasvoi **62/0** (ukkosen uudet viiveet). `run-all` **29 penkkiä / 29 puhdasta / 0 löydöstä** ·
+  `chaos-normal-check` 88 avainta / 0 · `render-smoke` 30/30 · `node --check` OK.
+- **Versio:** `#version-tag` + 10 `?v=`-leimaa + `.clinerules/03` → **v11.54**.
+- **Dokumentit:** `docs/chaos.md` §6.1 + §6.3 + §6.6 + muutoshistoria · `CHANGELOG.md` ·
+  `tools/tests/BASELINE.md` · `docs/testilista.md` · `memory-bank/activeContext.md` · tämä tiedosto.
+

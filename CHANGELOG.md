@@ -17,7 +17,8 @@
 
 | Versio | Mitä | Lisätieto |
 |---|---|---|
-| **🟢 v11.53 – TUOTANNOSSA** | **BAD-myrsky viilattu:** ukkonen = **3 limittäistä jyrinää** (bruum-bruum-bruum, kesto ~3,5–4 s); sade **puolet hitaampi**, vinokulma **tuulen voimakkuuden mukaan**, **2 syvyyskerrosta** (kauko talojen taakse + lähi eteen) | `progress.md` |
+| **🟢 v11.54 – TUOTANNOSSA** | **Rosvon rauha + turvasäde + jyrinä tiiviimmäksi:** rosvo ei ilmesty **ensimmäiseen 60 s** (`ROBBER_GRACE_FRAMES 3600`) eikä koskaan synny **ulostulokohdan päälle** (`ROBBER_MIN_DIST 200`, reunaklampin ohitse, kaikki ovet – BAR-ovi-häkä poistettu); `playThunder` tiivistetty (~2,7 s). Uusi penkki `street-robber-grace-test` (19/0) | `progress.md` |
+| **v11.53** | **BAD-myrsky viilattu:** ukkonen = **3 limittäistä jyrinää** (bruum-bruum-bruum, kesto ~3,5–4 s); sade **puolet hitaampi**, vinokulma **tuulen voimakkuuden mukaan**, **2 syvyyskerrosta** (kauko talojen taakse + lähi eteen) | `progress.md` |
 | **v11.52** | **BAD CHAOS – myrsky:** paksut pilvet (`cloudThickMult`) + **sade + ukkonen satunnaisina purskeina** (`updateStorm`: tyyni 15–45 s → purske 8–20 s). Salama iskee ylhäältä alas **talojen taakse** ja väläyttää koko ruudun; `playThunder` soi hetki välähdyksen jälkeen. Uusi penkki `street-storm-test` | `progress.md` |
 | **v11.51** | **CASINO-kyltti hedelmäpelitaloon:** neonvihreä kyltti talon katon yläpuolella (`drawCasinoSign`, `buildings[6]`), ohut musta kehys + pienet jalat + pieni ilmarako katon ja tekstin välissä; seuraa taloa BAD/FULLin sekotuksessa ja katoaa talon tuhoutuessa | `progress.md` |
 | **v11.50** | **CASINO-kyltin runko:** neonvihreä `drawCasinoSign` hedelmäpelitalon (`buildings[6]`) katon yläpuolelle; teksti `\| CASINO \|` → myöhemmin `CASINO` (parametrisäätö) | `progress.md` |

@@ -628,15 +628,18 @@ const Street = (() => {
     // Yllätysesiintyminen: rosvo ilmestyy vain paluussa pelistä/jukeboxista/BARista
     let   ROBBER_APPEAR_CHANCE = 0.4;   // 1/2.5 että rosvo ilmestyy paluussa; kaaos
     let   ROBBER_COOLDOWN      = 1500;  // ~25 s tauko rosvon esiintymisten välillä; kaaos
-    const ROBBER_MIN_DIST      = 130;   // min. etäisyys pelaajasta, kun rosvo ilmestyy
+    const ROBBER_MIN_DIST      = 200;   // turvasäde ULOSTULOKOHDASTA: rosvo ei koskaan
+                                        // ilmesty lähelle sitä kohtaa, josta pelaaja tuli
+                                        // ulos (reunaklampattu ehdokas hylätään) – pätee
+                                        // jokaiseen oveen, ks. spawnRobber()
     let   ROBBER_TTL           = 900;   // ~15 s elinikä – katoaa jos ei nappaa kiinni; kaaos
-    const ROBBER_BAR_EXCLUDE_R = 100;   // ei koskaan aivan BAR-oven kohdalle – pelaaja käy
-                                        // BAR:ssa usein; muissa ovissa huono tuuri sallitaan
+    const ROBBER_GRACE_FRAMES  = 3600;  // 60 s aloitusrauha: rosvo ei ilmesty heti pelin alettua
     let   ROBBER_STUN          = 900;   // ~15 s tainnutus kiinniotosta – pidempi kuin muiden
                                         // osumien 600, jotta pelaaja ehtii nähdä, mitä kävi; kaaos K4
     let   ROBBER_CHASES_Y      = false; // rosvo jahtaa vapaasti y-akselilla (vain BAD CHAOS)
     let robber = null;        // { x, y, w, h, facing, dir, speed, pause, walkTimer, ttl }
     let robberCooldown = 0;   // tauko ennen kuin uusi rosvo voi ilmestyä
+    let robberGraceTimer = 0; // aloitusrauha (framet): rosvo ei ilmesty ennen kuin 0
     let playerDead = false;          // kuolemasekvenssi käynnissä
     let deathTimer = 0;              // laskuri ennen reloadia (frameä)
     let deathAlpha = 0;              // mustan overlayn alpha (0→1 pimennyksen aikana)
@@ -1100,19 +1103,25 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
     function spawnRobber() {
         const pcx = player.x + player.w / 2;
-        // BAR-ovi (lamppu 4 → buildings[8], x 765): tähän kohtaan rosvo EI saa
-        // ilmestyä koskaan – pelaaja käy BAR:ssa usein, eikä ulostulossa saa
-        // joutua heti kiinni (reunaklamppi vei spawnin pelaajan kylkeen).
-        // Muissa ovissa huono tuuri sallitaan.
-        const barDoorX = doorCenter(buildings[lamps[4].bldgIdx]).x;
+        /* Turvasäde ULOSTULOKOHDASTA (geneerinen, kaikki ovet): rosvo ei koskaan
+           saa ilmestyä lähelle sitä kohtaa, josta pelaaja juuri tuli ulos – muuten
+           pelaaja ei ehdi havaita mitään. Reunaklampaus ei saa rikkoa tätä: jos
+           klampattu ehdokas jäi liian lähelle, se hylätään ja arvotaan uudelleen
+           (kumpi tahansa puoli); varmistuksena valitaan kauempi puoli. Ennen tämä
+           oli häkäkorjaus vain BAR-ovelle (reunaklamppi vei spawnin pelaajan kylkeen). */
+        const clear = Math.min(ROBBER_MIN_DIST, (WORLD_W - ROBBER_W) / 2);
         let x = null;
-        for (let attempt = 0; attempt < 8 && x === null; attempt++) {
+        for (let attempt = 0; attempt < 12 && x === null; attempt++) {
             const side = Math.random() < 0.5 ? -1 : 1;   // kumpi puoli pelaajasta
-            let cand = pcx + side * (ROBBER_MIN_DIST + Math.random() * (WORLD_W - 2 * ROBBER_MIN_DIST - ROBBER_W));
-            cand = Math.max(4, Math.min(WORLD_W - ROBBER_W - 4, cand));
-            if (Math.abs(cand + ROBBER_W / 2 - barDoorX) >= ROBBER_BAR_EXCLUDE_R) x = cand;
+            const cc = pcx + side * (clear + Math.random() * Math.max(0, (WORLD_W - ROBBER_W) - 2 * clear));
+            const cand = Math.max(4, Math.min(WORLD_W - ROBBER_W - 4, cc - ROBBER_W / 2));
+            if (Math.abs(cand + ROBBER_W / 2 - pcx) >= clear) x = cand;
         }
-        if (x === null) x = Math.max(4, barDoorX - ROBBER_BAR_EXCLUDE_R - ROBBER_W / 2);   // varmistus
+        if (x === null) {   // varmistus: valitaan puoli, joka on kauempana pelaajasta
+            const left  = Math.max(4, pcx - clear - ROBBER_W);
+            const right = Math.min(WORLD_W - ROBBER_W - 4, pcx + clear);
+            x = (pcx - (left + ROBBER_W / 2) >= (right + ROBBER_W / 2) - pcx) ? left : right;
+        }
         const dir = (pcx > x + ROBBER_W / 2) ? 1 : -1;   // kulkee kohti pelaajaa
         robber = {
             x: x, y: ROBBER_FOOT_Y - ROBBER_H,
@@ -1128,6 +1137,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
        ei ole kadulla koko ajan. */
     function maybeSpawnRobber() {
         if (playerDead || robber || robberCooldown > 0) return;
+        if (robberGraceTimer > 0) return;   // 60 s aloitusrauha: peli ei ala ryöstöllä
         if (Math.random() >= ROBBER_APPEAR_CHANCE) return;
         spawnRobber();
         robberCooldown = ROBBER_COOLDOWN;
@@ -2577,6 +2587,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         beamWeaponCollected = state.beamWeaponCollected || false;
         spawnBeamPickup();
         beamCooldownTimer = 0;   // uusi peli ei ala keskeneräisellä lukolla
+        robberGraceTimer = ROBBER_GRACE_FRAMES;   // 60 s aloitusrauha: ei rosvoa heti
         /* BAD-avaus: BAD = BAD – laskuri viritetään tässä, mutta meteoriitti
            syntyy vasta kadulla ja yöllä (updateBadDemo yön haarassa). */
         badDemoTimer = (chaosFlags.badDemo && !BAD_DEMO_OFF) ? BAD_DEMO_DELAY : -1;
@@ -3530,6 +3541,7 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
 
         // ── Rosvo: yllätys + kiinniotto ──
         if (robberCooldown > 0) robberCooldown -= dt;
+        if (robberGraceTimer > 0) robberGraceTimer -= dt;   // 60 s aloitusrauha kuluu
         updateRobber(dt);
 
         // ── K7-korttipakka: laukaisee/palauttaa visuaaliset kortit ──

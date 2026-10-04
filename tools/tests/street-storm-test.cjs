@@ -272,7 +272,7 @@ console.log('\n7) Lähteet: matala ääni, ei dialogeja, kytkennät');
 const thunderSrc = sliceFrom('function playThunder(', '\n}\n');
 ok('playThunder: lowpass-kohina', thunderSrc.includes("lp.type = 'lowpass'"));
 ok('playThunder: matalat bassosävelet (62 Hz, 44 Hz)', thunderSrc.includes('freq: 62') && thunderSrc.includes('freq: 44'));
-ok('playThunder: KOLME limittäistä kerrosta', thunderSrc.includes('delay: 0.38') && thunderSrc.includes('delay: 0.78'));
+ok('playThunder: KOLME limittäistä kerrosta', thunderSrc.includes('delay: 0.20') && thunderSrc.includes('delay: 0.40'));
 ok('playThunder: ei korkeita säveliä (kaikki < 200 Hz)',
     (thunderSrc.match(/freq:\s*(\d+)/g) || []).every((s) => Number(s.replace(/\D/g, '')) < 200));
 ok('StreetSfx vie playThunderin', src.includes('playThunder: playThunder'));
