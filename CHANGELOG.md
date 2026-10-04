@@ -17,6 +17,7 @@
 
 | Versio | Mitä | Lisätieto |
 |---|---|---|
+| **v11.67** | **Kadun talonumerot:** Dig Game -talo (`buildings[1]`) saa seinäänsä **roomalaisen I:n** ja Dig Däsh -talo (`buildings[3]`) **roomalaisen II:n** – musta serif-numero heti räystäslippaan alle lippa–ikkuna-bändiin (`drawHouseNumeral`; uudet vakiot `DIG1_BLDG_IDX`/`DIG2_BLDG_IDX`). Seuraavat taloa BAD/FULLin järjestyssekotuksessa ja katoavat talon tuhoutuessa. Mallikuva: koko ~2/3, väri musta. Ei uusia dialogeja (sääntö 06), ei talousmuutoksia | `progress.md` |
 | **🟢 v11.66 – TUOTANNOSSA** | **Kadun talotunnukset:** laivanupotustalon (`buildings[2]`) seinään **musta ankkuri** räystäslippaan alle (`drawAnchor`, ääriviivat `rgba(0,0,0,0.5)`) + Blue Mäx -talolle (`buildings[5]`) **kiinteä siipitunnusovi** (`drawDoor` case 7, `BM_DOOR_TYPE`: maroon-runko + musta kotkansiipi-ääriviiva, matriisi 14×6; ovi ei koskaan arvo, karmit `recessIn` 1). Molemmat seuraavat taloa BAD/FULLissa ja katoavat talon tuhoutuessa. Ei uusia dialogeja (sääntö 06), ei talousmuutoksia | `progress.md` |
 | **v11.62–v11.65** | **Blue Mäx -talon kiinteän siipitunnusoven viilaukset:** siipitunnus pelkiksi ääriviivoiksi → mustaksi → −33 % (14×6) → puoliksi läpinäkyväksi (`rgba 0,0,0,0.5`); karmit vasen/oikea/ylä puolitettu | `progress.md` |
 | **v11.60–v11.61** | **Laivanupotustalon ankkuri:** musta ankkuri (`drawAnchor`, rengas/varsi/poikkipuu/kourat) talon seinään räystäslippaan alle; v11.61 = puhtaaksi mustaksi | `progress.md` |

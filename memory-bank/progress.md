@@ -719,5 +719,24 @@ siivet … mallikuva … koko, muoto jne."*
   **Julkaistu 4.10.2026** (push = tuotanto).
 - **Dokumentit:** `CHANGELOG.md` · `memory-bank/activeContext.md` · tämä tiedosto.
 
+**v11.67 – Kadun talonumerot: DG1 → I, DG2 → II (4.10.2026):**
+Käyttäjän pyyntö 4.10.2026: *"Kadulla olevia taloja numeroidaan. DG1 taloon merkintä I ja DG2
+taloon merkintä II. Kuva mallina. Numerot liian isolla mallikuvassani, voivat olla noin 2/3
+korkeat mitä mallikuvassa. Väri musta."*
+
+- **Toteutus:** uusi `drawHouseNumeral(b, text)` (`street.js`) piirtää mustan roomalaisen numeron
+  (`#000`, `bold ~22px "Times New Roman", Times, serif`; cap height ≈ 16 px = ~2/3 mallikuvasta)
+  talon omaan seinään lippa–ikkuna-bändin keskikohtaan (`topY + 13`, bändi 0…25 px). Uudet vakiot
+  **`DIG1_BLDG_IDX = 1`** (Dig Game, `buildings[1]`, `lamps[0]`) ja **`DIG2_BLDG_IDX = 3`**
+  (Dig Däsh, `buildings[3]`, `lamps[1]`). Kutsu on indeksiehdollinen `drawBuildings()`in sisällä
+  (ankkurin `drawAnchor`-kutsun rinnalla) → numerot **seuraavat taloa BAD/FULLin järjestys-
+  sekotuksessa ja katoavat talon tuhoutuessa** (romukasa), täsmälleen kuten ankkuri/HOSTEL/CASINO.
+  Mallikuvan tyyli = antiikva/serif (käyttäjän valinta). Ei tekstiä eikä dialogeja (sääntö 06),
+  ei talous-/mekaniikkamuutoksia.
+- **Tarkistus:** `node --check street.js` OK. Ulkoasu jää käyttäjän silmälle (sääntö 05).
+- **Versiot:** `#version-tag` + 10 `?v=`-leimaa (1 CSS + 9 skriptiä) + `.clinerules/03` → **v11.67**.
+  **Ei committia** (työ jää työpuuhun, sääntö 03).
+- **Dokumentit:** `CHANGELOG.md` · tämä tiedosto.
+
 
 

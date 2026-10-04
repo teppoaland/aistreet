@@ -376,6 +376,14 @@ const Street = (() => {
        case 7). Malli: tumma maroon-runko + kermanvärinen siipitunnus. */
     const BLUE_BLDG_IDX = 5;
     const BM_DOOR_TYPE  = 7;   // siipitunnusovi, ei mukana ovityyppien arvonnassa
+    /* Talonumerot (talotunnukset): Dig Game -talo (buildings[1]) saa
+       roomalaisen I:n ja Dig Däsh -talo (buildings[3]) roomalaisen II:n
+       seinäänsä heti räystäslippaan alle (ks. drawHouseNumeral). Sama
+       logiikka kuin ankkurilla: piirto on indeksiehdollinen drawBuildingsin
+       sisällä → seuraa taloa BAD/FULLin sekoituksessa ja katoaa talon
+       tuhoutuessa. Musta väri (käyttäjän pyyntö). */
+    const DIG1_BLDG_IDX = 1;   // Dig Game -talo (lamps[0], buildings[1]) – roomalainen I
+    const DIG2_BLDG_IDX = 3;   // Dig Däsh -talo (lamps[1], buildings[3]) – roomalainen II
     /* Tiedostonimet vastaavat sisältöä (korjattu 20.9.2026): aiemmin
        `our_song.mp3` ja `unafraid.mp3` olivat ristissä keskenään → raita 1 ja 2
        soivat valitun nimen vastaisesti. Älä "korjaa" nimiä takaisin ristiin.
@@ -3974,12 +3982,12 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
                 if (lamp.lit || lampFreeOpen()) {
                     // Dig Däsh vaatii Dig Gamesta kerätyn avaimen
                     if (lamp.gameUrl && lamp.gameUrl.includes('digGame2') && !digKeyCollected) {
-                        showNotification('🔑 Key missing! Beat the game in the first house to get it!');
+                        showNotification('🔑 Key missing! Beat the game in the house I to get it!');
                         return;
                     }
                     // Blue Mäx vaatii Dig Däshistä kerätyn avaimen
                     if (lamp.gameUrl && lamp.gameUrl.includes('bm/') && !boulderKeyCollected) {
-                        showNotification('🔑 Key missing, pal! Get it from the previous house!');
+                        showNotification('🔑 Key missing, pal! Get it from the house II!');
                         return;
                     }
                     if (lamp.gameUrl) { enterGame(lamp.gameUrl); }
@@ -5876,6 +5884,12 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
                räystäslippaan alla. Sama logiikka: seuraa taloa BAD/FULLin
                järjestyssekotuksessa ja katoaa talon tuhoutuessa. */
             if (idx === SINKSHIP_BLDG_IDX) drawAnchor(b);
+            /* Talonumerot: Dig Game -talo (buildings[1]) → I, Dig Däsh
+               -talo (buildings[3]) → II. Sama logiikka kuin ankkurilla:
+               seuraa taloa BAD/FULLin järjestyssekotuksessa ja katoaa
+               talon tuhoutuessa. */
+            if (idx === DIG1_BLDG_IDX) drawHouseNumeral(b, 'I');
+            if (idx === DIG2_BLDG_IDX) drawHouseNumeral(b, 'II');
             ctx.restore();
         }
     }
@@ -6762,6 +6776,32 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         ctx.lineTo(ax + hw - barbW * 0.5, ay + armTop + barbH);
         ctx.closePath();
         ctx.fill();
+        ctx.restore();
+    }
+
+
+    /* ── Talonumero (DG1 = I, DG2 = II) ──────────────────────────
+       Musta roomalainen numero talon omaan seinään heti räystäslippaan
+       alle, samaan bändiin kuin ankkuri (talon katon ja ensimmäisen
+       ikkunarivin väliin). Piirretään drawBuildingsin sisällä eli talon
+       omassa syvyysskaalassa → seuraa taloa BAD/FULLin järjestys-
+       sekotuksessa ja katoaa talon tuhoutuessa (romukasa).
+       Mallikuvan tyyli = antiikva/serif; koko ~2/3 mallikuvasta.
+       Ei tekstiä eikä dialogeja (sääntö 06). */
+    const NUMERAL_BAND_Y = 13;   // lippa–ikkuna-bändin (0…25 px) keskikohta
+    function drawHouseNumeral(b, text) {
+        const cx   = Math.round(b.x + b.w / 2);
+        const topY = GROUND_Y - b.h;
+        // Koko: serif-numero ei pomppaa silmään (aiempi fs 15 → 10, −33 %;
+        // käyttäjän palaute 4.10.2026). Väri: 60 % läpinäkyvyys (alpha 0.4)
+        // → numero jää taustaan ilman että se katoaa kokonaan.
+        const fs = 10;
+        ctx.save();
+        ctx.font = 'bold ' + fs + 'px "Times New Roman", Times, serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fillText(text, cx, topY + NUMERAL_BAND_Y);
         ctx.restore();
     }
 
