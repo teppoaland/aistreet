@@ -689,5 +689,35 @@ jukeboxissa niin on kaikille kappaleille kansikuva."*
 - **Versio:** `#version-tag` + 10 `?v=`-leimaa + `.clinerules/03` → **v11.59**. **Julkaistu 4.10.2026** (push = tuotanto).
 - **Dokumentit:** `CHANGELOG.md` · `docs/jukebox-memo.md` · `memory-bank/activeContext.md` · tämä tiedosto.
 
+**v11.60–v11.66 – Kadun talotunnukset: laivanupotustalon ankkuri + Blue Mäx -talon siipitunnusovi (4.10.2026):**
+Käyttäjän pyynnöt 4.10.2026: *"laivanupotuspelin talon ylimpään osaan voisi lisätä talon seinään mustan
+ankkurin … räystäslippaan alle"* ja *"Blue Mäx -taloon tulee ei arvottava ovi. Vakio-ovi jossa on
+siivet … mallikuva … koko, muoto jne."*
+
+- **v11.60–v11.61 – laivanupotustalon ankkuri (`drawAnchor`):** talon 2 (`buildings[2]`,
+  `SINKSHIP_BLDG_IDX`) seinään piirretään ankkuri (rengas · varsi · poikkipuu · kourat) heti
+  räystäslippaan alle, talon omassa syvyysskaalassa `drawBuildings()`in sisällä → seuraa taloa
+  BAD/FULLin järjestyssekotuksessa ja katoaa talon tuhoutuessa. Ensimmäinen versio oli musta +
+  vaalea reunus; **v11.61 viilasi sen puhtaaksi mustaksi** (koko kevyempi, ei reunusta). Ei tekstiä
+  eikä dialogeja (sääntö 06), ei talous-/mekaniikkamuutoksia.
+- **v11.62–v11.66 – Blue Mäx -talon kiinteä siipitunnusovi (`drawDoor` case 7):** uudet vakiot
+  **`BLUE_BLDG_IDX = 5`** ja **`BM_DOOR_TYPE = 7`**. `randomizeBuildingColors()` pakottaa
+  `buildings[BLUE_BLDG_IDX].doorType = BM_DOOR_TYPE` arvonnan jälkeen → **ovi ei koskaan arvo**
+  (säilyy myös K7 `palette` -kortin, BAD/FULL-sekoituksen ja resetin jälkeen, koska sama funktio).
+  Ovi = maroon-runko (`#3a1216`) + **kotkansiipi-ääriviiva** (pixel-matriisi, vain reunasolut) +
+  pieni harmaa plakaatti. **Ei `isActive`-väriä** → ovi on aina samannäköinen; oven yllä oleva
+  merkkivalo kertoo tilan. Karmit: `recessIn = (doorType === BM_DOOR_TYPE) ? 1 : 2` (muut ovet
+  bitti-identtiset).
+  - **v11.63:** ääriviivat pelkiksi reunasoluiksi (ei täyttöä) + kehykset ohuemmiksi.
+  - **v11.64:** kotka mustaksi (`#000000`) + karmit (vasen/oikea/ylä) puolitettu (syvennys 2 → 1 px).
+  - **v11.65:** kotka −33 % (matriisi 21×9 → **14×6**, uudelleen keskitetty `emX = dx+6`).
+  - **v11.66:** ääriviivat puoliksi läpinäkyväksi (`rgba(0,0,0,0.5)`) – ei enää pomppaa taustasta.
+- **Testit:** `run-all` **29 penkkiä / 29 puhdasta / 0 löydöstä** (ajettu v11.60:n jälkeen);
+  jälkimmäiset viilaukset (v11.61–v11.66) ovat pelkkiä piirtoarvoja, ja **käyttäjä testasi ne itse
+  silmällä** (sääntö 05). `node --check street.js` OK joka vaiheessa. Ei uusia dialogeja (sääntö 06).
+- **Versiot:** `#version-tag` + 10 `?v=`-leimaa + `.clinerules/03` → **v11.66** (v11.60 → v11.66).
+  **Julkaistu 4.10.2026** (push = tuotanto).
+- **Dokumentit:** `CHANGELOG.md` · `memory-bank/activeContext.md` · tämä tiedosto.
+
 
 

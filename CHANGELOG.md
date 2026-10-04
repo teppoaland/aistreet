@@ -17,7 +17,10 @@
 
 | Versio | Mitä | Lisätieto |
 |---|---|---|
-| **🟢 v11.59 – TUOTANNOSSA** | **Jukebox: kaikilla 9 raidalla kansikuva:** raidoille 1–3 (Knived) lisätty kansi (`jukebox/covers/1–3.png`, 148×148) – aiemmin kansi oli vain raidoilla 4–9; `street.js`:n `cover`-kentät + kommentti päivitetty | `progress.md` |
+| **🟢 v11.66 – TUOTANNOSSA** | **Kadun talotunnukset:** laivanupotustalon (`buildings[2]`) seinään **musta ankkuri** räystäslippaan alle (`drawAnchor`, ääriviivat `rgba(0,0,0,0.5)`) + Blue Mäx -talolle (`buildings[5]`) **kiinteä siipitunnusovi** (`drawDoor` case 7, `BM_DOOR_TYPE`: maroon-runko + musta kotkansiipi-ääriviiva, matriisi 14×6; ovi ei koskaan arvo, karmit `recessIn` 1). Molemmat seuraavat taloa BAD/FULLissa ja katoavat talon tuhoutuessa. Ei uusia dialogeja (sääntö 06), ei talousmuutoksia | `progress.md` |
+| **v11.62–v11.65** | **Blue Mäx -talon kiinteän siipitunnusoven viilaukset:** siipitunnus pelkiksi ääriviivoiksi → mustaksi → −33 % (14×6) → puoliksi läpinäkyväksi (`rgba 0,0,0,0.5`); karmit vasen/oikea/ylä puolitettu | `progress.md` |
+| **v11.60–v11.61** | **Laivanupotustalon ankkuri:** musta ankkuri (`drawAnchor`, rengas/varsi/poikkipuu/kourat) talon seinään räystäslippaan alle; v11.61 = puhtaaksi mustaksi | `progress.md` |
+| **v11.59** | **Jukebox: kaikilla 9 raidalla kansikuva:** raidoille 1–3 (Knived) lisätty kansi (`jukebox/covers/1–3.png`, 148×148) – aiemmin kansi oli vain raidoilla 4–9; `street.js`:n `cover`-kentät + kommentti päivitetty | `progress.md` |
 | **v11.58** | **Jukebox: kansikuva näkyy myös selatessa:** kun mikään ei soi, kaapissa näytetään **kursorin raidan** kansi (esikatselu); soitossa soivan raidan kansi kuten ennen (`showCover = !!cover && cover.ready`) | `progress.md` |
 | **v11.57** | **Jukebox: valintalista kiertää päästä päähän:** ▲ riviltä 0 (Poistu) → viimeinen raita, ▼ viimeiseltä → rivi 0 – pohjalta pääsee suoraan takaisin ylös; penkki `street-jukebox-test.cjs` päivitetty kiertokäytökseen | `progress.md` |
 | **v11.56** | **Ukkosen parametrit:** salaman → jyrinän viive **0,4–3,0 s** (`THUNDER_DELAY_MIN/MAX`), salamointi **5–15 s välein** (`thunderGapMin/Max` 300–900 f) ja jyrinän pituus satunnaiseksi – **5–10 limittäistä jyrinää** (`THUNDER_LAYERS_MIN/MAX`; limitys 0,2 s askel ennallaan) | `progress.md` |

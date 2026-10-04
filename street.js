@@ -74,6 +74,10 @@ const Street = (() => {
             const doorTypes = [0,1,3,5,6];
             buildings[i].doorType = doorTypes[Math.floor(Math.random() * doorTypes.length)];
         }
+        /* Blue Mäx -talo (buildings[5]): ovi ei koskaan arvo – aina kiinteä
+           siipitunnusovi. Sama funktio ajetaan myös K7 'palette' -kortin
+           yhteydessä, joten kiinteä ovi säilyy sielläkin. */
+        buildings[BLUE_BLDG_IDX].doorType = BM_DOOR_TYPE;
     }
 
     /* ── Kaaos: talojen järjestyksen arpominen ────────────────
@@ -367,6 +371,11 @@ const Street = (() => {
     /* Laivanupotus (talo 2, buildings[2]) – ei omaa lamppua,
        1. potku sytyttää ikkunat, 2. potku avaa oven. Aina auki yöllä ja päivällä. */
     const SINKSHIP_BLDG_IDX = 2;
+    /* Blue Mäx -talo (buildings[5], lamps[2], x 445): ovi on KIINTEÄ
+       siipitunnusovi (ei arvota – ks. randomizeBuildingColors + drawDoor
+       case 7). Malli: tumma maroon-runko + kermanvärinen siipitunnus. */
+    const BLUE_BLDG_IDX = 5;
+    const BM_DOOR_TYPE  = 7;   // siipitunnusovi, ei mukana ovityyppien arvonnassa
     /* Tiedostonimet vastaavat sisältöä (korjattu 20.9.2026): aiemmin
        `our_song.mp3` ja `unafraid.mp3` olivat ristissä keskenään → raita 1 ja 2
        soivat valitun nimen vastaisesti. Älä "korjaa" nimiä takaisin ristiin.
@@ -5863,6 +5872,10 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
                katon yläpuolella. Sama logiikka: seuraa taloa BAD/FULLin
                järjestyssekotuksessa ja katoaa talon tuhoutuessa. */
             if (idx === FRUIT_BLDG_IDX) drawCasinoSign(b);
+            /* Laivanupotustalo (buildings[2]): musta ankkuritunnus seinässä
+               räystäslippaan alla. Sama logiikka: seuraa taloa BAD/FULLin
+               järjestyssekotuksessa ja katoaa talon tuhoutuessa. */
+            if (idx === SINKSHIP_BLDG_IDX) drawAnchor(b);
             ctx.restore();
         }
     }
@@ -6683,6 +6696,72 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         ctx.shadowBlur = 7;                      // pieni hehku
         ctx.fillStyle = CASINO_NEON;
         ctx.fillText(CASINO_SIGN_TEXT, cx, Math.round(fy + frameH / 2) + 1);
+        ctx.restore();
+    }
+
+
+    /* ── Ankkuritunnus (laivanupotustalo, buildings[2]) ─────────────
+       Puhdas musta, ohut ankkuri talon seinässä heti räystäslippaan alla
+       (sama bändi kuin HOSTEL-kyltillä) – pelaaja tunnistaa laivanupotus-
+       talon myös sekoitetusta kadusta. Piirretään drawBuildingsin sisällä
+       eli talon omassa syvyysskaalassa, joten se seuraa taloa BAD/FULLin
+       järjestyssekotuksessa ja katoaa talon tuhoutuessa (romukasa).
+       Ei tekstiä eikä dialogeja (sääntö 06). Koko suhteutuu talon
+       leveyteen ja mahtuu lippa–ikkuna-bändiin. */
+    function drawAnchor(b) {
+        const cx   = b.x + b.w / 2;
+        const topY = GROUND_Y - b.h;
+        const W    = Math.max(9,  Math.round(b.w * 0.22));   // ankkurin leveys
+        const H    = Math.max(11, Math.round(b.w * 0.26));   // ankkurin korkeus
+        const ax   = Math.round(cx);
+        const ay   = topY + 6;                               // yläreuna räystäslippaan alle
+        const hw   = W / 2;
+        const ringR  = Math.max(1.5, H * 0.13);              // renkaan säde
+        const stockY = H * 0.30;                             // poikkipuun korkeus
+        const armTop = H * 0.66;                             // kourajen kärkien korkeus
+        const barbH  = H * 0.16;                             // kourakolmion korkeus
+        const barbW  = W * 0.14;                             // kourakolmion puolileveys
+
+        ctx.save();
+        ctx.strokeStyle = '#000';
+        ctx.fillStyle   = '#000';
+        ctx.lineWidth   = 1.5;
+        ctx.lineCap     = 'round';
+        ctx.lineJoin    = 'round';
+        ctx.shadowBlur  = 0;
+        // 1) rengas
+        ctx.beginPath();
+        ctx.arc(ax, ay + ringR, ringR, 0, Math.PI * 2);
+        ctx.stroke();
+        // 2) varsi (renkaasta pohjaan)
+        ctx.beginPath();
+        ctx.moveTo(ax, ay + ringR * 2);
+        ctx.lineTo(ax, ay + H * 0.90);
+        ctx.stroke();
+        // 3) poikkipuu (tanko) varren yläosassa
+        ctx.beginPath();
+        ctx.moveTo(ax - hw, ay + stockY);
+        ctx.lineTo(ax + hw, ay + stockY);
+        ctx.stroke();
+        // 4) pohjan kaari: kourat kärjestä kärkeen
+        ctx.beginPath();
+        ctx.moveTo(ax - hw, ay + armTop);
+        ctx.quadraticCurveTo(ax - hw, ay + H, ax, ay + H);
+        ctx.quadraticCurveTo(ax + hw, ay + H, ax + hw, ay + armTop);
+        ctx.stroke();
+        // 5) kourajen terävät kärjet (kolmiot)
+        ctx.beginPath();
+        ctx.moveTo(ax - hw, ay + armTop);
+        ctx.lineTo(ax - hw - barbW, ay + armTop + barbH);
+        ctx.lineTo(ax - hw + barbW * 0.5, ay + armTop + barbH);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(ax + hw, ay + armTop);
+        ctx.lineTo(ax + hw + barbW, ay + armTop + barbH);
+        ctx.lineTo(ax + hw - barbW * 0.5, ay + armTop + barbH);
+        ctx.closePath();
+        ctx.fill();
         ctx.restore();
     }
 
@@ -7527,9 +7606,11 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
         ctx.scale(s, s);
         ctx.translate(-dc.x, -GROUND_Y);
 
-        // Ovikaari / syvennys (kaikille yhteinen)
+        // Ovikaari / syvennys (kaikille yhteinen; Blue Mäx -ovessa ohuempi
+        // karmi: vasen/oikea/ylä puolitetaan, ala on muutenkin tasan).
+        const recessIn = (doorType === BM_DOOR_TYPE) ? 1 : 2;
         ctx.fillStyle = '#0a0a15';
-        ctx.fillRect(dx - 2, dy - 2, DOOR_W + 4, DOOR_H + 2);
+        ctx.fillRect(dx - recessIn, dy - recessIn, DOOR_W + recessIn * 2, DOOR_H + recessIn);
 
         // Oven runkovärit
         const doorBase = isActive ? '#5a3a20' : '#1a1010';
@@ -7625,6 +7706,46 @@ dayNight.nightShowArmed = (DAY_FORCE === 'night');  // laukeaa vain aidosta päi
                 ctx.strokeRect(dx + DOOR_W/2 + 2, dy + 20, DOOR_W/2 - 10, DOOR_H - 28);
                 drawHandle(dx + DOOR_W - 7, dy + DOOR_H/2, isActive);
                 break;
+            case 7: { // Siipitunnusovi (Blue Mäx) – KIINTEÄ, ei arvottu.
+                // Tumma maroon-runko + siipitunnuksen ÄÄRIVIIVAT (mallikuva).
+                // Ei isActive-väriä: ovi on aina samannäköinen (merkkivalo
+                // oven yllä kertoo tilan). Ei kahvaa (mallikuvassa ei ole).
+                ctx.fillStyle = '#3a1216';                 // maroon-runko
+                ctx.fillRect(dx, dy, DOOR_W, DOOR_H);
+                ctx.strokeStyle = '#170608';               // ohut tumma ulkokehys (1 px)
+                ctx.lineWidth = 1;
+                ctx.strokeRect(dx + 0.5, dy + 0.5, DOOR_W - 1, DOOR_H - 1);
+                ctx.strokeStyle = '#6a2a30';               // ohut vaalea sisäreuna
+                ctx.strokeRect(dx + 2.5, dy + 2.5, DOOR_W - 5, DOOR_H - 5);
+                // Siipitunnus PELKKINÄ ÄÄRIVIIVOINA (pixel-matriisi 14×6, 2/3
+                // alkuperäisestä koosta): piirretään vain reunasolut →
+                // kotkan/kotkansiipien ääriviiva.
+                const wings = [
+                    '......##......',
+                    '...########...',
+                    '.############.',
+                    '.############.',
+                    '..##..##..##..',
+                    '......##......'
+                ];
+                const emX = dx + 6, emY = dy + 7;
+                const wOn = (r, c) =>
+                    r >= 0 && r < wings.length && c >= 0 && c < wings[r].length &&
+                    wings[r][c] === '#';
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';     // ääriviivat: musta, puoliksi läpinäkyvä
+                for (let r = 0; r < wings.length; r++) {
+                    for (let c = 0; c < wings[r].length; c++) {
+                        if (!wOn(r, c)) continue;
+                        // vain reunasolu (jokin 4-naapuri tyhjä) → ääriviiva
+                        if (wOn(r - 1, c) && wOn(r + 1, c) && wOn(r, c - 1) && wOn(r, c + 1)) continue;
+                        ctx.fillRect(emX + c, emY + r, 1, 1);
+                    }
+                }
+                // Pieni plakaatti oikealla (mallikuva)
+                ctx.fillStyle = '#9a9a90';
+                ctx.fillRect(dc.x + 2, emY + 9, 6, 3);
+                break;
+            }
         }
 
         // Merkkivalo oven yllä (kaikille yhteinen)

@@ -88,8 +88,20 @@
          v11.58: jukeboxin kansikuva näkyy myös selatessa (kursorin raita,
          raidat 4–9) – soitossa soivan raidan kansi kuten ennen.
          v11.59: raidoille 1–3 (Knived) lisätty kansikuva (covers/1–3.png)
-         → kaikilla yhdeksällä raidalla on kansi. -->
-    <link rel="stylesheet" href="style.css?v=11.59">
+         → kaikilla yhdeksällä raidalla on kansi.
+         v11.61: laivanupotustalon (buildings[2]) seinään puhdas musta,
+         ohut ankkuritunnus räystäslippaan alle – pelaaja tunnistaa talon
+         myös sekoitetusta kadusta.
+         v11.62: Blue Mäx -talolle (buildings[5]) kiinteä siipitunnusovi
+         (ei koskaan arvottu): maroon-runko + siipitunnus (drawDoor case 7).
+         v11.63: ovi viilattu – siipitunnus pelkkinä ääriviivoina ja
+         ohuemmat oven kehykset.
+         v11.64: kotkan ääriviivat mustaksi + karmit (vasen/oikea/ylä)
+         puolitettu (tumma syvennys 2 → 1 px).
+         v11.65: kotka pienennetty 33 % (matriisi 14×6, uudelleen keskitetty).
+         v11.66: kotkan ääriviivat puoliksi läpinäkyväksi (rgba 0,0,0,0.5) –
+         ei enää pomppaa taustasta. -->
+    <link rel="stylesheet" href="style.css?v=11.66">
 </head>
 <body>
     <!-- ═══ ALOITUSGATE (äänilukko auki ennen chaos-valikkoa) ═══ -->
@@ -148,7 +160,7 @@
     </div>
 
     <!-- Versionumero (aina näkyvissä – myös alkunäkymässä) -->
-    <div id="version-tag">v11.59</div>
+    <div id="version-tag">v11.66</div>
 
     <!-- ═══ PÄÄNÄKYMÄ ═══════════════════════════════════ -->
     <div id="game-wrapper">
@@ -187,15 +199,15 @@
     </div>
 
     <!-- ═══ SKRIPTIT ═════════════════════════════════════ -->
-    <script src="gameState.js?v=11.59"></script>
-    <script src="audio.js?v=11.59"></script>
-    <script src="street/chaos-config.js?v=11.59"></script>
-    <script src="street/sfx.js?v=11.59"></script>
-    <script src="street/news.js?v=11.59"></script>
-    <script src="street/traffic.js?v=11.59"></script>
-    <script src="street/chaos-cards.js?v=11.59"></script>
-    <script src="street/rooms.js?v=11.59"></script>
-    <script src="street.js?v=11.59"></script>
+    <script src="gameState.js?v=11.66"></script>
+    <script src="audio.js?v=11.66"></script>
+    <script src="street/chaos-config.js?v=11.66"></script>
+    <script src="street/sfx.js?v=11.66"></script>
+    <script src="street/news.js?v=11.66"></script>
+    <script src="street/traffic.js?v=11.66"></script>
+    <script src="street/chaos-cards.js?v=11.66"></script>
+    <script src="street/rooms.js?v=11.66"></script>
+    <script src="street.js?v=11.66"></script>
 
     <!-- ✕-napit (alapeli + huone + reset) – yksi yhteinen toiminto -->
     <script>
